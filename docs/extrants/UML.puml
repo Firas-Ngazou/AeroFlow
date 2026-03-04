@@ -1,0 +1,88 @@
+@startuml
+left to right direction
+class SimulationEngine {
+    - grid: LatticeGrid
+    - current_obstacle: VectorObstacle
+    - tau: float
+    - current_step: int
+    - resolution_x: int
+    - resolution_y: int
+    + <<property>> macro_velocity: ndarray
+    + <<property>> macro_density: ndarray
+    + initialize(initial_velocity_ms: float, initial_density: float): void
+    + execute_time_step(): void
+    + calculate_drag_coefficient(): float
+    + calculate_lift_coefficient(): float
+    - apply_collision(): void
+    '^ collisions step
+    - apply_streaming(): void
+    '^ step in which particles move from a position to a new one
+    - apply_boundaries(): void
+    '^ Basically makes particles that are set to hit an obstacle to bounce back
+    + set_obstacle(obs: VectorObstacle): void
+}
+
+class D2Q9Constants <<static>> {
+    {static} + WEIGHTS: tuple[float]
+    {static} + VELOCITIES_X: tuple[int]
+    {static} + VELOCITIES_Y: tuple[int]
+    {static} + SPEED_OF_SOUND_SQUARED: float
+}
+
+class LatticeGrid {
+    - width: int
+    - height: int
+    - distributions: ndarray
+    - distributions_temp: ndarray
+    + <<property>> width: int
+    + <<property>> height: int
+    + get_distribution(x: int, y: int): ndarray
+    + update_macroscopic(): tuple[ndarray, ndarray]
+}
+
+class VectorObstacle {
+    - vertices: list[tuple[float, float]]
+    - calculated_area: float
+    + <<property>> vertices: list[tuple[float, float]]
+    + <<property>> area: float
+    + calculate_area(): float
+    + generate_binary_mask(grid_width: int, grid_height: int): ndarray
+}
+
+class GeneticAlgorithm {
+    - max_iterations: int
+    - tolerance_margin: float
+    - constraint_method: str
+    + optimize(initial_shape: VectorObstacle, engine: SimulationEngine): dict
+    - generate_mutation(parent: VectorObstacle): VectorObstacle
+    - evaluate_fitness(candidate: VectorObstacle, engine: SimulationEngine): float
+    - verify_distance(original: VectorObstacle, candidate: VectorObstacle): bool
+    - verify_area(original: VectorObstacle, candidate: VectorObstacle): bool
+    + calculate_aerodynamic_gain(initial_cd: float, optimized_cd: float): float
+}
+
+class ConfigurationManager {
+    - file_path : str
+    + load_configuration(): dict
+    + save_configuration(config: dict):
+    - initialize_defaults():
+}
+
+class ProjectManager {
+    + save_project(path: str, data: dict) :
+    + load_project(path: str): dict
+}
+
+SimulationEngine *-- LatticeGrid
+SimulationEngine o-- VectorObstacle
+SimulationEngine ..> D2Q9Constants
+
+LatticeGrid ..> D2Q9Constants
+
+GeneticAlgorithm ..> SimulationEngine
+GeneticAlgorithm ..> VectorObstacle
+
+ConfigurationManager ..> SimulationEngine
+ConfigurationManager ..> GeneticAlgorithm
+
+@enduml
