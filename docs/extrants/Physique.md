@@ -70,3 +70,4 @@ Pour pouvoir implémenter la forme que nous souhaitons, il fau t d'abord la déf
 Cette méthode de rebond permet de créer le frottement de l'air avec la forme. En physique, la couche d'air qui touche directement une forme ne bouge pas par rappport à lui. Dans notre cas, on fait en sorte que le fluide ait une vitesse nul sur les points de la grille qui constitue directement la forme.Alors, on crée une condition fait en sorte que le fluide ne peut pas glisser sur la surface de la forme. Le frottement se créer alors de la collision entre le fluide qui rebondi directement sur la surface et le fluide qui circule a pleine vitesse un peu plus loin. 
 
 ### Trouver le $C_d$
+ 
