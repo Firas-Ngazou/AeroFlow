@@ -30,7 +30,7 @@ pertinentes possibles.
 
 ## Architecture logicielle (UML)
 
-![](docs/extrants/images/Image UML.png)
+![](docs/travail/uml/Image UML.png)
 
 ## Interface utilisateur (GUI)
 
@@ -44,8 +44,8 @@ carré signifiant que la prochaine intéraction avec ce bouton fera terminer la 
 lancée, un bouton pause apparait juste au-dessus qui permet l'interruption ainsi que la reprise de la simulation. Dans 
 la bar supérieure, le nom du projet est affiché et est directement modifiable par l'utilisateur lorsqu'il clique dessus.
 
-<img src="docs/extrants/images/Maquette Vue Éditeur 1.png" width="950">
-<img src="docs/extrants/images/Maquette Vue Éditeur 2.png" width="950">
+<img src="docs/travail/maquettes/Maquette Vue Éditeur 1.png" width="950">
+<img src="docs/travail/maquettes/Maquette Vue Éditeur 2.png" width="950">
 
 ### Paramètres
 
@@ -55,10 +55,10 @@ l'indique, permet à l'utilisateur d'apporter des modifications à certains aspe
 l'onglet d'optimisation, il pourra modifier tout ce qui est directement relié à l'optimisation de la forme et à 
 l'algorithme génétique.
 
-<img src="docs/extrants/images/Maquette Vue Parametres General.png" width="950">
-<img src="docs/extrants/images/Maquette Vue Parametres Optimization.png" width="950">
-<img src="docs/extrants/images/Maquette Vue Parametres General CU.png" width="950">
-<img src="docs/extrants/images/Maquette Vue Parametres Optimization CU.png" width="950">
+<img src="docs/travail/maquettes/Maquette Vue Parametres General.png" width="950">
+<img src="docs/travail/maquettes/Maquette Vue Parametres Optimization.png" width="950">
+<img src="docs/travail/maquettes/Maquette Vue Parametres General CU.png" width="950">
+<img src="docs/travail/maquettes/Maquette Vue Parametres Optimization CU.png" width="950">
 
 ### Analyse
 
@@ -69,10 +69,10 @@ l'évolution du coefficient de traîné en fonction de l'itération. Le deuxièm
 de la simulation. Une _heatmap_ (carte thermique) du module de la vitesse de l'air autour de la forme sera également 
 trouvable sous cet onglet.
 
-<img src="docs/extrants/images/Maquette Vue Analyse Optimization.png" width="950">
-<img src="docs/extrants/images/Maquette Vue Analyse Résultats.png" width="950">
-<img src="docs/extrants/images/Maquette Vue Analyse Optimization CU.png" width="950">
-<img src="docs/extrants/images/Maquette Vue Analyse Résultats CU.png" width="950">
+<img src="docs/travail/maquettes/Maquette Vue Analyse Optimization.png" width="950">
+<img src="docs/travail/maquettes/Maquette Vue Analyse Résultats.png" width="950">
+<img src="docs/travail/maquettes/Maquette Vue Analyse Optimization CU.png" width="950">
+<img src="docs/travail/maquettes/Maquette Vue Analyse Résultats CU.png" width="950">
 
 ## Gestion des données persistantes
 

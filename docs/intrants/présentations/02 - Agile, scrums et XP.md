@@ -80,6 +80,7 @@ Scrum valorise une responsabilité partagée plutôt qu'une hiérarchie traditio
 - Les développeurs : L'équipe multidisciplinaire qui réalise le travail technique. Ils sont auto-organisés et responsables de la qualité et de la réalisation des objectifs fixés.
 
 ### 2. Les artefacts pour la transparence
+
 Pour que la collaboration soit efficace, l'information doit être partagée et tangible. Scrum utilise trois artefacts clés :
 - Le _Product Backlog_ : La liste ordonnée de tout ce qui pourrait être nécessaire dans le produit. C’est une entité vivante qui évolue constamment.
 - Le _Sprint Backlog_ : La sélection d'éléments du backlog que l'équipe s'engage à réaliser durant un cycle court (le Sprint).
