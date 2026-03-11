@@ -177,3 +177,65 @@ ainsi que la portance.
 
 Implémentation des contraintes géométriques (calcul de l'aire et des limites de distances) pour limiter les mutations de
 l'IA et garantir la pertinence de la solution optimale.
+
+## 5 - Partie individuelle
+
+### 5.1 - Ngazou, Firas
+#### 5.1.1 - Rôles et responsabilités :
+
+**Conception et développement de l'interface graphique (éditeur vectoriel)**
+
+**Description :** 
+
+Je suis responsable de la création de l'interface graphique intéractive (GUI) du logiciel. Afin de remplir ma tâche, je 
+ferai usage des modules PySide6 et numba (JIT) et du langage Python. Ma tâche principale consiste à développer le 
+canevas de l'éditeur permettant à l'utilisateur de tracer des polygones (sommets), de les modifier et de les manipuler 
+via le placement de sommets (vertices) sur une grille. Je suis également responsable de la liaison des données entre la 
+facette arrière du logiciel (back-end) et l'interface graphique (front-end). Cela inclut notamment les menus de 
+configuration des contraintes de l'IA et l'affichage des résultats de simulation.
+
+**Limites :**
+
+Mon rôle commence à la capture des entrées de l'utilisateur, soit, des clics de souris sur la grille et des 
+modifications apportées aux paramètres de simulation. Ensuite, il consiste en l'envoi de toutes les données (géométries
+vectorielles et paramètres) au moteur de simulation. Mon rôle s'arrête à la réception des données calculées pour leur
+affichage visuel (résultats de la simulation). Par exemple, je suis responsable d'afficher la forme optimisée, de tracer
+la graphique de convergence de l'algorithme d'optimisation et de la _heatmap_ de la vitesse de l'air. Cependant, je ne 
+suis pas responsable de programmer la logique mathématique des mutations de l'IA, ni de coder les équations de 
+Lattice Boltzmann.
+
+#### 5.1.2 - Opinions personnelles :
+
+**Quelle partie sera la plus difficile à réaliser (en termes de complexité) ? Pourquoi ?**
+
+L'agencement de l'algorithme génétique avec le moteur physique sera le défi technique le plus complexe à mon avis. La
+génération d'une matrice binaire à une résolution personnalisée à partir d'une simple liste de sommets, tout en 
+s'assurant que les mutations générées par l'IA respectent strictement les contraintes mathématiques préalablement 
+établies par l'utilisateur représente, selon moi, un défi majeur. Il faudra éviter à tout prix que l'IA ne génère des
+topologies (ensemble de plusieurs sommets liés ensemble) qui sont mauvaises et qui feraient planter la simulation 
+physique lors de l'étape de collision.
+
+**Quelle partie sera la plus longue à réaliser (en termes de temps) ? Pourquoi ?**
+
+À mon avis, le développement de l'interface sera la partie la plus exigeante en termes de temps de travail. La création
+d'un éditeur vectoriel interactif et intuitif à partir de zéro implique la gestion des événements de clics de souris, le 
+déplacement des sommets, et de nombreuses autres fonctionnalités qui prennent du temps à implémenter, surtout qu'elles
+nécessitent quelques recherches techniques sur les capabilités de PySide6. L'interface graphique doit également 
+idéalement être fluide et conviviale pour l'utilisateur, nécessitant donc une attention particulière au niveau de
+l'optimisation de code là où c'est possible. De plus, lié de manière efficace l'interface avec le moteur physique, tout 
+en mettant à jour l'affichage sans faire figer l'application, demandera de très nombreuses heures de conception, de test
+et de débogage.
+
+**Justifiez comment ce projet vous permet d'intégrer les compétences acquises dans le cadre de votre formation 
+collégiale.**
+
+Ce projet final marque la fin de notre parcours en science, informatique et mathématiques pour une bonne raison. Il 
+exige l'utilisation de plusieurs concepts théoriques et pratiques vues en classe. Les connaissances acquises lors des 
+cours de programmation sont utilisés au maximum à travers l'architecture orientée objet de notre logiciel, le 
+développement de l'interface utilisateur et la structuration globale du code. L'algèbre linéaire et la géométrie 
+vectorielle sont appliquées de manière concrète à chaque fois que nous manipulons les matrices de simulation ou que
+nous gérons les coordonnées des sommets de l'obstacle. Le calcul intégral est utile pour notre compréhension de 
+certains processus et de la réelle nature de certaines formules mathématiques (notamment avec le théorème de Green). 
+Finalement, les notions vues dans le cours de mathématiques discrètes sont essentiels dans la conception de la logique
+combinatoire de l'IA. En bref, ce projet permet la liaison entre multiples compétences de différentes disciplines que 
+nous avons acquises au cours de notre formation.
