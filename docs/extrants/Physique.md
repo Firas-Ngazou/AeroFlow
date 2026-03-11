@@ -1,11 +1,11 @@
 # Document Physique
-## Introduction et problématique
+## 1. Introduction et problématique
 L'objectif de notre projet est de créer un logiciel qui simule l'aérodynamisme d'une forme dans un tunnel. Dans cette optique, nous avons contacter le prof de physique mécanique Jean-Philipe Cournoyer. Suite à notre rencontre, nous avons détérminer que le meilleur moyen de calculer l'aérodynamisme d'un forme serait d'agencer une série de plusieurs plaques pour former la carosserie d'une forme en 2D en calculant le frottement de l'air de chacune de ces plaques. Cela aurait été fait avec la formule de la force de trainée vu lors du cours de physique mécanique: $$F_d = \frac{1}{2} \rho v^2 C_d A$$
 Issue des équations de Navier-Stokes, cette équation permet de décrire le mouvement des fluides tel que l'air. De nos jours, les scientifique et mathématiciens savent utiliser ces équations mais n'en maitrises pas toutes ces facettes. Ainsi, les défis que représentesnt ces équations ont été inscrit dans les problemes mathématiques du siècle.
 
 Malheureusement, cette formule s'est avéré obselette pour notre cas. En effet, cette formule ne s'applique que quand l'objet dont on calcule la force de trainée est seul dans l'air. En d'autre mot il devient impossible de calculer le frottement de l'air de deux plaques à la suite vu que l'écoulement de l'air affecterait les autres plaques et augmenterait considérablement la difficulté sans apporter de valeur significative pour le projet.
 
-## La méthode des lattices de Boltzmann
+## 2. La méthode des lattices de Boltzmann
 Pour les raisons précédemment cités nous avons décidés d'utiliser la méthode des lattices de Boltzman. Cette méthode nous permettrai de trouver un résultat plus intéressant visuellement, de s'adapter mieux à notre vision du projet et de faciliter l'intégration d'un modèle physique à la hauteur de nos capacitées.
 
 
@@ -18,7 +18,7 @@ Grâce à cette technique, nous pouvons voir en temps réel l'évolution de la t
 
 Dans ce contexte, cette méthode sera parfaite pour voir comment les masses d'air se comporte avec une forme à pleine vitesse et trouvé la constante de trainée pour les différents véhiculent que nous allons tester.
 
-## Fondements physique dérrière l'équation de Boltzmann
+## 3. Fondements physique dérrière l'équation de Boltzmann
 Cette équation permet de représenter les collisions pour un fluide. Dans ce cas, $f_i$ représente la valeur théorique de la densité de molécule qui se déplace vers la direction $i$ et $f_i^{eq}$ qui représente l'état d'équilibre local. Plus la différence  entre $f_i$ et $f_i^{eq}$ est grande plus le fluide est perturbé. Enfin, le 
 ${\tau}$ est le taux de relaxation qui représente l'échelle de temps caractéristique pour que le système retrouve son équilibre. Bien que cela ne soit pas utile à notre cas,je trouve interressant de notifier qu'il existe une relation entre $ {\tau}$ et la viscosité $\nu$.
 
@@ -29,7 +29,7 @@ L'analyse de Chapman-Enskog est le pont qui permet de prouver que simuler le com
 
 L'analyse permet de réctifier le comportement réel d'un fluide.Dans ce cas là, on utilise la méthode de Chapman-Enskog qui elle même utilise les séries de taylor . Maintenant, analysons cette formule pour mieux la comprendre . D'abord, $f^{(0)}$ représente $f$ qui décrit le comportement théorique du fluide. Ensuite, on commence a ajouté des corrections comme : $\epsilon f^{(1)}$ qui représente le comportement du fluide par rapport à sa viscosité. Dans ce cas la, le paramètre $\epsilon$ (nombre de Knudsen) représente l'écart par rapport à l'équilibre. Ainsi de suite, le comportement du fluide va être corriger pour simuler le vrai comportement de l'air tel que les équations de Naver-Stokes décrivent le comportement d'un fluide.
 
-## Discrétisation 
+## 4. Discrétisation 
 Maintenant que nous avons la formule qui décrit le comportement du fluide en fonction des forces qu'il subit, on doit rendre la formule compatible avec une grille en la discrétisant: $$F_i(\mathbf{x}_i + \mathbf{v}_i\Delta t, t + \Delta t) - F_i(\mathbf{x}_i, t) = -\frac{F_i(\mathbf{x}_i, t) - F_i^{eq}(\mathbf{x}_i, t)}{\tau}$$
 
 
@@ -43,7 +43,7 @@ Dans ce sens, on doit calculer comment le fluide va se propager sur la grille. O
 Comme montré dans l'image, on utilise la géométrie du réseau D2Q9 qui nous impose de discrétiser pour pouvoir travailler avec une grille. donc 2 dimension pour 9 vecteur où ceux-ci vont vers les
  8 cases aux alentours et vers son centre avec des poids différents. la variable du poids $ w_i $ sert à compenser les différences de longueur pour garder une isotropie du fluide. En d'autres mots on assigne des poids scalaires aux différentes possibilités pour que les propriété du fluide reste la même peux importe le cas.
 
-## Algorythme de Simulation 
+## 5. Algorythme de Simulation 
  On continue de chercher nos variables qui nous serons utiles. Donc, pour trouver $\rho$ qui représente la masse de fluide qui se déplace on doit faire la somme du déplacement du fluide $f$ dans toutes les directions $i$  $$\rho = \sum_{} f_i $$
 
 Avec cette équation comme base on peut trouver la quantité de mouvement $\rho {u}$ où l'on trouve le produit de la densité et de la vitesse : $$\rho u = \sum_{i=0}^{8} f_i \mathbf{v}_i$$
@@ -64,10 +64,13 @@ Maintenant analysons le cotê droit de l'égalité de l'équation de Boltzmann d
 
 Ainsi, on obtient la formule qui calcul les collision. On comprend alors que la différence de densité de particules entre une unité de temps $ \Delta t$ est égal aux collisions qu'il y a eu. C'est ainsi qu'en répétant les étapes de collision et de streaming des milliers de fois que l'ont voit le comportement du fluide tel que les tourbillons.
 
-## Implémentation de la forme
+## 6. Implémentation de la forme
 Pour pouvoir implémenter la forme que nous souhaitons, il fau t d'abord la définir sur la grille qui représente l'espace. Une fois cette étape simple complétée, il faut établir comment le fluide va se comporter avec la forme choisi. Dans notre contexte, on utilise le concept de rebond. Ainsi, quand le fluide rentre en contact avec un point de la grille qui fait parti de la forme, le $f_i$ ne traverse pas l'objet, mais il est renvoyé dans la direction opposé de celui d'arrivé.
 
 Cette méthode de rebond permet de créer le frottement de l'air avec la forme. En physique, la couche d'air qui touche directement une forme ne bouge pas par rappport à lui. Dans notre cas, on fait en sorte que le fluide ait une vitesse nul sur les points de la grille qui constitue directement la forme.Alors, on crée une condition fait en sorte que le fluide ne peut pas glisser sur la surface de la forme. Le frottement se créer alors de la collision entre le fluide qui rebondi directement sur la surface et le fluide qui circule a pleine vitesse un peu plus loin. 
 
 ### Trouver le $C_d$
- 
+L'avantage de la méthode des lattices de Boltzmann est que l'on peut trouver le $C_d$ de la forme que l'on simule dans un fluide. Cela est possible car, on peut trouver les forces qui sont en contact avec la forme en chaque point. En effet pour trouver le coefficient de trainé d'une forme on isole le $C_d$ dans la première formule que j'ai présenté : $$C_d = \frac{2F_d}{\rho u^2 A}$$
+
+Nous avons déjà à disposition $ \rho$ et $u $. Ensuite, $ A $ représente l'aire de l'objet frontale à la vitesse du fluide. On peut trouver cette valeur en trouvant chaque distance entre chaque point de la forme qui fait face au fluide. Finalement, Il faut trouver $F_d$. La force de trainée est trouvé avec la somme du au fluide qui sont directement en contact avec la forme: $$F_d = \sum_{paroi} \sum_{i} (f_i + f_{\bar{i}})c_i$$
+
