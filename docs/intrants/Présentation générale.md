@@ -21,7 +21,7 @@ _dans ce document, l'usage du masculin a été adopté afin d'alléger le texte_
 
 Le cours _Projet d’intégration en sciences, informatique et mathématique_ vise à intégrer les connaissances et les compétences acquises dans la formation collégiale. Les étudiants travailleront sur un projet interdisciplinaire combinant des éléments de sciences, d’informatique et de mathématiques.
 
-Consulter la [fiche résumé du cours](Fiche technique du cours.md) pour avoir une vue d'ensemble.
+Consulter la [fiche résumé du cours](../Fiche%20technique%20du%20cours.md) pour avoir une vue d'ensemble.
 
 ## Objectifs généraux
 
