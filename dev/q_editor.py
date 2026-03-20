@@ -2,7 +2,7 @@ import math
 from dataclasses import dataclass
 
 from PySide6.QtWidgets import QWidget
-from PySide6.QtCore import Qt, Signal, QPoint, QRect, QSize
+from PySide6.QtCore import Qt, Signal, QPoint, QRect, QSize, QLineF, QLine
 from PySide6.QtGui import QPainter, QColor, QPen, QPixmap, QCursor, QBrush, QPainterPath, QPolygonF
 from PySide6.QtWidgets import QWidget, QApplication
 
@@ -10,9 +10,7 @@ import sys
 import numpy as np
 from enum import Enum
 
-# NOTE: Overlapping shapes are not handled correctly.
-#
-#       Holding CTRL while dragging allows for deleting vertices.
+# NOTE:
 
 class StateManager:
 
@@ -103,6 +101,7 @@ class Vertex:
         HOVERED = 2
         HELD = 3
         HOVERED_SELECTED = 4
+        MEDIAN = 5
 
 
     position: QPoint
@@ -132,19 +131,30 @@ class Shape:
         self._vertex_min_radius = 5
         self._vertex_max_radius = 7
 
+        # States
         self._state = Shape.ShapeState.SELECTED
         self._status = Shape.ShapeStatus.DEFAULT
 
+        # Vertices
         self._vertices = vertices
         self._vertices_nd = np.empty((0, 2), dtype=int)
         self._update_vertices_nd()
 
+        # Path
         self._path: QPainterPath | None = None # QPainterPath for not having to re-make a QPolygonF every time
 
+        # Categories
         self._categories = {state: [] for state in Vertex.VertexState}
         self._update_categories()
 
+        # Settings
         self._hide_vertices = False
+
+        # Median positions
+        self._median_vertices: list[Vertex] | None = None # The positions in between the vertices
+        self._median_vertices_nd: np.ndarray | None = None
+        self._current_median: Vertex | None = None
+        self._current_median_path: QPainterPath | None = None
 
         # region Pens and brushes
         self._default_vertex_pen = QPen(QColor(179, 208, 255))  # light blue
@@ -170,6 +180,10 @@ class Shape:
         self._shape_hover_pen = QPen(QColor(0, 124, 217))
         self._shape_hover_pen.setWidth(4)
         self._shape_hover_brush = QBrush(QColor(119, 197, 255, 100))
+
+        self._median_vertex_pen = QPen(QColor(179, 208, 255))
+        self._median_vertex_pen.setWidth(4)
+        self._median_vertex_brush = QBrush(QColor(179, 208, 255))
         # endregion
 
     #region Painting Logic
@@ -214,8 +228,14 @@ class Shape:
             painter.setBrush(self._hovered_selected_vertex_brush)
             for vertex in self._categories[Vertex.VertexState.HOVERED_SELECTED]:
                 painter.drawEllipse(vertex.position, self._vertex_max_radius, self._vertex_max_radius)
+
+            painter.setPen(self._median_vertex_pen)
+            painter.setBrush(self._median_vertex_brush)
+            if self._current_median is not None:
+                painter.drawPath(self._current_median_path)
     #endregion
 
+    #region Vertex Addition
     def add_point(self, position: QPoint):
         if self._status == Shape.ShapeStatus.CLOSED: return
         # Unselecting all vertices
@@ -229,10 +249,30 @@ class Shape:
         self._update_categories()
         self._update_path()
 
+    def add_median_vertex(self):
+        if not self._current_median or self._status != Shape.ShapeStatus.CLOSED: return
+        self._switch_category_state(Vertex.VertexState.SELECTED, Vertex.VertexState.DEFAULT)
+        self._current_median.state = Vertex.VertexState.SELECTED
+
+        self._vertices.insert(self._current_median.index_position + 1, self._current_median)
+        self._current_median.index_position = len(self._vertices) - 1
+
+        for i, vertex in enumerate(self._vertices):
+            vertex.index_position = i
+
+        self._current_median = None
+
+        self._update_vertices_nd()
+        self._update_categories()
+        self._update_path()
+    #endregion
+
+    #region Vertex Manipulation
     def unselect_path(self):
         self._status = Shape.ShapeStatus.CLOSED
         self._state = Shape.ShapeState.DEFAULT
         self.reset_selected_vertices()
+        self._update_path()
         self._hide_vertices = True
 
     def select_path(self):
@@ -260,6 +300,7 @@ class Shape:
     def hold_selection(self):
         for vertex in self._categories[Vertex.VertexState.SELECTED]:
             self.hold_vertex(vertex)
+    #endregion
 
     #region State Manipulation
     def hover_vertex(self, vertex: Vertex):
@@ -295,23 +336,14 @@ class Shape:
         self._update_categories()
     #endregion
 
-    def near_vertex(self, position: QPoint) -> Vertex | None:
-        target_pos = np.array([position.x(), position.y()])
-        distances = np.linalg.norm(self._vertices_nd - target_pos, axis=1)
-        nearest_index = np.argmin(distances)
-        nearest_pos = distances[nearest_index]
-
-        if nearest_pos < self._vertex_max_radius:
-            return self._vertices[nearest_index]
-
-        return None
-
     def is_over_shape(self, position: QPoint) -> bool:
-        if self._path.contains(position):
-            self._state = Shape.ShapeState.HOVERED
-            return True
         self._state = Shape.ShapeState.DEFAULT
+        if self._path.contains(position):
+            return True
         return False
+
+    def highlight_shape(self):
+        self._state = Shape.ShapeState.HOVERED
 
     def delete_selected_vertices(self):
         if not self._vertices: return
@@ -328,6 +360,51 @@ class Shape:
         for vertex in self._categories[category]:
             vertex.state = state
 
+    #region Near Vertex Logic
+    def near_vertex(self, position: QPoint) -> Vertex | None:
+        return self._near_point(position, self._vertices_nd, self._vertices)
+
+    def update_near_median(self, position: QPoint):
+        if self._median_vertices is None: return
+        median_vertices_nd = self._median_vertices_nd
+        median_vertices = self._median_vertices
+        median = self._near_point(position, self._median_vertices_nd, self._median_vertices)
+        if median:
+            median.state = Vertex.VertexState.MEDIAN
+            self._current_median = median
+
+            # Visuals
+            self._current_median_path = QPainterPath()
+            cross_line_length = 7
+            cross_line_1 = QLine(QPoint(median.position.x() - cross_line_length // 2,
+                                        median.position.y() - cross_line_length // 2),
+                                 QPoint(median.position.x() + cross_line_length // 2,
+                                        median.position.y() + cross_line_length // 2))
+            cross_line_2 = QLine(QPoint(median.position.x() - cross_line_length // 2,
+                                        median.position.y() + cross_line_length // 2),
+                                 QPoint(median.position.x() + cross_line_length // 2,
+                                        median.position.y() - cross_line_length // 2))
+            self._current_median_path.moveTo(cross_line_1.p1())
+            self._current_median_path.lineTo(cross_line_1.p2())
+            self._current_median_path.moveTo(cross_line_2.p1())
+            self._current_median_path.lineTo(cross_line_2.p2())
+
+        else:
+            self._current_median = None
+
+    def _near_point(self, position: QPoint, nd_data: np.ndarray, vertices_data: list[Vertex]) -> Vertex | None:
+        if nd_data.size < 1: return None
+        target_pos = np.array([position.x(), position.y()])
+        distances = np.linalg.norm(nd_data - target_pos, axis=1)
+        nearest_index = np.argmin(distances)
+        nearest_pos = distances[nearest_index]
+
+        if nearest_pos < self._vertex_max_radius:
+            return vertices_data[nearest_index]
+        return None
+    #endregion
+
+    #region Update Methods
     def _update_categories(self):
         for state in Vertex.VertexState:
             self._categories[state] = []
@@ -335,6 +412,7 @@ class Shape:
             self._categories[vertex.state].append(vertex)
 
     def _update_path(self):
+        self._update_median_positions()
         qt_points = [QPoint(x, y) for x, y in self._vertices_nd]
         polygon = QPolygonF(qt_points)
         path = QPainterPath()
@@ -353,6 +431,30 @@ class Shape:
         self._vertices_nd = np.array([[vertex.position.x(), vertex.position.y()] for vertex in self._vertices],
                                      dtype=int)
 
+    def _update_median_positions(self):
+        # Currently updating the whole median list, even when not needed.
+        if not self._vertices or len(self._vertices) < 2:
+            self._median_vertices = None
+            return
+
+        self._median_vertices = None
+        for i, vertex in enumerate(self._vertices):
+            right_vert = self._vertices[i + 1] if i + 1 < len(self._vertices) else self._vertices[0]
+            left_vert = vertex
+
+            delta_x = right_vert.position.x() - left_vert.position.x()
+            delta_y = right_vert.position.y() - left_vert.position.y()
+            median_vertex = Vertex(position=QPoint(left_vert.position.x() + delta_x // 2,
+                                                   left_vert.position.y() + delta_y // 2),
+                                   state=Vertex.VertexState.MEDIAN,
+                                   index_position=vertex.index_position)
+            if i == 0: self._median_vertices = [median_vertex]
+            else: self._median_vertices.append(median_vertex)
+
+        self._median_vertices_nd = np.array([[vertex.position.x(), vertex.position.y()]
+                                            for vertex in self._median_vertices])
+    #endregion
+
     @property
     def selected_vertices(self) -> list[Vertex]:
         return self._categories[Vertex.VertexState.SELECTED]
@@ -360,6 +462,10 @@ class Shape:
     @property
     def vertices(self) -> list[Vertex]:
         return self._vertices
+
+    @property
+    def current_median(self) -> list[QPoint] | None:
+        return  self._current_median
 
 
 class QEditor(QWidget):
@@ -455,20 +561,26 @@ class QEditor(QWidget):
 
     def _draw_selection_rects(self, painter: QPainter):
         if self._selecting_rect is not None:
+
+            # Red rect if the user is holding down the ctrl key
             if self._state_manager.key_state == StateManager.KeyState.HOLDING_CTRL:
                 painter.setPen(self._deleting_rect_pen)
                 painter.setBrush(self._deleting_rect_brush)
+
+            # Blue rect if the user is not holding down the ctrl key
             else:
                 painter.setPen(self._selecting_rect_pen)
                 painter.setBrush(self._selection_rect_brush)
             painter.drawRect(self._selecting_rect)
+
+        # White rect around the selected vertices
         elif self._selected_rect is not None:
             painter.setPen(self._selected_rect_pen)
             painter.setBrush(Qt.BrushStyle.NoBrush)
             painter.drawRect(self._selected_rect)
-
     #endregion
 
+    #region Input Events
     def mouseMoveEvent(self, event, /):
         match self._state_manager.cursor_state:
             case StateManager.CursorState.LOCKED: return
@@ -480,10 +592,14 @@ class QEditor(QWidget):
                     self._nearest_shape = None
 
                     for shape in self._shapes:
+
                         # Mouse is hovering over a shape
                         if shape.is_over_shape(position):
                             self._state_manager.mouse_location = StateManager.MouseLocation.OVER_SHAPE
                             self._nearest_shape = shape
+
+                    # Highlight the last shape that was detected as hovered
+                    if self._nearest_shape is not None: self._nearest_shape.highlight_shape()
 
                     self.update()
                     return
@@ -500,6 +616,7 @@ class QEditor(QWidget):
                     # Mouse is not hovering over a vertex
                     else:
                         self._state_manager.mouse_location = StateManager.MouseLocation.DEFAULT
+                        if self._selected_rect is None: self._current_shape.update_near_median(position)
                         self._current_shape.reset_hovered_vertices()
 
                 # Mouse left button is pressed
@@ -527,7 +644,7 @@ class QEditor(QWidget):
         self.update()
 
     def mousePressEvent(self, event, /):
-        # temp stuff
+        # temp stuff ?? (maybe not actually...)
         if event.button() == Qt.MouseButton.RightButton:
             if self._state_manager.cursor_state == StateManager.CursorState.DEFAULT:
                 self.switch_cursor(StateManager.CursorState.PEN)
@@ -563,6 +680,10 @@ class QEditor(QWidget):
                         self._state_manager.action_state = StateManager.ActionState.MOVING_VERTICES
                         self._current_shape.hold_selection()
                         self._select_start_pos = position # Updates the position of the start of the delta (type shi)
+
+                    # Mouse left button was pressed while near a median vertex
+                    elif self._current_shape.current_median is not None:
+                        self._current_shape.add_median_vertex()
 
                     # Mouse left button was pressed while floating
                     else:
@@ -628,12 +749,14 @@ class QEditor(QWidget):
             case StateManager.CursorState.DEFAULT:
                 if event.key() == Qt.Key.Key_Control or event.key() == Qt.Key.Key_Shift:
                     self._state_manager.key_state = StateManager.KeyState.DEFAULT
+    #endregion
 
     def switch_cursor(self, cursor_state: StateManager.CursorState):
         self._state_manager.cursor_state = cursor_state
         if self._current_shape is not None and cursor_state == StateManager.CursorState.PEN:
-            self._current_shape.unselect_path()
-            self._current_shape = None
+            self._selecting_rect = None
+            self._selected_rect = None
+            self._exit_current_shape()
 
         self.update()
 
