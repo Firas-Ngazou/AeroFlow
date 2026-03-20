@@ -1,3 +1,4 @@
+import math
 from dataclasses import dataclass
 
 from PySide6.QtWidgets import QWidget
@@ -9,9 +10,9 @@ import sys
 import numpy as np
 from enum import Enum
 
-from dev.q_editor import VertexState
-
-# Essentially the same as the last version, but with a lot cleaner code structure (better for future updates).
+# NOTE: Overlapping shapes are not handled correctly.
+#
+#       Holding CTRL while dragging allows for deleting vertices.
 
 class StateManager:
 
@@ -27,6 +28,7 @@ class StateManager:
     class MouseLocation(Enum):
         DEFAULT = 0
         OVER_VERTEX = 1
+        OVER_SHAPE = 2
 
 
     class CursorState(Enum):
@@ -42,10 +44,18 @@ class StateManager:
         MOVING_VERTICES = 3
 
 
+    class KeyState(Enum):
+        DEFAULT = 0
+        HOLDING_SHIFT = 1
+        HOLDING_CTRL = 2
+
+
     def __init__(self):
         self._mouse_state = StateManager.MouseState.DEFAULT
         self._cursor_state = StateManager.CursorState.DEFAULT
         self._action_state = StateManager.ActionState.DEFAULT
+        self._mouse_location = StateManager.MouseLocation.DEFAULT
+        self._key_state = StateManager.KeyState.DEFAULT
 
     @property
     def mouse_state(self) -> MouseState:
@@ -67,6 +77,20 @@ class StateManager:
     @action_state.setter
     def action_state(self, state: ActionState):
         self._action_state = state
+
+    @property
+    def mouse_location(self) -> MouseLocation:
+        return self._mouse_location
+    @mouse_location.setter
+    def mouse_location(self, location: MouseLocation):
+        self._mouse_location = location
+
+    @property
+    def key_state(self) -> KeyState:
+        return self._key_state
+    @key_state.setter
+    def key_state(self, state: KeyState):
+        self._key_state = state
 
 
 @dataclass
@@ -96,6 +120,7 @@ class Shape:
     class ShapeState(Enum):
         DEFAULT = 0
         SELECTED = 1
+        HOVERED = 2
 
 
     class ShapeStatus(Enum):
@@ -142,13 +167,21 @@ class Shape:
         self._shape_pen = QPen(QColor(245, 245, 245))
         self._shape_pen.setWidth(2)
         self._shape_brush = QBrush(QColor(220, 220, 220, 100))
+        self._shape_hover_pen = QPen(QColor(0, 124, 217))
+        self._shape_hover_pen.setWidth(4)
+        self._shape_hover_brush = QBrush(QColor(119, 197, 255, 100))
         # endregion
 
     #region Painting Logic
     def draw(self, painter: QPainter):
         if self._path is None: self._update_path()
-        painter.setPen(self._shape_pen)
-        painter.setBrush(self._shape_brush)
+        if self._state == Shape.ShapeState.HOVERED:
+            painter.setPen(self._shape_hover_pen)
+            painter.setBrush(self._shape_hover_brush)
+        else:
+            painter.setPen(self._shape_pen)
+            painter.setBrush(self._shape_brush)
+
         if self._status == Shape.ShapeStatus.CLOSED:
             self._path.closeSubpath()
         painter.drawPath(self._path)
@@ -196,11 +229,15 @@ class Shape:
         self._update_categories()
         self._update_path()
 
-    def close_path(self):
+    def unselect_path(self):
         self._status = Shape.ShapeStatus.CLOSED
         self._state = Shape.ShapeState.DEFAULT
         self.reset_selected_vertices()
         self._hide_vertices = True
+
+    def select_path(self):
+        self._state = Shape.ShapeState.SELECTED
+        self._hide_vertices = False
 
     def move_held_vertices(self, delta_x: int, delta_y: int):
         for vertex in self._categories[Vertex.VertexState.HELD]:
@@ -269,6 +306,24 @@ class Shape:
 
         return None
 
+    def is_over_shape(self, position: QPoint) -> bool:
+        if self._path.contains(position):
+            self._state = Shape.ShapeState.HOVERED
+            return True
+        self._state = Shape.ShapeState.DEFAULT
+        return False
+
+    def delete_selected_vertices(self):
+        if not self._vertices: return
+        self._vertices = [vertex for vertex in self._vertices if vertex.state != (Vertex.VertexState.SELECTED or
+                                                                              Vertex.VertexState.HOVERED_SELECTED)]
+        for new_index, vertex in enumerate(self._vertices):
+            vertex.index_position = new_index
+
+        self._update_vertices_nd()
+        self._update_categories()
+        self._update_path()
+
     def _switch_category_state(self, category: Vertex.VertexState, state: Vertex.VertexState):
         for vertex in self._categories[category]:
             vertex.state = state
@@ -287,7 +342,6 @@ class Shape:
         self._path: QPainterPath = path
 
     def _update_vertices_nd(self, index_position: int = None):
-        if self._status == Shape.ShapeStatus.CLOSED: return
         if not self._vertices:
             self._vertices_nd = np.empty((0, 2), dtype=int)
             return
@@ -303,6 +357,10 @@ class Shape:
     def selected_vertices(self) -> list[Vertex]:
         return self._categories[Vertex.VertexState.SELECTED]
 
+    @property
+    def vertices(self) -> list[Vertex]:
+        return self._vertices
+
 
 class QEditor(QWidget):
     def __init__(self, parent: QWidget = None):
@@ -315,6 +373,7 @@ class QEditor(QWidget):
         # Shapes
         self._shapes: list[Shape] = []
         self._current_shape: Shape | None = None
+        self._nearest_shape: Shape | None = None
 
         # Grid
         self._cell_width = 40
@@ -329,6 +388,9 @@ class QEditor(QWidget):
         self._selecting_rect_pen = QPen(QColor(0, 124, 217))
         self._selecting_rect_pen.setWidth(2)
         self._selection_rect_brush = QBrush(QColor(119, 197, 255, 100))
+        self._deleting_rect_pen = QPen(QColor(245, 0, 0))
+        self._deleting_rect_pen.setWidth(2)
+        self._deleting_rect_brush = QBrush(QColor(245, 0, 0, 100))
 
         self._selected_rect_pen = QPen(QColor(245, 245, 245))
         self._selected_rect_pen.setWidth(2)
@@ -393,8 +455,12 @@ class QEditor(QWidget):
 
     def _draw_selection_rects(self, painter: QPainter):
         if self._selecting_rect is not None:
-            painter.setPen(self._selecting_rect_pen)
-            painter.setBrush(self._selection_rect_brush)
+            if self._state_manager.key_state == StateManager.KeyState.HOLDING_CTRL:
+                painter.setPen(self._deleting_rect_pen)
+                painter.setBrush(self._deleting_rect_brush)
+            else:
+                painter.setPen(self._selecting_rect_pen)
+                painter.setBrush(self._selection_rect_brush)
             painter.drawRect(self._selecting_rect)
         elif self._selected_rect is not None:
             painter.setPen(self._selected_rect_pen)
@@ -407,8 +473,20 @@ class QEditor(QWidget):
         match self._state_manager.cursor_state:
             case StateManager.CursorState.LOCKED: return
             case StateManager.CursorState.DEFAULT:
-                if self._current_shape is None: return
                 position = event.position().toPoint()
+
+                if self._current_shape is None:
+                    self._state_manager.mouse_location = StateManager.MouseLocation.DEFAULT
+                    self._nearest_shape = None
+
+                    for shape in self._shapes:
+                        # Mouse is hovering over a shape
+                        if shape.is_over_shape(position):
+                            self._state_manager.mouse_location = StateManager.MouseLocation.OVER_SHAPE
+                            self._nearest_shape = shape
+
+                    self.update()
+                    return
 
                 # Mouse buttons are not pressed
                 if self._state_manager.mouse_state == StateManager.MouseState.DEFAULT:
@@ -452,19 +530,24 @@ class QEditor(QWidget):
         # temp stuff
         if event.button() == Qt.MouseButton.RightButton:
             if self._state_manager.cursor_state == StateManager.CursorState.DEFAULT:
-                self._state_manager.cursor_state = StateManager.CursorState.PEN
+                self.switch_cursor(StateManager.CursorState.PEN)
             else:
-                self._state_manager.cursor_state = StateManager.CursorState.DEFAULT
+                self.switch_cursor(StateManager.CursorState.DEFAULT)
         if event.button() == Qt.MouseButton.MiddleButton:
-            print(f"Cursor State: {self._state_manager.cursor_state}\nMouse State: {self._state_manager.mouse_state}"
-                  f"\nAction State: {self._state_manager.action_state}\n---------------------<")
+            print(f"Cursor State: {self._state_manager.cursor_state}\nMouse Location: {self._state_manager.mouse_location}"
+                  f"\nAction State: {self._state_manager.action_state}\nNearest Shape: {self._nearest_shape}\n"
+                  f"Current Shape: {self._current_shape}\n---------------------<")
         # ----
 
         match self._state_manager.cursor_state:
             case StateManager.CursorState.LOCKED: return
             case StateManager.CursorState.DEFAULT:
                 if event.button() == Qt.MouseButton.LeftButton:
-                    if self._current_shape is None: return
+                    if self._current_shape is None:
+                        if self._state_manager.mouse_location == StateManager.MouseLocation.OVER_SHAPE:
+                            self._current_shape = self._nearest_shape
+                            self._current_shape.select_path()
+                        return
                     position = event.position().toPoint()
 
                     # Mouse left button is pressed
@@ -485,7 +568,7 @@ class QEditor(QWidget):
                     else:
                         self._state_manager.action_state = StateManager.ActionState.SELECTING_VERTICES
                         self._current_shape.reset_selected_vertices() # Unselect all currently selected vertices
-                        self._selecting_rect = QRect(position, position) # The blue rectangle thing
+                        self._selecting_rect = QRect(position, position) # The blue rectangle thing (or red for delete)
 
             case StateManager.CursorState.PEN:
                 if event.button() == Qt.MouseButton.LeftButton:
@@ -512,15 +595,45 @@ class QEditor(QWidget):
                 if event.button() == Qt.MouseButton.LeftButton:
 
                     # Mouse left button was released
-                    if self._current_shape is not None: self._current_shape.release_all()
                     self._selecting_rect = None
-                    self._update_selected_rect()
+                    if self._current_shape is not None: self._current_shape.release_all()
+                    if self._state_manager.key_state != StateManager.KeyState.HOLDING_CTRL: self._update_selected_rect()
+                    elif self._current_shape is not None:
+                        # Deleting selection
+                        self._current_shape.delete_selected_vertices()
+                        if not self._current_shape.vertices:
+                            self._shapes.remove(self._current_shape)
+                            self._current_shape = None
 
                     self._state_manager.mouse_state = StateManager.MouseState.DEFAULT
                     self._state_manager.action_state = StateManager.ActionState.DEFAULT
 
             case StateManager.CursorState.PEN:
                 ...
+
+        self.update()
+
+    def keyPressEvent(self, event, /):
+        match self._state_manager.cursor_state:
+            case StateManager.CursorState.LOCKED: return
+            case StateManager.CursorState.DEFAULT:
+                if event.key() == Qt.Key.Key_Control:
+                    self._state_manager.key_state = StateManager.KeyState.HOLDING_CTRL
+                elif event.key() == Qt.Key.Key_Shift:
+                    self._state_manager.key_state = StateManager.KeyState.HOLDING_SHIFT
+
+    def keyReleaseEvent(self, event, /):
+        match self._state_manager.cursor_state:
+            case StateManager.CursorState.LOCKED: return
+            case StateManager.CursorState.DEFAULT:
+                if event.key() == Qt.Key.Key_Control or event.key() == Qt.Key.Key_Shift:
+                    self._state_manager.key_state = StateManager.KeyState.DEFAULT
+
+    def switch_cursor(self, cursor_state: StateManager.CursorState):
+        self._state_manager.cursor_state = cursor_state
+        if self._current_shape is not None and cursor_state == StateManager.CursorState.PEN:
+            self._current_shape.unselect_path()
+            self._current_shape = None
 
         self.update()
 
@@ -545,7 +658,7 @@ class QEditor(QWidget):
         self._selected_rect = QRect(farthest_left, highest, farthest_right - farthest_left, lowest - highest)
 
     def _exit_current_shape(self):
-        self._current_shape.close_path()
+        self._current_shape.unselect_path()
         self._current_shape = None
 
         self._state_manager.action_state = StateManager.ActionState.DEFAULT
