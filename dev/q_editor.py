@@ -9,97 +9,323 @@ import sys
 import numpy as np
 from enum import Enum
 
-# NOTES: For optimization, maybe use numbers for states instead of words and vectorize the whole thing. -> For now, most
-#        for-loops do not represent that big of a performance issue, but they may become one if the user chooses to
-#        place and select multiple hundreds of vertices.
-#
-#        Maybe make a class QShape(QPainterPath)?
+from dev.q_editor import VertexState
 
-class CursorState(Enum):
-    DEFAULT = 0
-    PEN = 1
-    LOCKED = 2
+# Essentially the same as the last version, but with a lot cleaner code structure (better for future updates).
 
-class VertexState(Enum):
-    DEFAULT = 0
-    SELECTED = 1
-    HOVERED = 2
-    HELD = 3
-    HOVERED_SELECTED = 4
+class StateManager:
 
-class MouseState(Enum):
-    FLOATING = 0
-    HOLDING_MB1_VERTEX = 1
-    HOLDING_MB1_VERTICES = 2
-    HOLDING_MB1_AIR = 3
-    HOLDING_MB3 = 4
 
-class KeyboardState(Enum):
-    DEFAULT = 0
-    HOLDING_SHIFT = 1
+    class MouseState(Enum):
+        # Design flaw: holding MB1 and MB2 at the same time is not possible :(
+        DEFAULT = 0
+        HOLDING_MB1 = 1
+        HOLDING_MB2 = 2
+        HOLDING_MB3 = 3
+
+
+    class MouseLocation(Enum):
+        DEFAULT = 0
+        OVER_VERTEX = 1
+
+
+    class CursorState(Enum):
+        DEFAULT = 0
+        PEN = 1
+        LOCKED = 2
+
+
+    class ActionState(Enum):
+        DEFAULT = 0
+        SELECTING_VERTICES = 1
+        MOVING_VERTEX = 2
+        MOVING_VERTICES = 3
+
+
+    def __init__(self):
+        self._mouse_state = StateManager.MouseState.DEFAULT
+        self._cursor_state = StateManager.CursorState.DEFAULT
+        self._action_state = StateManager.ActionState.DEFAULT
+
+    @property
+    def mouse_state(self) -> MouseState:
+        return self._mouse_state
+    @mouse_state.setter
+    def mouse_state(self, state: MouseState):
+        self._mouse_state = state
+
+    @property
+    def cursor_state(self) -> CursorState:
+        return self._cursor_state
+    @cursor_state.setter
+    def cursor_state(self, state: CursorState):
+        self._cursor_state = state
+
+    @property
+    def action_state(self) -> ActionState:
+        return self._action_state
+    @action_state.setter
+    def action_state(self, state: ActionState):
+        self._action_state = state
+
 
 @dataclass
 class Vertex:
+
+
+    class VertexState(Enum):
+        DEFAULT = 0
+        SELECTED = 1
+        HOVERED = 2
+        HELD = 3
+        HOVERED_SELECTED = 4
+
+
     position: QPoint
-    state: VertexState
+    state: VertexState = VertexState.DEFAULT
+    index_position: int = -1
 
-class QEditor(QWidget):
-    def __init__(self, cursor_initial_state: CursorState, parent: QWidget = None):
-        super().__init__(parent)
+    def move(self, delta_x: int, delta_y: int):
+        self.position.setX(self.position.x() + delta_x)
+        self.position.setY(self.position.y() + delta_y)
 
-        # Initial setup
-        self.setMinimumSize(200, 200)
-        self.setMouseTracking(True)
 
-        self._cursor_state = cursor_initial_state
-        self._cell_width = 40
+class Shape:
+
+
+    class ShapeState(Enum):
+        DEFAULT = 0
+        SELECTED = 1
+
+
+    class ShapeStatus(Enum):
+        DEFAULT = 0
+        CLOSED = 1
+
+
+    def __init__(self, vertices: list[Vertex]):
         self._vertex_min_radius = 5
         self._vertex_max_radius = 7
 
-        # Saved data
-        self._placed_vertices: list[Vertex] = []
-        self._categories = {state: [] for state in VertexState}
-        self._placed_vertices_nd: np.ndarray = np.empty((0, 2), dtype=int)
-        self._cached_grid = None # for optimization
-        # self._shapes: list[list[QPoint]] = [[]]
-        self._shapes_lengths: list[int] = []
-        self._shape_index = 0
-        self._cached_shapes: list[QPainterPath] = [] # QPainterPath for optimization
-        self._selecting_rect: QRect | None = None
-        self._selected_rect: QRect | None = None
-        self._selected_move_start: QPoint | None = None
+        self._state = Shape.ShapeState.SELECTED
+        self._status = Shape.ShapeStatus.DEFAULT
 
-        # Mouse
-        self._mouse_state = MouseState.FLOATING
-        self._block_vertex_placement = False
-        # self._near_vertex: Vertex | None = None
-        self._near_vertex_index: int | None = None
+        self._vertices = vertices
+        self._vertices_nd = np.empty((0, 2), dtype=int)
+        self._update_vertices_nd()
 
-        # Settings
-        self._show_vertices = True
+        self._path: QPainterPath | None = None # QPainterPath for not having to re-make a QPolygonF every time
 
-        #region Pens and brushes
-        self._default_vertex_pen = QPen(QColor(179, 208, 255)) # light blue
+        self._categories = {state: [] for state in Vertex.VertexState}
+        self._update_categories()
+
+        self._hide_vertices = False
+
+        # region Pens and brushes
+        self._default_vertex_pen = QPen(QColor(179, 208, 255))  # light blue
         self._default_vertex_pen.setWidth(2)
-        self._selected_vertex_pen = QPen(QColor(77, 142, 255)) # dark blue
+        self._selected_vertex_pen = QPen(QColor(77, 142, 255))  # dark blue
         self._selected_vertex_pen.setWidth(4)
-        self._hovered_vertex_pen = QPen(QColor(179, 208, 255)) # light blue
+        self._hovered_vertex_pen = QPen(QColor(179, 208, 255))  # light blue
         self._hovered_vertex_pen.setWidth(2)
-        self._held_vertex_pen = QPen(QColor(77, 142, 255)) # dark blue
+        self._held_vertex_pen = QPen(QColor(77, 142, 255))  # dark blue
         self._held_vertex_pen.setWidth(4)
-        self._hovered_selected_vertex_pen = QPen(QColor(77, 142, 255)) # dark blue
+        self._hovered_selected_vertex_pen = QPen(QColor(77, 142, 255))  # dark blue
         self._hovered_selected_vertex_pen.setWidth(4)
 
-        self._default_vertex_brush = QBrush(QColor(245, 245, 245)) # white
-        self._selected_vertex_brush = QBrush(QColor(245, 245, 245)) # white
-        self._hovered_vertex_brush = QBrush(QColor(204, 204, 204)) # light gray
-        self._held_vertex_brush = QBrush(QColor(171, 171, 171)) # dark gray
-        self._hovered_selected_vertex_brush = QBrush(QColor(204, 204, 204)) # light gray
+        self._default_vertex_brush = QBrush(QColor(245, 245, 245))  # white
+        self._selected_vertex_brush = QBrush(QColor(245, 245, 245))  # white
+        self._hovered_vertex_brush = QBrush(QColor(204, 204, 204))  # light gray
+        self._held_vertex_brush = QBrush(QColor(171, 171, 171))  # dark gray
+        self._hovered_selected_vertex_brush = QBrush(QColor(204, 204, 204))  # light gray
 
-        self._polygon_pen = QPen(QColor(245, 245, 245))
-        self._polygon_pen.setWidth(2)
-        self._polygon_brush = QBrush(QColor(220, 220, 220, 100))
+        self._shape_pen = QPen(QColor(245, 245, 245))
+        self._shape_pen.setWidth(2)
+        self._shape_brush = QBrush(QColor(220, 220, 220, 100))
+        # endregion
 
+    #region Painting Logic
+    def draw(self, painter: QPainter):
+        if self._path is None: self._update_path()
+        painter.setPen(self._shape_pen)
+        painter.setBrush(self._shape_brush)
+        if self._status == Shape.ShapeStatus.CLOSED:
+            self._path.closeSubpath()
+        painter.drawPath(self._path)
+
+        if not self._hide_vertices: self._draw_vertices(painter)
+
+    def _draw_vertices(self, painter: QPainter):
+        if self._vertices:
+            painter.setPen(self._default_vertex_pen)
+            painter.setBrush(self._default_vertex_brush)
+            for vertex in self._categories[Vertex.VertexState.DEFAULT]:
+                painter.drawEllipse(vertex.position, self._vertex_min_radius, self._vertex_min_radius)
+
+            painter.setPen(self._selected_vertex_pen)
+            painter.setBrush(self._selected_vertex_brush)
+            for vertex in self._categories[Vertex.VertexState.SELECTED]:
+                painter.drawEllipse(vertex.position, self._vertex_max_radius, self._vertex_max_radius)
+
+            painter.setPen(self._hovered_vertex_pen)
+            painter.setBrush(self._hovered_vertex_brush)
+            for vertex in self._categories[Vertex.VertexState.HOVERED]:
+                painter.drawEllipse(vertex.position, self._vertex_min_radius, self._vertex_min_radius)
+
+            painter.setPen(self._held_vertex_pen)
+            painter.setBrush(self._held_vertex_brush)
+            for vertex in self._categories[Vertex.VertexState.HELD]:
+                painter.drawEllipse(vertex.position, self._vertex_max_radius, self._vertex_max_radius)
+
+            painter.setPen(self._hovered_selected_vertex_pen)
+            painter.setBrush(self._hovered_selected_vertex_brush)
+            for vertex in self._categories[Vertex.VertexState.HOVERED_SELECTED]:
+                painter.drawEllipse(vertex.position, self._vertex_max_radius, self._vertex_max_radius)
+    #endregion
+
+    def add_point(self, position: QPoint):
+        if self._status == Shape.ShapeStatus.CLOSED: return
+        # Unselecting all vertices
+        self._switch_category_state(Vertex.VertexState.SELECTED, Vertex.VertexState.DEFAULT)
+
+        # Adding the vertex to the shape at the end of the lists
+        self._vertices.append(Vertex(position=position, state=Vertex.VertexState.SELECTED,
+                                     index_position=len(self._vertices)))
+        self._vertices_nd = np.append(self._vertices_nd, [[position.x(), position.y()]], axis=0)
+
+        self._update_categories()
+        self._update_path()
+
+    def close_path(self):
+        self._status = Shape.ShapeStatus.CLOSED
+        self._state = Shape.ShapeState.DEFAULT
+        self.reset_selected_vertices()
+        self._hide_vertices = True
+
+    def move_held_vertices(self, delta_x: int, delta_y: int):
+        for vertex in self._categories[Vertex.VertexState.HELD]:
+            vertex.move(delta_x, delta_y)
+            self._update_vertices_nd(vertex.index_position)
+        self._update_path()
+
+    def move_held_vertices_to_point(self, position: QPoint):
+        for vertex in self._categories[Vertex.VertexState.HELD]:
+            vertex.position = position
+            self._update_vertices_nd(vertex.index_position)
+        self._update_path()
+
+    def select_content(self, area: QRect):
+        self._switch_category_state(Vertex.VertexState.SELECTED, Vertex.VertexState.DEFAULT)
+        for vertex in self._vertices:
+            if area.contains(vertex.position):
+                self.select_vertex(vertex)
+
+    def hold_selection(self):
+        for vertex in self._categories[Vertex.VertexState.SELECTED]:
+            self.hold_vertex(vertex)
+
+    #region State Manipulation
+    def hover_vertex(self, vertex: Vertex):
+        match vertex.state:
+            case Vertex.VertexState.DEFAULT:
+                vertex.state = Vertex.VertexState.HOVERED
+            case Vertex.VertexState.SELECTED:
+                vertex.state = Vertex.VertexState.HOVERED_SELECTED
+        self._update_categories()
+
+    def select_vertex(self, vertex: Vertex, unselect_others: bool = False):
+        if unselect_others: self._switch_category_state(Vertex.VertexState.SELECTED, Vertex.VertexState.DEFAULT)
+        vertex.state = Vertex.VertexState.SELECTED
+        self._update_categories()
+
+    def hold_vertex(self, vertex: Vertex, unselect_others: bool = False):
+        if unselect_others: self._switch_category_state(Vertex.VertexState.SELECTED, Vertex.VertexState.DEFAULT)
+        vertex.state = Vertex.VertexState.HELD
+        self._update_categories()
+
+    def release_all(self):
+        for vertex in self._categories[Vertex.VertexState.HELD]:
+            vertex.state = Vertex.VertexState.SELECTED
+        self._update_categories()
+
+    def reset_selected_vertices(self):
+        self._switch_category_state(Vertex.VertexState.SELECTED, Vertex.VertexState.DEFAULT)
+        self._update_categories()
+
+    def reset_hovered_vertices(self):
+        self._switch_category_state(Vertex.VertexState.HOVERED, Vertex.VertexState.DEFAULT)
+        self._switch_category_state(Vertex.VertexState.HOVERED_SELECTED, Vertex.VertexState.SELECTED)
+        self._update_categories()
+    #endregion
+
+    def near_vertex(self, position: QPoint) -> Vertex | None:
+        target_pos = np.array([position.x(), position.y()])
+        distances = np.linalg.norm(self._vertices_nd - target_pos, axis=1)
+        nearest_index = np.argmin(distances)
+        nearest_pos = distances[nearest_index]
+
+        if nearest_pos < self._vertex_max_radius:
+            return self._vertices[nearest_index]
+
+        return None
+
+    def _switch_category_state(self, category: Vertex.VertexState, state: Vertex.VertexState):
+        for vertex in self._categories[category]:
+            vertex.state = state
+
+    def _update_categories(self):
+        for state in Vertex.VertexState:
+            self._categories[state] = []
+        for vertex in self._vertices:
+            self._categories[vertex.state].append(vertex)
+
+    def _update_path(self):
+        qt_points = [QPoint(x, y) for x, y in self._vertices_nd]
+        polygon = QPolygonF(qt_points)
+        path = QPainterPath()
+        path.addPolygon(polygon)
+        self._path: QPainterPath = path
+
+    def _update_vertices_nd(self, index_position: int = None):
+        if self._status == Shape.ShapeStatus.CLOSED: return
+        if not self._vertices:
+            self._vertices_nd = np.empty((0, 2), dtype=int)
+            return
+
+        if index_position is not None:
+            self._vertices_nd[index_position] = [self._vertices[index_position].position.x(), self._vertices[index_position].position.y()]
+            return
+
+        self._vertices_nd = np.array([[vertex.position.x(), vertex.position.y()] for vertex in self._vertices],
+                                     dtype=int)
+
+    @property
+    def selected_vertices(self) -> list[Vertex]:
+        return self._categories[Vertex.VertexState.SELECTED]
+
+
+class QEditor(QWidget):
+    def __init__(self, parent: QWidget = None):
+        super().__init__(parent)
+        self.setMinimumSize(200, 200)
+        self.setMouseTracking(True)
+
+        self._state_manager = StateManager()
+
+        # Shapes
+        self._shapes: list[Shape] = []
+        self._current_shape: Shape | None = None
+
+        # Grid
+        self._cell_width = 40
+        self._cached_grid: QPixmap | None = None
+
+        # Selection
+        self._selecting_rect: QRect | None = None
+        self._selected_rect: QRect | None = None
+        self._select_start_pos: QPoint | None = None
+
+        #region Pens and brushes
         self._selecting_rect_pen = QPen(QColor(0, 124, 217))
         self._selecting_rect_pen.setWidth(2)
         self._selection_rect_brush = QBrush(QColor(119, 197, 255, 100))
@@ -108,15 +334,17 @@ class QEditor(QWidget):
         self._selected_rect_pen.setWidth(2)
         #endregion
 
+    #region Painting Events
     def paintEvent(self, event):
         painter = QPainter(self)
 
         if self._cached_grid is not None:
             painter.drawPixmap(0, 0, self._cached_grid)
 
-        self._draw_polygons(painter)
-        self._draw_vertices(painter)
+        self._draw_shapes(painter)
         self._draw_selection_rects(painter)
+
+        painter.end()
 
     def resizeEvent(self, event):
         self._draw_grid()
@@ -159,39 +387,9 @@ class QEditor(QWidget):
             painter.drawLine(left, y, right, y)
             y += self._cell_width
 
-    def _draw_vertices(self, painter: QPainter):
-        if self._placed_vertices and self._show_vertices:
-            painter.setPen(self._default_vertex_pen)
-            painter.setBrush(self._default_vertex_brush)
-            for vertex in self._categories[VertexState.DEFAULT]:
-                painter.drawEllipse(vertex.position, self._vertex_min_radius, self._vertex_min_radius)
-
-            painter.setPen(self._selected_vertex_pen)
-            painter.setBrush(self._selected_vertex_brush)
-            for vertex in self._categories[VertexState.SELECTED]:
-                painter.drawEllipse(vertex.position, self._vertex_max_radius, self._vertex_max_radius)
-
-            painter.setPen(self._hovered_vertex_pen)
-            painter.setBrush(self._hovered_vertex_brush)
-            for vertex in self._categories[VertexState.HOVERED]:
-                painter.drawEllipse(vertex.position, self._vertex_min_radius, self._vertex_min_radius)
-
-            painter.setPen(self._held_vertex_pen)
-            painter.setBrush(self._held_vertex_brush)
-            for vertex in self._categories[VertexState.HELD]:
-                painter.drawEllipse(vertex.position, self._vertex_max_radius, self._vertex_max_radius)
-
-            painter.setPen(self._hovered_selected_vertex_pen)
-            painter.setBrush(self._hovered_selected_vertex_brush)
-            for vertex in self._categories[VertexState.HOVERED_SELECTED]:
-                painter.drawEllipse(vertex.position, self._vertex_max_radius, self._vertex_max_radius)
-
-    def _draw_polygons(self, painter: QPainter):
-        if self._cached_shapes:
-            for path in self._cached_shapes:
-                painter.setPen(self._polygon_pen)
-                painter.setBrush(self._polygon_brush)
-                painter.drawPath(path)
+    def _draw_shapes(self, painter: QPainter):
+        for shape in self._shapes:
+            shape.draw(painter)
 
     def _draw_selection_rects(self, painter: QPainter):
         if self._selecting_rect is not None:
@@ -203,33 +401,49 @@ class QEditor(QWidget):
             painter.setBrush(Qt.BrushStyle.NoBrush)
             painter.drawRect(self._selected_rect)
 
+    #endregion
+
     def mouseMoveEvent(self, event, /):
-        match self._cursor_state:
-            case CursorState.LOCKED:
-                return
+        match self._state_manager.cursor_state:
+            case StateManager.CursorState.LOCKED: return
+            case StateManager.CursorState.DEFAULT:
+                if self._current_shape is None: return
+                position = event.position().toPoint()
 
-            case CursorState.DEFAULT:
-                if self._placed_vertices is None: return
-                pos = event.position().toPoint()
-                if self._mouse_state == MouseState.FLOATING:
-                    near_vertex_pos = self._find_near_vertex_point(pos)
-                    if near_vertex_pos is not None:
-                        vertex_index = self._get_vertex_index(near_vertex_pos)
-                        self._near_vertex_index = vertex_index
-                    else: self._near_vertex_index = None
+                # Mouse buttons are not pressed
+                if self._state_manager.mouse_state == StateManager.MouseState.DEFAULT:
+                    near_vertex = self._current_shape.near_vertex(position)
 
-                    self._update_hovered_states()
-                elif self._mouse_state == MouseState.HOLDING_MB1_VERTEX:
-                    if self.near_vertex.state is VertexState.HELD:
-                        self._set_vertex_position(self._near_vertex_index, pos)
-                elif self._mouse_state == MouseState.HOLDING_MB1_AIR:
-                    self._selecting_rect.setBottomRight(pos)
-                    self._update_selection_states()
-                elif self._mouse_state == MouseState.HOLDING_MB1_VERTICES:
-                    self._move_vertices(pos)
-                    self._selected_move_start = pos
+                    # Mouse is hovering over a vertex
+                    if near_vertex is not None:
+                        self._state_manager.mouse_location = StateManager.MouseLocation.OVER_VERTEX
+                        self._current_shape.hover_vertex(near_vertex)
 
-            case CursorState.PEN:
+                    # Mouse is not hovering over a vertex
+                    else:
+                        self._state_manager.mouse_location = StateManager.MouseLocation.DEFAULT
+                        self._current_shape.reset_hovered_vertices()
+
+                # Mouse left button is pressed
+                elif self._state_manager.mouse_state == StateManager.MouseState.HOLDING_MB1:
+
+                    # Mouse is moving a vertex
+                    if self._state_manager.action_state == StateManager.ActionState.MOVING_VERTEX:
+                        self._current_shape.move_held_vertices_to_point(position)
+
+                    # Mouse is moving vertices
+                    elif self._state_manager.action_state == StateManager.ActionState.MOVING_VERTICES:
+                        self._current_shape.move_held_vertices(position.x() - self._select_start_pos.x(),
+                                                               position.y() - self._select_start_pos.y())
+                        self._select_start_pos = position
+                        self._update_selected_rect()
+
+                    # Mouse is selecting vertices
+                    elif self._state_manager.action_state == StateManager.ActionState.SELECTING_VERTICES:
+                        self._selecting_rect.setBottomRight(position)
+                        self._current_shape.select_content(self._selecting_rect)
+
+            case StateManager.CursorState.PEN:
                 ...
 
         self.update()
@@ -237,168 +451,92 @@ class QEditor(QWidget):
     def mousePressEvent(self, event, /):
         # temp stuff
         if event.button() == Qt.MouseButton.RightButton:
-            if self._cursor_state == CursorState.DEFAULT:
-                self._cursor_state = CursorState.PEN
+            if self._state_manager.cursor_state == StateManager.CursorState.DEFAULT:
+                self._state_manager.cursor_state = StateManager.CursorState.PEN
             else:
-                self._cursor_state = CursorState.DEFAULT
+                self._state_manager.cursor_state = StateManager.CursorState.DEFAULT
+        if event.button() == Qt.MouseButton.MiddleButton:
+            print(f"Cursor State: {self._state_manager.cursor_state}\nMouse State: {self._state_manager.mouse_state}"
+                  f"\nAction State: {self._state_manager.action_state}\n---------------------<")
         # ----
 
-        match self._cursor_state:
-            case CursorState.LOCKED:
-                return
-
-            case CursorState.DEFAULT:
+        match self._state_manager.cursor_state:
+            case StateManager.CursorState.LOCKED: return
+            case StateManager.CursorState.DEFAULT:
                 if event.button() == Qt.MouseButton.LeftButton:
-                    if self._placed_vertices is None: return
-                    if self.near_vertex is not None:
-                        self._remove_selected_rect()
-                        self._mouse_state = MouseState.HOLDING_MB1_VERTEX
-                        self._change_category_state(VertexState.SELECTED, VertexState.DEFAULT)
-                        self._placed_vertices[self._near_vertex_index].state = VertexState.HELD
-                        self._update_shape(self._shape_index)
-                    elif self._selected_rect is not None and self._selected_rect.contains(event.position().toPoint()):
-                        self._mouse_state = MouseState.HOLDING_MB1_VERTICES
-                        self._selected_move_start = event.position().toPoint()
+                    if self._current_shape is None: return
+                    position = event.position().toPoint()
+
+                    # Mouse left button is pressed
+                    self._state_manager.mouse_state = StateManager.MouseState.HOLDING_MB1
+
+                    # Mouse left button was pressed while over a vertex
+                    if self._current_shape.near_vertex(position) is not None:
+                        self._state_manager.action_state = StateManager.ActionState.MOVING_VERTEX
+                        self._current_shape.hold_vertex(self._current_shape.near_vertex(position), unselect_others=True)
+
+                    # Mouse left button was pressed while over a selection rectangle
+                    elif self._selected_rect is not None and self._selected_rect.contains(position):
+                        self._state_manager.action_state = StateManager.ActionState.MOVING_VERTICES
+                        self._current_shape.hold_selection()
+                        self._select_start_pos = position # Updates the position of the start of the delta (type shi)
+
+                    # Mouse left button was pressed while floating
                     else:
-                        self._mouse_state = MouseState.HOLDING_MB1_AIR
-                        self._remove_selected_rect()
-                        self._selecting_rect = QRect(event.position().toPoint(), event.position().toPoint())
-                        self._change_category_state(VertexState.SELECTED, VertexState.DEFAULT)
+                        self._state_manager.action_state = StateManager.ActionState.SELECTING_VERTICES
+                        self._current_shape.reset_selected_vertices() # Unselect all currently selected vertices
+                        self._selecting_rect = QRect(position, position) # The blue rectangle thing
 
-                    self._update_vertex_categories()
-
-            case CursorState.PEN:
+            case StateManager.CursorState.PEN:
                 if event.button() == Qt.MouseButton.LeftButton:
-                    self._change_category_state(VertexState.SELECTED, VertexState.DEFAULT)
-
-                    if not len(self._shapes_lengths) < self._shape_index + 1:
-                        self._shapes_lengths[self._shape_index] += 1
-                    else: self._shapes_lengths.append(1)
-
-                    self._add_vertex(event.position().toPoint())
-                    self._update_vertex_categories()
+                    position = event.position().toPoint()
+                    if self._current_shape is None:
+                        # Making a new shape
+                        self._shapes.append(Shape([Vertex(position=position, state=Vertex.VertexState.SELECTED,
+                                                         index_position=0)]))
+                        self._current_shape = self._shapes[-1]
+                    else:
+                        # Adding a point to the current shape
+                        near_vertex = self._current_shape.near_vertex(position)
+                        if near_vertex is not None and near_vertex.index_position == 0:
+                            self._exit_current_shape()
+                        elif near_vertex is None:
+                            self._current_shape.add_point(position)
 
         self.update()
 
     def mouseReleaseEvent(self, event, /):
-        match self._cursor_state:
-            case CursorState.LOCKED:
-                return
-
-            case CursorState.DEFAULT:
+        match self._state_manager.cursor_state:
+            case StateManager.CursorState.LOCKED: return
+            case StateManager.CursorState.DEFAULT:
                 if event.button() == Qt.MouseButton.LeftButton:
-                    if self.near_vertex is not None:
-                        self._placed_vertices[self._near_vertex_index].state = VertexState.SELECTED
-                    if self._mouse_state != MouseState.FLOATING:
-                        self._mouse_state = MouseState.FLOATING
-                        self._selecting_rect = None
-                        self._update_selected_rect()
 
-            case CursorState.PEN:
+                    # Mouse left button was released
+                    if self._current_shape is not None: self._current_shape.release_all()
+                    self._selecting_rect = None
+                    self._update_selected_rect()
+
+                    self._state_manager.mouse_state = StateManager.MouseState.DEFAULT
+                    self._state_manager.action_state = StateManager.ActionState.DEFAULT
+
+            case StateManager.CursorState.PEN:
                 ...
 
-    def _find_near_vertex_point(self, position: QPoint) -> QPoint | None:
-        if self._placed_vertices_nd.size == 0: return None
-
-        target_pos = np.array([position.x(), position.y()])
-        distances = np.linalg.norm(self._placed_vertices_nd - target_pos, axis=1)
-        nearest_index = np.argmin(distances)
-        nearest_pos = distances[nearest_index]
-
-        if nearest_pos < self._vertex_max_radius:
-            return QPoint(self._placed_vertices_nd[nearest_index, 0], self._placed_vertices_nd[nearest_index, 1])
-
-        return None
-
-    def _update_vertex_categories(self):
-        for state in VertexState:
-            self._categories[state] = []
-        for vertex in self._placed_vertices:
-            self._categories[vertex.state].append(vertex)
-
-    def _get_vertex_index(self, position: QPoint) -> int:
-        found = []
-        index_pos = -1
-        for vertex in self._placed_vertices:
-            index_pos += 1
-            if vertex.position == position:
-                found.append(index_pos)
-
-        match len(found):
-            case 0:
-                raise ValueError("No vertex found at given position: " + str(position))
-            case 1:
-                return found[0]
-            case _:
-                raise ValueError("Multiple vertices found at given position: " + str(position))
-
-    def _update_hovered_states(self):
-        if self._near_vertex_index is None:
-            for vertex in self._categories[VertexState.HOVERED]:
-                vertex.state = VertexState.DEFAULT
-            for vertex in self._categories[VertexState.HOVERED_SELECTED]:
-                vertex.state = VertexState.SELECTED
-        else:
-            if self.near_vertex.state == VertexState.SELECTED or self.near_vertex.state == VertexState.HOVERED_SELECTED:
-                self._placed_vertices[self._near_vertex_index].state = VertexState.HOVERED_SELECTED
-            else: self._placed_vertices[self._near_vertex_index].state = VertexState.HOVERED
-
-        self._update_vertex_categories()
-
-    def _update_selection_states(self):
-        if self._selecting_rect is None: return
-
-        for vertex in self._placed_vertices:
-            if self._selecting_rect.contains(vertex.position):
-                vertex.state = VertexState.SELECTED
-            else: vertex.state = VertexState.DEFAULT
-
-        self._update_vertex_categories()
-
-    def _change_category_state(self, category: VertexState, state: VertexState):
-        for vertex in self._categories[category]:
-            vertex.state = state
-
-    def _update_shape(self, index: int):
-        # if len(self._shapes[index]) < 2: return
-
-        shape_nd = self._placed_vertices_nd[0:self._shapes_lengths[index]]
-        if len(shape_nd) < 2: return
-
-        shape_qp = [QPoint(x, y) for x, y in shape_nd]
-        polygon = QPolygonF(shape_qp)
-        path = QPainterPath()
-        path.addPolygon(polygon)
-
-        if not len(self._cached_shapes) < index + 1:
-            self._cached_shapes[index] = path
-        else: self._cached_shapes.append(path)
-
-    @property
-    def near_vertex(self) -> Vertex | None:
-        if self._near_vertex_index is None: return None
-        return self._placed_vertices[self._near_vertex_index]
-
-    def _set_vertex_position(self, index: int, world_position: QPoint):
-        self._placed_vertices[index].position = world_position
-        self._placed_vertices_nd[index] = [world_position.x(), world_position.y()]
-        self._update_shape(self._shape_index)
-
-    def _add_vertex(self, world_position: QPoint):
-        self._placed_vertices.append(Vertex(world_position, VertexState.SELECTED))
-        self._placed_vertices_nd = np.append(self._placed_vertices_nd, [[world_position.x(),
-                                                                         world_position.y()]], axis=0)
-        self._update_shape(self._shape_index)
+        self.update()
 
     def _update_selected_rect(self):
-        if not len(self._categories[VertexState.SELECTED]) > 1: return
+        if self._current_shape is None: return
+        selected = self._current_shape.selected_vertices
+        if not len(selected) > 1:
+            self._selected_rect = None
+            return
 
-        highest = self._categories[VertexState.SELECTED][0].position.y()
-        lowest = self._categories[VertexState.SELECTED][0].position.y()
-        farthest_right = self._categories[VertexState.SELECTED][0].position.x()
-        farthest_left = self._categories[VertexState.SELECTED][0].position.x()
+        highest = selected[0].position.y()
+        lowest = selected[0].position.y()
+        farthest_right = selected[0].position.x()
+        farthest_left = selected[0].position.x()
 
-        for vertex in self._categories[VertexState.SELECTED]:
+        for vertex in selected:
             if vertex.position.y() < highest: highest = vertex.position.y()
             if vertex.position.y() > lowest: lowest = vertex.position.y()
             if vertex.position.x() > farthest_right: farthest_right = vertex.position.x()
@@ -406,25 +544,16 @@ class QEditor(QWidget):
 
         self._selected_rect = QRect(farthest_left, highest, farthest_right - farthest_left, lowest - highest)
 
-    def _move_vertices(self, world_position: QPoint):
-        delta_x = world_position.x() - self._selected_move_start.x()
-        delta_y = world_position.y() - self._selected_move_start.y()
-        for vertex in self._categories[VertexState.SELECTED]:
-            vertex.position.setX(vertex.position.x() + delta_x)
-            vertex.position.setY(vertex.position.y() + delta_y)
-            real_index = self._placed_vertices.index(vertex)
-            self._placed_vertices_nd[real_index][0] += delta_x
-            self._placed_vertices_nd[real_index][1] += delta_y
-        self._update_selected_rect()
-        self._update_shape(self._shape_index)
+    def _exit_current_shape(self):
+        self._current_shape.close_path()
+        self._current_shape = None
 
-    def _remove_selected_rect(self):
-        self._selected_rect = None
-        self._selected_move_start = None
-
+        self._state_manager.action_state = StateManager.ActionState.DEFAULT
+        self._state_manager.mouse_state = StateManager.MouseState.DEFAULT
+        self._state_manager.cursor_state = StateManager.CursorState.DEFAULT
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
-    demo = QEditor(CursorState.PEN)
+    demo = QEditor()
     demo.show()
     sys.exit(app.exec())
