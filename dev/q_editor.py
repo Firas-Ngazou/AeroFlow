@@ -10,11 +10,6 @@ import sys
 import numpy as np
 from enum import Enum
 
-from sympy.physics.quantum.gate import normalized
-
-
-# NOTE: Gotta make the shapes re-position properly when the window is resized
-
 class StateManager:
 
 
@@ -309,6 +304,11 @@ class Shape:
     def hold_selection(self):
         for vertex in self._categories[Vertex.VertexState.SELECTED]:
             self.hold_vertex(vertex)
+
+    def select_all(self):
+        self._switch_category_state(Vertex.VertexState.DEFAULT, Vertex.VertexState.SELECTED)
+        self._switch_category_state(Vertex.VertexState.HOVERED, Vertex.VertexState.SELECTED)
+        self._update_categories()
     #endregion
 
     #region State Manipulation
@@ -823,6 +823,18 @@ class QEditor(QWidget):
                     self._state_manager.key_state = StateManager.KeyState.HOLDING_CTRL
                 elif event.key() == Qt.Key.Key_Shift:
                     self._state_manager.key_state = StateManager.KeyState.HOLDING_SHIFT
+
+                if (self._current_shape is not None and
+                        self._state_manager.action_state == StateManager.ActionState.DEFAULT):
+                    # Shortcuts
+                    if event.key() == Qt.Key.Key_A: self._current_shape.select_all()
+                    if event.key() == Qt.Key.Key_Backspace: self._current_shape.delete_selected_vertices()
+                    if event.key() == Qt.Key.Key_Delete: self._current_shape.delete_selected_vertices()
+
+        if event.key() == Qt.Key.Key_Escape: self._exit_current_shape()
+        self._update_selected_rect()
+        self.update()
+
 
     def keyReleaseEvent(self, event, /):
         match self._state_manager.cursor_state:
