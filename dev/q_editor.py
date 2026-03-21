@@ -10,7 +10,10 @@ import sys
 import numpy as np
 from enum import Enum
 
-# NOTE:
+from sympy.physics.quantum.gate import normalized
+
+
+# NOTE: Gotta make the shapes re-position properly when the window is resized
 
 class StateManager:
 
@@ -120,6 +123,7 @@ class Shape:
         DEFAULT = 0
         SELECTED = 1
         HOVERED = 2
+        HOVERED_DELETE = 3
 
 
     class ShapeStatus(Enum):
@@ -180,6 +184,9 @@ class Shape:
         self._shape_hover_pen = QPen(QColor(0, 124, 217))
         self._shape_hover_pen.setWidth(4)
         self._shape_hover_brush = QBrush(QColor(119, 197, 255, 100))
+        self._shape_hover_delete_pen = QPen(QColor(225, 0, 0))
+        self._shape_hover_delete_pen.setWidth(4)
+        self._shape_hover_delete_brush = QBrush(QColor(225, 0, 0, 100))
 
         self._median_vertex_pen = QPen(QColor(179, 208, 255))
         self._median_vertex_pen.setWidth(4)
@@ -192,6 +199,9 @@ class Shape:
         if self._state == Shape.ShapeState.HOVERED:
             painter.setPen(self._shape_hover_pen)
             painter.setBrush(self._shape_hover_brush)
+        elif self._state == Shape.ShapeState.HOVERED_DELETE:
+            painter.setPen(self._shape_hover_delete_pen)
+            painter.setBrush(self._shape_hover_delete_brush)
         else:
             painter.setPen(self._shape_pen)
             painter.setBrush(self._shape_brush)
@@ -292,10 +302,9 @@ class Shape:
         self._update_path()
 
     def select_content(self, area: QRect):
-        self._switch_category_state(Vertex.VertexState.SELECTED, Vertex.VertexState.DEFAULT)
         for vertex in self._vertices:
             if area.contains(vertex.position):
-                self.select_vertex(vertex)
+                self.select_vertex(vertex, unselect_others=False)
 
     def hold_selection(self):
         for vertex in self._categories[Vertex.VertexState.SELECTED]:
@@ -342,7 +351,10 @@ class Shape:
             return True
         return False
 
-    def highlight_shape(self):
+    def highlight(self, for_deletion: bool = False):
+        if for_deletion:
+            self._state = Shape.ShapeState.HOVERED_DELETE
+            return
         self._state = Shape.ShapeState.HOVERED
 
     def delete_selected_vertices(self):
@@ -356,9 +368,28 @@ class Shape:
         self._update_categories()
         self._update_path()
 
-    def _switch_category_state(self, category: Vertex.VertexState, state: Vertex.VertexState):
-        for vertex in self._categories[category]:
-            vertex.state = state
+    def translate(self, delta_x: int, delta_y: int):
+        if not self._vertices: return
+        for vertex in self._vertices:
+            vertex.position += QPoint(delta_x, delta_y)
+        self._vertices_nd += np.array([[delta_x, delta_y]]*self._vertices_nd.shape[0], dtype=int)
+        self._update_path()
+
+    def is_in_delete_rect(self, rect: QRect) -> bool:
+        self._state = Shape.ShapeState.DEFAULT
+        x_coords = self._vertices_nd[:, 0]
+        y_coords = self._vertices_nd[:, 1]
+
+        normalized_rect = rect.normalized()
+
+        left, top, right, bottom = normalized_rect.getCoords()
+        inside_x = (left <= x_coords) & (x_coords <= right)
+        inside_y = (top <= y_coords) & (y_coords <= bottom)
+
+        if np.any(inside_x & inside_y):
+            self._state = Shape.ShapeState.HOVERED_DELETE
+            return True
+        return False
 
     #region Near Vertex Logic
     def near_vertex(self, position: QPoint) -> Vertex | None:
@@ -366,8 +397,6 @@ class Shape:
 
     def update_near_median(self, position: QPoint):
         if self._median_vertices is None: return
-        median_vertices_nd = self._median_vertices_nd
-        median_vertices = self._median_vertices
         median = self._near_point(position, self._median_vertices_nd, self._median_vertices)
         if median:
             median.state = Vertex.VertexState.MEDIAN
@@ -455,6 +484,10 @@ class Shape:
                                             for vertex in self._median_vertices])
     #endregion
 
+    def _switch_category_state(self, category: Vertex.VertexState, state: Vertex.VertexState):
+        for vertex in self._categories[category]:
+            vertex.state = state
+
     @property
     def selected_vertices(self) -> list[Vertex]:
         return self._categories[Vertex.VertexState.SELECTED]
@@ -480,6 +513,7 @@ class QEditor(QWidget):
         self._shapes: list[Shape] = []
         self._current_shape: Shape | None = None
         self._nearest_shape: Shape | None = None
+        self._shapes_to_remove: list[Shape] | None = None
 
         # Grid
         self._cell_width = 40
@@ -516,6 +550,19 @@ class QEditor(QWidget):
 
     def resizeEvent(self, event):
         self._draw_grid()
+
+        if not event.oldSize().isValid(): return
+
+        delta_width = event.size().width() - event.oldSize().width()
+        delta_height = event.size().height() - event.oldSize().height()
+
+        delta_x = delta_width // 2
+        delta_y = delta_height // 2
+
+        # When resizing to many times, since it gets the // of the deltas, the shapes do move a little bit more than
+        # they should. Meh... Ig it's fine.
+        for shape in self._shapes:
+            shape.translate(delta_x, delta_y)
 
     def _draw_grid(self):
         self._cached_grid = QPixmap(self.size())
@@ -589,17 +636,31 @@ class QEditor(QWidget):
 
                 if self._current_shape is None:
                     self._state_manager.mouse_location = StateManager.MouseLocation.DEFAULT
-                    self._nearest_shape = None
+                    if not self._state_manager.action_state == StateManager.ActionState.SELECTING_VERTICES:
+                        self._nearest_shape = None
 
-                    for shape in self._shapes:
+                        for shape in self._shapes:
 
-                        # Mouse is hovering over a shape
-                        if shape.is_over_shape(position):
-                            self._state_manager.mouse_location = StateManager.MouseLocation.OVER_SHAPE
-                            self._nearest_shape = shape
+                            # Mouse is hovering over a shape
+                            if shape.is_over_shape(position):
+                                self._state_manager.mouse_location = StateManager.MouseLocation.OVER_SHAPE
+                                self._nearest_shape = shape
 
-                    # Highlight the last shape that was detected as hovered
-                    if self._nearest_shape is not None: self._nearest_shape.highlight_shape()
+                        # Highlight the last shape that was detected as hovered
+                        if self._nearest_shape is not None: self._nearest_shape.highlight()
+                    elif self._state_manager.key_state == StateManager.KeyState.HOLDING_CTRL:
+                        # Mouse is selecting shapes to delete
+                        self._shapes_to_remove = None
+                        if self._selecting_rect is not None:
+                            for shape in self._shapes:
+                                if shape.is_in_delete_rect(self._selecting_rect):
+                                    if self._shapes_to_remove is not None:
+                                        self._shapes_to_remove.append(shape)
+                                    else:
+                                        self._shapes_to_remove = [shape]
+                                    shape.highlight(for_deletion=True)
+
+                            self._selecting_rect.setBottomRight(position)
 
                     self.update()
                     return
@@ -660,12 +721,22 @@ class QEditor(QWidget):
             case StateManager.CursorState.LOCKED: return
             case StateManager.CursorState.DEFAULT:
                 if event.button() == Qt.MouseButton.LeftButton:
+                    position = event.position().toPoint()
+
                     if self._current_shape is None:
+
+                        # Mouse is hovering over a shape, we select it
                         if self._state_manager.mouse_location == StateManager.MouseLocation.OVER_SHAPE:
+                            self._state_manager.action_state = StateManager.ActionState.DEFAULT
                             self._current_shape = self._nearest_shape
                             self._current_shape.select_path()
+
+                        # Mouse is not hovering over a shape, we start the building of the selecting rect
+                        elif (self._state_manager.mouse_location == StateManager.MouseLocation.DEFAULT and
+                              self._state_manager.key_state == StateManager.KeyState.HOLDING_CTRL):
+                            self._state_manager.action_state = StateManager.ActionState.SELECTING_VERTICES
+                            self._selecting_rect = QRect(position, position)
                         return
-                    position = event.position().toPoint()
 
                     # Mouse left button is pressed
                     self._state_manager.mouse_state = StateManager.MouseState.HOLDING_MB1
@@ -673,7 +744,9 @@ class QEditor(QWidget):
                     # Mouse left button was pressed while over a vertex
                     if self._current_shape.near_vertex(position) is not None:
                         self._state_manager.action_state = StateManager.ActionState.MOVING_VERTEX
-                        self._current_shape.hold_vertex(self._current_shape.near_vertex(position), unselect_others=True)
+                        unselect_others = self._state_manager.key_state != StateManager.KeyState.HOLDING_SHIFT
+                        self._current_shape.hold_vertex(self._current_shape.near_vertex(position),
+                                                        unselect_others=unselect_others)
 
                     # Mouse left button was pressed while over a selection rectangle
                     elif self._selected_rect is not None and self._selected_rect.contains(position):
@@ -688,7 +761,8 @@ class QEditor(QWidget):
                     # Mouse left button was pressed while floating
                     else:
                         self._state_manager.action_state = StateManager.ActionState.SELECTING_VERTICES
-                        self._current_shape.reset_selected_vertices() # Unselect all currently selected vertices
+                        if not self._state_manager.key_state == StateManager.KeyState.HOLDING_SHIFT:
+                            self._current_shape.reset_selected_vertices() # Unselect all currently selected vertices
                         self._selecting_rect = QRect(position, position) # The blue rectangle thing (or red for delete)
 
             case StateManager.CursorState.PEN:
@@ -721,10 +795,17 @@ class QEditor(QWidget):
                     if self._state_manager.key_state != StateManager.KeyState.HOLDING_CTRL: self._update_selected_rect()
                     elif self._current_shape is not None:
                         # Deleting selection
+                        self._selected_rect = None
                         self._current_shape.delete_selected_vertices()
                         if not self._current_shape.vertices:
                             self._shapes.remove(self._current_shape)
                             self._current_shape = None
+                    else:
+                        # Deleting a shape
+                        self._selected_rect = None
+                        if self._shapes_to_remove is not None:
+                            for shape in self._shapes_to_remove:
+                                self._shapes.remove(shape)
 
                     self._state_manager.mouse_state = StateManager.MouseState.DEFAULT
                     self._state_manager.action_state = StateManager.ActionState.DEFAULT
@@ -753,9 +834,15 @@ class QEditor(QWidget):
 
     def switch_cursor(self, cursor_state: StateManager.CursorState):
         self._state_manager.cursor_state = cursor_state
+        self._selecting_rect = None
+        self._selected_rect = None
+
+        self._state_manager.action_state = StateManager.ActionState.DEFAULT
+        self._state_manager.mouse_state = StateManager.MouseState.DEFAULT
+        self._state_manager.mouse_location = StateManager.MouseLocation.DEFAULT
+        self._state_manager.key_state = StateManager.KeyState.DEFAULT
+
         if self._current_shape is not None and cursor_state == StateManager.CursorState.PEN:
-            self._selecting_rect = None
-            self._selected_rect = None
             self._exit_current_shape()
 
         self.update()
@@ -787,6 +874,7 @@ class QEditor(QWidget):
         self._state_manager.action_state = StateManager.ActionState.DEFAULT
         self._state_manager.mouse_state = StateManager.MouseState.DEFAULT
         self._state_manager.cursor_state = StateManager.CursorState.DEFAULT
+
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
