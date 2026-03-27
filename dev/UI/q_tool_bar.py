@@ -11,7 +11,6 @@ class QToolBar(QWidget):
         super().__init__(parent)
 
         self.__cursor_state = StateManager.CursorState.DEFAULT
-        self.__settings_last_state = False
 
         # setup
         primary_frame = QFrame(self)
@@ -27,7 +26,7 @@ class QToolBar(QWidget):
         primary_layout.setContentsMargins(5, 5, 5, 5)
 
         # default button
-        cursor_icon = QIcon("../icons/cursor_icon_black.png")
+        default_icon = QIcon("../icons/cursor_icon_black.png")
         self.__default_button = QPushButton()
         self.__default_button.setCheckable(True)
         self.__default_button.setChecked(True)
@@ -52,7 +51,7 @@ class QToolBar(QWidget):
                 background-color: #A6A6A6;
             }
             """)
-        self.__default_button.setIcon(cursor_icon)
+        self.__default_button.setIcon(default_icon)
         self.__default_button.setIconSize(QSize(21, 21))
         self.__default_button.setFixedSize(44, 44)
 
@@ -85,7 +84,8 @@ class QToolBar(QWidget):
         self.__pen_button.setFixedSize(44, 44)
 
         # play button
-        play_icon = QIcon("../icons/play_icon_black.png")
+        self.__play_icon = QIcon("../icons/play_icon_black.png")
+        self.__stop_icon = QIcon("../icons/stop_icon_black.png")
         self.__play_button = QPushButton()
         self.__play_button.setCheckable(True)
         self.__play_button.setStyleSheet("""
@@ -109,7 +109,7 @@ class QToolBar(QWidget):
                 background-color: #BA7475;
             }
             """)
-        self.__play_button.setIcon(play_icon)
+        self.__play_button.setIcon(self.__play_icon)
         self.__play_button.setIconSize(QSize(21, 21))
         self.__play_button.setFixedSize(44, 44)
 
@@ -138,7 +138,7 @@ class QToolBar(QWidget):
         optimize_button.setFixedSize(44, 44)
 
         # pause button
-        pause_icon = QIcon("../icons/pause_icon_black.png")
+        self.__pause_icon = QIcon("../icons/pause_icon_black.png")
         self.__pause_button = QPushButton()
         self.__pause_button.setCheckable(True)
         self.__pause_button.setVisible(False)
@@ -163,7 +163,7 @@ class QToolBar(QWidget):
                         background-color: #92B28A;
                     }
                     """)
-        self.__pause_button.setIcon(pause_icon)
+        self.__pause_button.setIcon(self.__pause_icon)
         self.__pause_button.setIconSize(QSize(21, 21))
         self.__pause_button.setFixedSize(44, 44)
 
@@ -206,6 +206,57 @@ class QToolBar(QWidget):
         root_layout.addWidget(self.__pause_button, alignment=Qt.AlignmentFlag.AlignHCenter)
         root_layout.addWidget(primary_frame)
         self.setLayout(root_layout)
+
+        # connect signals
+        self.__default_button.clicked.connect(self.__on_cursor_button_pressed)
+        self.__pen_button.clicked.connect(self.__on_cursor_button_pressed)
+
+        self.__play_button.clicked.connect(self.__on_anim_button_pressed)
+        self.__pause_button.clicked.connect(self.__on_anim_button_pressed)
+
+    @Slot()
+    def __on_cursor_button_pressed(self):
+        sender = self.sender()
+        if sender == self.__default_button:
+            if self.__cursor_state == StateManager.CursorState.DEFAULT:
+                self.__default_button.setChecked(True)
+                return
+
+            state = StateManager.CursorState.DEFAULT
+            self.__default_button.setChecked(True)
+            self.__pen_button.setChecked(False)
+        elif sender == self.__pen_button:
+            if self.__cursor_state == StateManager.CursorState.PEN:
+                self.__pen_button.setChecked(True)
+                return
+
+            state = StateManager.CursorState.PEN
+            self.__default_button.setChecked(False)
+            self.__pen_button.setChecked(True)
+        else:
+            return
+
+        self.__cursor_state = state
+
+    @Slot()
+    def __on_anim_button_pressed(self):
+        sender = self.sender()
+        if sender == self.__play_button:
+            if self.__play_button.isChecked():
+                self.__settings_button.setDisabled(True)
+                self.__pause_button.setChecked(False)
+                self.__pause_button.setVisible(True)
+                self.__play_button.setIcon(self.__stop_icon)
+            else:
+                self.__settings_button.setDisabled(False)
+                self.__pause_button.setVisible(False)
+                self.__play_button.setIcon(self.__play_icon)
+        elif sender == self.__pause_button:
+            if self.__pause_button.isChecked():
+                self.__pause_button.setIcon(self.__play_icon)
+            else:
+                self.__pause_button.setIcon(self.__pause_icon)
+
 
 
 if __name__ == "__main__":
