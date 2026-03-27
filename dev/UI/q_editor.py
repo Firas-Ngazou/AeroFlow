@@ -706,15 +706,15 @@ class QEditor(QWidget):
 
     def mousePressEvent(self, event, /):
         # temp stuff ?? (maybe not actually...)
-        if event.button() == Qt.MouseButton.RightButton:
-            if self._state_manager.cursor_state == StateManager.CursorState.DEFAULT:
-                self.switch_cursor(StateManager.CursorState.PEN)
-            else:
-                self.switch_cursor(StateManager.CursorState.DEFAULT)
-        if event.button() == Qt.MouseButton.MiddleButton:
-            print(f"Cursor State: {self._state_manager.cursor_state}\nMouse Location: {self._state_manager.mouse_location}"
-                  f"\nAction State: {self._state_manager.action_state}\nNearest Shape: {self._nearest_shape}\n"
-                  f"Current Shape: {self._current_shape}\n---------------------<")
+        # if event.button() == Qt.MouseButton.RightButton:
+        #     if self._state_manager.cursor_state == StateManager.CursorState.DEFAULT:
+        #         self.switch_cursor(StateManager.CursorState.PEN)
+        #     else:
+        #         self.switch_cursor(StateManager.CursorState.DEFAULT)
+        # if event.button() == Qt.MouseButton.MiddleButton:
+        #     print(f"Cursor State: {self._state_manager.cursor_state}\nMouse Location: {self._state_manager.mouse_location}"
+        #           f"\nAction State: {self._state_manager.action_state}\nNearest Shape: {self._nearest_shape}\n"
+        #           f"Current Shape: {self._current_shape}\n---------------------<")
         # ----
 
         match self._state_manager.cursor_state:
