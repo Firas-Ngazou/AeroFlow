@@ -1,0 +1,88 @@
+from enum import Enum
+
+from PySide6.QtCore import QObject, Signal
+
+
+class QStateManager(QObject):
+
+    class MouseState(Enum):
+        # Design flaw: holding MB1 and MB2 at the same time is not possible :(
+        DEFAULT = 0
+        HOLDING_MB1 = 1
+        HOLDING_MB2 = 2
+        HOLDING_MB3 = 3
+
+
+    class MouseLocation(Enum):
+        DEFAULT = 0
+        OVER_VERTEX = 1
+        OVER_SHAPE = 2
+
+
+    class CursorState(Enum):
+        DEFAULT = 0
+        PEN = 1
+        LOCKED = 2
+
+    cursorStateChanged = Signal(CursorState)
+
+
+    class ActionState(Enum):
+        DEFAULT = 0
+        SELECTING_VERTICES = 1
+        MOVING_VERTEX = 2
+        MOVING_VERTICES = 3
+
+
+    class KeyState(Enum):
+        DEFAULT = 0
+        HOLDING_SHIFT = 1
+        HOLDING_CTRL = 2
+
+
+    def __init__(self, parent: QObject | None = None):
+        super().__init__(parent)
+        self._mouse_state = QStateManager.MouseState.DEFAULT
+        self._cursor_state = QStateManager.CursorState.DEFAULT
+        self._action_state = QStateManager.ActionState.DEFAULT
+        self._mouse_location = QStateManager.MouseLocation.DEFAULT
+        self._key_state = QStateManager.KeyState.DEFAULT
+
+    @property
+    def mouse_state(self) -> MouseState:
+        return self._mouse_state
+    @mouse_state.setter
+    def mouse_state(self, state: MouseState):
+        self._mouse_state = state
+
+    def set_cursor_state(self, state: CursorState):
+        self.cursor_state = state
+
+    @property
+    def cursor_state(self) -> CursorState:
+        return self._cursor_state
+    @cursor_state.setter
+    def cursor_state(self, state: CursorState):
+        self.cursorStateChanged.emit(state)
+        self._cursor_state = state
+
+    @property
+    def action_state(self) -> ActionState:
+        return self._action_state
+    @action_state.setter
+    def action_state(self, state: ActionState):
+        self._action_state = state
+
+    @property
+    def mouse_location(self) -> MouseLocation:
+        return self._mouse_location
+    @mouse_location.setter
+    def mouse_location(self, location: MouseLocation):
+        self._mouse_location = location
+
+    @property
+    def key_state(self) -> KeyState:
+        return self._key_state
+    @key_state.setter
+    def key_state(self, state: KeyState):
+        self._key_state = state

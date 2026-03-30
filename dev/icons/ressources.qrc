@@ -1,0 +1,18 @@
+<!DOCTYPE RCC><RCC version="1.0">
+<qresource prefix="res">
+    <file>cursor_icon_black.png</file>
+    <file>down_arrow_black.png</file>
+    <file>optimize_icon_black.png</file>
+    <file>pause_icon_black.png</file>
+    <file>pen_icon_black.png</file>
+    <file>pen_icon_white.png</file>
+    <file>play_icon_black.png</file>
+    <file>redo_icon_black.png</file>
+    <file>settings_icon_black.png</file>
+    <file>stop_icon_black.png</file>
+    <file>trash_icon_black.png</file>
+    <file>undo_icon_black.png</file>
+    <file>up_arrow_black.png</file>
+    <file>double_arrows_black.png</file>
+</qresource>
+</RCC>
