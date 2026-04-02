@@ -3,30 +3,25 @@ import math
 import numpy as np
 from lattice_grid import LatticeGrid
 from vector_obstacle import  VectorObstacle
-from enum import Enum
-
-class D2Q9Constants(Enum):
-    WEIGHTS = np.array([4/9, 1/9, 1/9, 1/9, 1/9, 1/36, 1/36, 1/36, 1/36])
-    VELOCITY_DIRECTIONS = np.array([(0, 0), (1, 0), (0, 1), (-1, 0), (0, -1), (1, 1), (-1, 1), (-1, -1), (1, -1)])
-    SPEED_OF_SOUND_SQUARED = 1/3
 
 class SimulationEngine:
-    def __init__(self, lattice_grid: LatticeGrid):
-        self._grid = lattice_grid
+    def __init__(self):
+        self._grid: LatticeGrid | None = None
         self._current_obstacle: VectorObstacle
         self._tau: float
         self._current_step: int = 0
-        self._resolution_x: int = 200
-        self._resolution_y: int = 200
+        self._resolution_x: int = 10
+        self._resolution_y: int = 10
 
-        self._macro_velocity: np.ndarray = np.zeros((self._resolution_x, self._resolution_y, 2))
-        self._macro_density: np.ndarray = np.zeros((self._resolution_x, self._resolution_y))
-
-    def initialize(self, initial_velocity_ms: float, initial_density: float):
-        ...
+    def initialize(self, initial_velocity_ms: float):
+        self._grid = LatticeGrid(self._resolution_x, self._resolution_y)
+        self._grid.update_macroscopic()
+        self._grid.macro_velocity_x[:, 0] = initial_velocity_ms
 
     def execute_time_step(self):
-        ...
+        self.__apply_streaming()
+        self.__apply_collision()
+        self.__apply_boundaries()
 
     def calculate_drag_coef(self):
         ...
@@ -46,10 +41,6 @@ class SimulationEngine:
     def set_obstacle(self, obstacle: VectorObstacle):
         ...
 
-    @property
-    def macro_velocity(self) -> np.ndarray:
-        return self._macro_velocity
-
-    @property
-    def macro_density(self) -> np.ndarray:
-        return self._macro_density
+if __name__ == "__main__":
+    engine = SimulationEngine()
+    engine.initialize(10)
