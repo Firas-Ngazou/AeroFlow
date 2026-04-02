@@ -1,22 +1,45 @@
 import numpy as np
 
+class D2Q9Constants:
+    WEIGHTS = np.array([4/9, 1/9, 1/9, 1/9, 1/9, 1/36, 1/36, 1/36, 1/36])
+    E_X = np.array([0, 1, 0, -1, 0, 1, -1, -1, 1])
+    E_Y = np.array([0, 0, 1, 0, -1, 1, 1, -1, -1])
+    SPEED_OF_SOUND_SQUARED = 1/3
+
 class LatticeGrid:
-    def __init__(self, width: int, height: int, distributions: np.ndarray, distributions_temp: np.ndarray):
+    def __init__(self, width: int, height: int):
         self._width = width
         self._height = height
-        self._distributions = distributions
-        self._distributions_temp = distributions_temp
+        self._constants = D2Q9Constants()
 
-    def get_distribution(self, x: int, y: int) -> np.ndarray:
-        ...
+        # distribution dans chacune des 9 directions dans chaque cellule (f_i)
 
-    def update_macroscopic(self) -> tuple[np.ndarray, np.ndarray]:
-        ...
+        self._distributions = np.ones((width, height, 9))
+        self._distributions_temp = self._distributions.copy()
+
+        self._macro_density = np.zeros((width, height)) # Les densites dans chaque cellule (rho) (pas la mm chose que distributions)
+        self._macro_velocity_x = np.zeros((width, height))
+        self._macro_velocity_y = np.zeros((width, height))
+
+        # print(self._distributions)
+
+    def update_macroscopic(self):
+        self._macro_density = np.sum(self._distributions, axis=2)
+        self._macro_velocity_x = np.sum(self._distributions*self._constants.E_X, axis=2)
+        self._macro_velocity_y = np.sum(self._distributions*self._constants.E_Y, axis=2)
 
     @property
-    def width(self) -> int:
-        return self._width
+    def distributions(self):
+        return self._distributions
 
     @property
-    def height(self) -> int:
-        return self._height
+    def macro_density(self):
+        return self._macro_density
+
+    @property
+    def macro_velocity_x(self):
+        return self._macro_velocity_x
+
+    @property
+    def macro_velocity_y(self):
+        return self._macro_velocity_y
