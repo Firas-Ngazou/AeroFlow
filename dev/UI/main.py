@@ -1,21 +1,23 @@
+import os
 import sys
 import ressources_rc
 
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QFontDatabase
+from PySide6.QtGui import QFontDatabase, QPalette, QColor
 from PySide6.QtWidgets import QVBoxLayout, QWidget, QApplication, QHBoxLayout
 
 from q_state_manager import QStateManager
 from q_editor import QEditor
 from q_tool_bar import QToolBar
 
+
 class Main(QWidget):
-    def __init__(self, parent: QWidget|None = None):
+    def __init__(self, parent: QWidget | None = None):
         super().__init__(parent)
         self.resize(1920, 1080)
 
-        QFontDatabase.addApplicationFont("../fonts/Author-Regular.ttf")
-        QFontDatabase.addApplicationFont("../fonts/Author-Bold.ttf")
+        QFontDatabase.addApplicationFont(":/res/Author-Regular.ttf")
+        QFontDatabase.addApplicationFont(":/res/Author-Bold.ttf")
 
         self._editor: QEditor
         self._state_manager = QStateManager(self)
@@ -46,13 +48,48 @@ class Main(QWidget):
         self._editor.keyReleaseEvent(event)
 
 
-def load_styles(q_app: QApplication) -> None:
-    with open("styles.qss", "r") as file:
-        q_app.setStyleSheet(file.read())
+class ThemeManager:
+    def __init__(self, q_app: QApplication):
+        self._q_app = q_app
+
+        self._load_styles()
+        self._palette: QPalette | None = None
+        self._apply_dark_palette()
+
+    def _apply_dark_palette(self) -> None:
+        dark_palette = QPalette()
+
+        dark_palette.setColor(QPalette.ColorRole.WindowText, QColor("#F5F5F5"))
+        dark_palette.setColor(QPalette.ColorRole.Highlight, QColor("#1D1D1D64"))
+        dark_palette.setColor(QPalette.ColorRole.Window, QColor("#1D1D1D"))
+        dark_palette.setColor(QPalette.ColorRole.HighlightedText, QColor("#1D1D1D"))
+
+        self._q_app.setPalette(dark_palette)
+
+        self._palette = dark_palette
+
+        self._inherit_palette(self._q_app)
+
+    def _inherit_palette(self, q_widget: QWidget | QApplication):
+        for child in q_widget.findChildren(QWidget):
+            child.setPalette(self._palette)
+            self._inherit_palette(child)
+
+    def _load_styles(self) -> None:
+        base_path = os.path.dirname(os.path.abspath(__file__))
+        styles_path = os.path.join(base_path, "styles.qss")
+
+        if os.path.exists(styles_path):
+            with open(styles_path, "r") as file:
+                self._q_app.setStyleSheet(file.read())
+
+        else:
+            print("'styles.qss' file was not found.")
+
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    load_styles(app)
+    ThemeManager(app)
     main = Main()
     main.show()
     sys.exit(app.exec())
