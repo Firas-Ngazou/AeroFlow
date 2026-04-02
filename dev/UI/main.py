@@ -11,6 +11,7 @@ from q_editor import QEditor
 from q_tool_bar import QToolBar
 from q_custom_window_frame import QCustomWindowFrame
 
+
 class Main(QWidget):
     def __init__(self, parent: QWidget | None = None):
         super().__init__(parent)

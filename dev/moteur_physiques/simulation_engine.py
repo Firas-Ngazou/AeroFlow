@@ -1,6 +1,14 @@
+import math
+
 import numpy as np
 from lattice_grid import LatticeGrid
 from vector_obstacle import  VectorObstacle
+from enum import Enum
+
+class D2Q9Constants(Enum):
+    WEIGHTS = np.array([4/9, 1/9, 1/9, 1/9, 1/9, 1/36, 1/36, 1/36, 1/36])
+    VELOCITY_DIRECTIONS = np.array([(0, 0), (1, 0), (0, 1), (-1, 0), (0, -1), (1, 1), (-1, 1), (-1, -1), (1, -1)])
+    SPEED_OF_SOUND_SQUARED = 1/3
 
 class SimulationEngine:
     def __init__(self, lattice_grid: LatticeGrid):
