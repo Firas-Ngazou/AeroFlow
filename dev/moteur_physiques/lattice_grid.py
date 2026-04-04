@@ -14,8 +14,9 @@ class LatticeGrid:
 
         # distribution dans chacune des 9 directions dans chaque cellule (f_i)
 
-        self._distributions = np.ones((width, height, 9))
-        self._distributions_temp = self._distributions.copy()
+        self._distributions = np.zeros((width, height, 9))
+        for i in range(9):
+            self._distributions[:, :, i] = self._constants.WEIGHTS[i]
 
         self._macro_density = np.zeros((width, height)) # Les densites dans chaque cellule (rho) (pas la mm chose que distributions)
         self._macro_velocity_x = np.zeros((width, height))
@@ -31,14 +32,23 @@ class LatticeGrid:
     @property
     def distributions(self):
         return self._distributions
+    @distributions.setter
+    def distributions(self, new_distributions):
+        self._distributions = new_distributions
 
     @property
     def macro_density(self):
         return self._macro_density
+    @macro_density.setter
+    def macro_density(self, new_macro_density):
+        self._macro_density = new_macro_density
 
     @property
     def macro_velocity_x(self):
         return self._macro_velocity_x
+    @macro_velocity_x.setter
+    def macro_velocity_x(self, new_macro_velocity_x):
+        self._macro_velocity_x = new_macro_velocity_x
 
     @property
     def macro_velocity_y(self):
