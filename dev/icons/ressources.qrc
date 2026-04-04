@@ -1,5 +1,5 @@
 <!DOCTYPE RCC><RCC version="1.0">
-<qresource prefix="res">
+<qresource prefix="/res">
     <file>cursor_icon_black.png</file>
     <file>down_arrow_black.png</file>
     <file>optimize_icon_black.png</file>
@@ -14,5 +14,12 @@
     <file>undo_icon_black.png</file>
     <file>up_arrow_black.png</file>
     <file>double_arrows_black.png</file>
+    <file>Author-Bold.otf</file>
+    <file>Author-Regular.otf</file>
+    <file>GeneralSans-Bold.otf</file>
+    <file>GeneralSans-Regular.otf</file>
+    <file>JetBrainsMono-Bold.ttf</file>
+    <file>JetBrainsMono-Medium.ttf</file>
+    <file>app_logo.png</file>
 </qresource>
 </RCC>

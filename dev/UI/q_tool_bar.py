@@ -33,17 +33,17 @@ class QToolBar(QWidget):
         primary_layout.setContentsMargins(5, 5, 5, 5)
 
         # default button
-        default_icon = QIcon("../icons/cursor_icon_black.png")
+        default_icon = QIcon(":/res/cursor_icon_black.png")
         self._default_button = QToolPB(default_icon)
         self._default_button.setChecked(True)
 
         # pen button
-        pen_icon = QIcon("../icons/pen_icon_black.png")
+        pen_icon = QIcon(":/res/pen_icon_black.png")
         self._pen_button = QToolPB(pen_icon)
 
         # play button
-        self._play_icon = QIcon("../icons/play_icon_black.png")
-        self._stop_icon = QIcon("../icons/stop_icon_black.png")
+        self._play_icon = QIcon(":/res/play_icon_black.png")
+        self._stop_icon = QIcon(":/res/stop_icon_black.png")
         self._play_button = QPushButton()
         self._play_button.setCheckable(True)
         self._play_button.setProperty("class", "play_pb")
@@ -52,11 +52,11 @@ class QToolBar(QWidget):
         self._play_button.setFixedSize(44, 44)
 
         # optimize button
-        optimize_icon = QIcon("../icons/optimize_icon_black.png")
+        optimize_icon = QIcon(":/res/optimize_icon_black.png")
         optimize_button = QToolPB(optimize_icon, checkable=False)
 
         # pause button
-        self._pause_icon = QIcon("../icons/pause_icon_black.png")
+        self._pause_icon = QIcon(":/res/pause_icon_black.png")
         self._pause_button = QPushButton()
         self._pause_button.setCheckable(True)
         self._pause_button.setVisible(False)
@@ -66,7 +66,7 @@ class QToolBar(QWidget):
         self._pause_button.setFixedSize(44, 44)
 
         # settings
-        settings_icon = QIcon("../icons/settings_icon_black.png")
+        settings_icon = QIcon(":/res/settings_icon_black.png")
         self._settings_button = QToolPB(settings_icon)
         self._settings_tab = QSettingsTab()
         self._settings_tab.hide()
