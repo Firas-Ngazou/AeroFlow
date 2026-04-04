@@ -5,6 +5,7 @@ class D2Q9Constants:
     E_X = np.array([0, 1, 0, -1, 0, 1, -1, -1, 1])
     E_Y = np.array([0, 0, 1, 0, -1, 1, 1, -1, -1])
     SPEED_OF_SOUND_SQUARED = 1/3
+    OPPOSITES = np.array([0, 3, 4, 1, 2, 7, 8, 5, 6])
 
 class LatticeGrid:
     def __init__(self, width: int, height: int):
@@ -26,8 +27,8 @@ class LatticeGrid:
 
     def update_macroscopic(self):
         self._macro_density = np.sum(self._distributions, axis=2)
-        self._macro_velocity_x = np.sum(self._distributions*self._constants.E_X, axis=2)
-        self._macro_velocity_y = np.sum(self._distributions*self._constants.E_Y, axis=2)
+        self._macro_velocity_x = np.sum(self._distributions*self._constants.E_X, axis=2)/self.macro_density
+        self._macro_velocity_y = np.sum(self._distributions*self._constants.E_Y, axis=2)/self.macro_density
 
     @property
     def distributions(self):
