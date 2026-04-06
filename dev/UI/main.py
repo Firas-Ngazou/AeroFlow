@@ -6,6 +6,7 @@ from PySide6.QtCore import Qt
 from PySide6.QtGui import QFontDatabase, QPalette, QColor, QIcon
 from PySide6.QtWidgets import QVBoxLayout, QWidget, QApplication, QHBoxLayout
 
+from dev.moteur_physiques.vector_obstacle import VectorObstacle
 from q_state_manager import QStateManager
 from q_editor import QEditor
 from q_tool_bar import QToolBar
@@ -15,6 +16,10 @@ from q_custom_window_frame import QCustomWindowFrame
 class Main(QWidget):
     def __init__(self, parent: QWidget | None = None):
         super().__init__(parent)
+
+        self._initial_res = 1080
+        self.resize(int((16/9)*self._initial_res), self._initial_res)
+
         self.setMinimumWidth(450)
         self._editor: QEditor
         self._state_manager = QStateManager(self)
@@ -25,19 +30,34 @@ class Main(QWidget):
         self._primary_layout.addWidget(self._editor)
 
     def __initialize_canvas(self):
+        # Editor Setup
         self._editor = QEditor(self._state_manager)
-
-        self._secondary_layout = QVBoxLayout(self._editor)
-        self._lower_layout = QHBoxLayout()
-        self._secondary_layout.addStretch()
-        self._secondary_layout.addLayout(self._lower_layout)
-        self._tool_bar = QToolBar(self._state_manager)
-        self._lower_layout.addWidget(self._tool_bar, alignment=Qt.AlignmentFlag.AlignHCenter)
         self._editor.switch_cursor(QStateManager.CursorState.DEFAULT)
 
+        # Tool Bar Setup
+        self._tool_bar = QToolBar(self._state_manager)
+
+        # Vector Obstacle Setup
+        self._vector_obstacle = VectorObstacle(self._initial_res)
+
+        # Layout Setup
+        self._lower_layout = QHBoxLayout()
+        self._lower_layout.addWidget(self._tool_bar, alignment=Qt.AlignmentFlag.AlignHCenter)
+        self._secondary_layout = QVBoxLayout(self._editor)
+        self._secondary_layout.addStretch()
+        self._secondary_layout.addLayout(self._lower_layout)
+
         # Signals
+        # State Manager
         self._state_manager.cursorStateChanged.connect(self._editor.switch_cursor)
         self._state_manager.cursorStateChanged.connect(self._tool_bar.update_cursor_state)
+
+        # Editor
+        self._editor.vectorDrawingChanged.connect(self._vector_obstacle.set_vertices)
+
+        # Settings (General)
+        self._tool_bar.settings.general_tab.resolution.realValueChanged.connect(
+            self._vector_obstacle.set_reduction_factor)
 
     def keyPressEvent(self, event):
         self._editor.keyPressEvent(event)
@@ -45,6 +65,8 @@ class Main(QWidget):
     def keyReleaseEvent(self, event):
         self._editor.keyReleaseEvent(event)
 
+    # def resizeEvent(self, event):
+    #     self._tool_bar.settings.general_tab.resolution.maximum = self.width()
 
 class ThemeManager:
     def __init__(self, q_app: QApplication):

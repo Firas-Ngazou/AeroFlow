@@ -68,8 +68,8 @@ class QToolBar(QWidget):
         # settings
         settings_icon = QIcon(":/res/settings_icon_black.png")
         self._settings_button = QToolPB(settings_icon)
-        self._settings_tab = QSettingsTab()
-        self._settings_tab.hide()
+        self._settings = QSettingsTab()
+        self._settings.hide()
 
         primary_layout.addWidget(self._default_button)
         primary_layout.addWidget(self._pen_button)
@@ -79,7 +79,7 @@ class QToolBar(QWidget):
 
         root_layout = QVBoxLayout(self)
         root_layout.setSpacing(5)
-        root_layout.addWidget(self._settings_tab, alignment=Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignBottom)
+        root_layout.addWidget(self._settings, alignment=Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignBottom)
         root_layout.addWidget(self._pause_button, alignment=Qt.AlignmentFlag.AlignHCenter)
         root_layout.addWidget(primary_frame, alignment=Qt.AlignmentFlag.AlignHCenter)
         self.setLayout(root_layout)
@@ -91,6 +91,10 @@ class QToolBar(QWidget):
 
         self._play_button.clicked.connect(self._on_anim_button_pressed)
         self._pause_button.clicked.connect(self._on_anim_button_pressed)
+
+    @property
+    def settings(self):
+        return self._settings
 
     @Slot()
     def _on_cursor_button_pressed(self):
@@ -129,7 +133,7 @@ class QToolBar(QWidget):
         if sender == self._play_button:
             if self._play_button.isChecked():
                 self._settings_button.setDisabled(True)
-                self._settings_tab.hide()
+                self._settings.hide()
 
                 self._pen_button.setDisabled(True)
                 self._state_manager.set_cursor_state(QStateManager.CursorState.DEFAULT)
@@ -161,9 +165,9 @@ class QToolBar(QWidget):
     @Slot()
     def _on_settings_button_pressed(self):
         if self._settings_button.isChecked():
-            self._settings_tab.show()
+            self._settings.show()
         else:
-            self._settings_tab.hide()
+            self._settings.hide()
 
 
 

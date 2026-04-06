@@ -143,6 +143,50 @@ class QRealSliderGroup(QAbstractSliderGroup):
         self._slider.realValueChanged.connect(self.realValueChanged)
         self._spin_box.valueChanged.connect(self._slider.setValue)
 
+    @property
+    def value(self) -> float | int:
+        return self._slider.value()
+
+    @value.setter
+    def value(self, value: float | int):
+        self._slider.setValue(value)
+        self._spin_box.setValue(value)
+
+    @property
+    def maximum(self) -> float | int:
+        return self._slider.maximum()
+
+    @maximum.setter
+    def maximum(self, value: float | int):
+        self._slider.setMaximum(value)
+        self._spin_box.setMaximum(value)
+
+    @property
+    def minimum(self) -> float | int:
+        return self._slider.minimum()
+
+    @minimum.setter
+    def minimum(self, value: float | int):
+        self._slider.setMinimum(value)
+        self._spin_box.setMinimum(value)
+
+    @property
+    def single_step(self) -> float | int:
+        return self._spin_box.singleStep()
+
+    @single_step.setter
+    def single_step(self, step: float | int):
+        self._spin_box.setSingleStep(step)
+        self._slider.setSingleStep(step)
+
+    def set_value(self, value: float | int):
+        self._slider.setValue(value)
+        self._spin_box.setValue(value)
+
+    def set_range(self, min_range: float | int, max_range: float | int):
+        self._slider.setRange(min_range, max_range)
+        self._spin_box.setRange(min_range, max_range)
+
 class QSliderGroup(QAbstractSliderGroup):
     valueChanged = Signal(int)
 
@@ -153,6 +197,50 @@ class QSliderGroup(QAbstractSliderGroup):
         self._slider.valueChanged.connect(self._spin_box.setValue)
         self._slider.valueChanged.connect(self.valueChanged)
         self._spin_box.valueChanged.connect(self._slider.setValue)
+
+    @property
+    def value(self) -> int:
+        return self._slider.value()
+
+    @value.setter
+    def value(self, value: int):
+        self._slider.setValue(value)
+        self._spin_box.setValue(value)
+
+    @property
+    def maximum(self) -> int:
+        return self._slider.maximum()
+
+    @maximum.setter
+    def maximum(self, value: int):
+        self._slider.setMaximum(value)
+        self._spin_box.setMaximum(value)
+
+    @property
+    def minimum(self) -> int:
+        return self._slider.minimum()
+
+    @minimum.setter
+    def minimum(self, value: int):
+        self._slider.setMinimum(value)
+        self._spin_box.setMinimum(value)
+
+    @property
+    def single_step(self) -> int:
+        return self._spin_box.singleStep()
+
+    @single_step.setter
+    def single_step(self, step: int):
+        self._spin_box.setSingleStep(step)
+        self._slider.setSingleStep(step)
+
+    def set_value(self, value: int):
+        self._slider.setValue(value)
+        self._spin_box.setValue(value)
+
+    def set_range(self, min_range: int, max_range: int):
+        self._slider.setRange(min_range, max_range)
+        self._spin_box.setRange(min_range, max_range)
 
 class QHistoryGroup(QWidget):
     def __init__(self, parent: QWidget | None = None):
@@ -202,58 +290,3 @@ class QHistoryGroup(QWidget):
         root_layout.setContentsMargins(0, 0, 0, 0)
 
 #endregion
-
-
-
-class ThemeManager:
-    def __init__(self, q_app: QApplication):
-        self._q_app = q_app
-
-        self._load_custom_fonts()
-        self._load_styles()
-        self._palette: QPalette | None = None
-        self._apply_dark_palette()
-
-    @staticmethod
-    def _load_custom_fonts():
-        QFontDatabase.addApplicationFont(":/res/JetBrainsMono-Regular.ttf")
-        QFontDatabase.addApplicationFont(":/res/JetBrainsMono-Bold.ttf")
-        QFontDatabase.addApplicationFont(":/res/Author-Regular.otf")
-        QFontDatabase.addApplicationFont(":/res/Author-Bold.otf")
-
-    def _apply_dark_palette(self) -> None:
-        dark_palette = QPalette()
-
-        dark_palette.setColor(QPalette.ColorRole.WindowText, QColor("#F5F5F5"))
-        dark_palette.setColor(QPalette.ColorRole.Highlight, QColor("#1D1D1D64"))
-        dark_palette.setColor(QPalette.ColorRole.Window, QColor("#1D1D1D"))
-        dark_palette.setColor(QPalette.ColorRole.HighlightedText, QColor("#1D1D1D64"))
-
-        self._q_app.setPalette(dark_palette)
-
-        self._palette = dark_palette
-
-        self._inherit_palette(self._q_app)
-
-    def _inherit_palette(self, q_widget: QWidget | QApplication):
-        for child in q_widget.findChildren(QWidget):
-            child.setPalette(self._palette)
-            self._inherit_palette(child)
-
-    def _load_styles(self) -> None:
-        base_path = os.path.dirname(os.path.abspath(__file__))
-        styles_path = os.path.join(base_path, "styles.qss")
-
-        if os.path.exists(styles_path):
-            with open(styles_path, "r") as file:
-                self._q_app.setStyleSheet(file.read())
-
-        else:
-            print("'styles.qss' file was not found.")
-
-if __name__ == "__main__":
-    app = QApplication()
-    ThemeManager(app)
-    window = QHistoryGroup()
-    window.show()
-    app.exec()

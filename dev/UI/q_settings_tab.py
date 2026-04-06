@@ -13,8 +13,13 @@ class QSettingsGeneralTab(QWidget):
         super().__init__(parent)
 
         # Resolution
-        self._resolution_setting = QSliderGroup("RÉSOLUTION (px)")
-        high_res_warning = QLabel("        ATTENTION : Une trop haute résolution peut résulter en une \n"
+        self._resolution_setting = QRealSliderGroup("QUALITY")
+
+        self._resolution_setting.minimum = 0.1
+        self._resolution_setting.maximum = 1.0
+        self._resolution_setting.single_step = 0.01
+
+        high_res_warning = QLabel("        ATTENTION : Une trop haute valeur peut résulter en une \n"
                                   "        perte de performance importante.")
         high_res_warning.setFont(QFont("Author", 8))
 
@@ -29,6 +34,10 @@ class QSettingsGeneralTab(QWidget):
         root_layout.addWidget(self._wind_speed_setting)
         root_layout.setContentsMargins(0, 0, 0, 0)
         root_layout.addStretch()
+
+    @property
+    def resolution(self):
+        return self._resolution_setting
 
 class QSettingsOptimizationTab(QWidget):
     def __init__(self, parent: QWidget | None = None):
@@ -110,6 +119,14 @@ class QSettingsTab(QWidget):
         # Connections
         self._general_button.clicked.connect(self._on_tab_changed)
         self._optimization_button.clicked.connect(self._on_tab_changed)
+
+    @property
+    def general_tab(self):
+        return self._general_tab
+
+    @property
+    def optimization_tab(self):
+        return self._optimization_tab
 
     @Slot()
     def _on_tab_changed(self):
