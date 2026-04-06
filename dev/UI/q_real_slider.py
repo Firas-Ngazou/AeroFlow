@@ -1,20 +1,6 @@
 from tools.float_comparator import is_not_close, is_less
-
-# -----------------------------------------------------------------------------
-import PySide6
-from __feature__ import snake_case, true_property  # type: ignore[import-not-found]
-# -----------------------------------------------------------------------------
-
-from PySide6.QtCore import Signal, Slot, Property
+from PySide6.QtCore import Signal, Slot
 from PySide6.QtWidgets import QWidget, QSlider
-
-# -----------------------------------------------------------------------------
-from shibokensupport import feature  # type: ignore[import-not-found]
-
-feature.set_selection(feature.snake_case | feature.true_property)
-assert "snake_case" in feature.info() and "true_property" in feature.info()
-# -----------------------------------------------------------------------------
-
 from tools.q_utils import BlockSignals
 
 
@@ -109,17 +95,6 @@ class QRealSlider(QSlider):
 
         self._setup()
 
-    def _set_super_property(self, name: str, value: int) -> None:
-        # Since `super()` returns a proxy object, writing `super().value = ...`
-        # fails. The expression `super().value` calls the parent's getter and
-        # returns its result (a value), to which a new value cannot be assigned
-        # as intended. The property object itself is not returned. The
-        # workaround is to access the property's setter directly via `.fset()`.
-        #
-        # Sets a property on the parent QSlider using the fset workaround.
-        prop = getattr(super(QRealSlider, QRealSlider), name)
-        prop.fset(self, value)
-
     def _to_real_scale(self, int_value: int) -> float:
         return self._range_scale * int_value
 
@@ -132,44 +107,40 @@ class QRealSlider(QSlider):
     def _to_int_index(self, real_value: float) -> int:
         return round((real_value - self._real_minimum) / self._range_scale)
 
-    def _setup(self) -> None:  # Signals are blocked when calling this method
-
-        slide_value: float = self.value
+    def _setup(self) -> None:
+        slide_value: float = self.value()
 
         with BlockSignals(self):
             self._precision_scale = 10 ** self._decimals
-            super().set_range(0, int(round(self._precision_scale * (self._real_maximum - self._real_minimum))))
+            super().setRange(0, int(round(self._precision_scale * (self._real_maximum - self._real_minimum))))
 
             self._range_scale = (self._real_maximum - self._real_minimum) / (
-                        super().maximum - super().minimum)  # Since minimum < maximum, the division is safe
+                    super().maximum() - super().minimum())
 
-            self._set_super_property("single_step", self._to_int_scale(self._single_step))
-            self._set_super_property("page_step", self._to_int_scale(self._page_step))
+            super().setSingleStep(self._to_int_scale(self._single_step))
+            super().setPageStep(self._to_int_scale(self._page_step))
 
-            self.value = slide_value  # type: ignore[method-assign] # notes: [2] see Notes at the end of the file
+            self.setValue(slide_value)
 
-        if is_not_close(slide_value, self.value):  # if the value was changed by the modification of the range
-            self.realValueChanged.emit(self.value)
+        if is_not_close(slide_value, self.value()):
+            self.realValueChanged.emit(self.value())
 
     @Slot(int)
     def _on_value_changed(self, _: int) -> None:
-        self.realValueChanged.emit(self.value)
+        self.realValueChanged.emit(self.value())
 
     @Slot(int)
     def _on_slider_moved(self, _: int) -> None:
-        self.realSliderMoved.emit(self.value)
+        self.realSliderMoved.emit(self.value())
 
     @Slot(int, int)
     def _on_range_changed(self, min: int, max: int) -> None:
         self.realRangeChanged.emit(self._real_minimum, self._real_maximum)
 
-    @Property(int)
     def decimals(self) -> int:
-        """The number of decimal places used for float values (1 to 6)."""
         return self._decimals
 
-    @decimals.setter  # type: ignore[no-redef]
-    def decimals(self, value: int) -> None:
+    def setDecimals(self, value: int) -> None:
         if not isinstance(value, int):
             raise TypeError('decimals must be an int')
         if not 0 < value <= 6:
@@ -179,44 +150,33 @@ class QRealSlider(QSlider):
             self._setup()
             self.decimalsChanged.emit(self._decimals)
 
-    @Property(float)
     def minimum(self) -> float:
-        """The minimum value of the slider's range."""
         return self._real_minimum
 
-    @minimum.setter  # type: ignore[no-redef] # notes: [1] see Notes at the end of the file
-    def minimum(self, value: float | int) -> None:
-        self.set_range(float(value), self._real_maximum)
+    def setMinimum(self, value: float | int) -> None:
+        self.setRange(float(value), self._real_maximum)
 
-    @Property(float)
     def maximum(self) -> float:
-        """The maximum value of the slider's range."""
         return self._real_maximum
 
-    @maximum.setter  # type: ignore[no-redef] # notes: [1] see Notes at the end of the file
-    def maximum(self, value: float | int) -> None:
-        self.set_range(self._real_minimum, float(value))
+    def setMaximum(self, value: float | int) -> None:
+        self.setRange(self._real_minimum, float(value))
 
-    @Property(float)
     def value(self) -> float:
-        """The current float value of the slider."""
-        return self._to_real_value(super().value)
+        return self._to_real_value(super().value())
 
-    @value.setter  # type: ignore[no-redef] # notes: [1] see Notes at the end of the file
-    def value(self, value: float | int) -> None:
+    @Slot(float)
+    def setValue(self, value: float | int) -> None:
         if not isinstance(value, (float, int)):
             raise TypeError('value must be a float or int')
         value = float(value)
-        if is_not_close(value, self.value):
-            self._set_super_property('value', self._to_int_index(value))
+        if is_not_close(value, self.value()):
+            super().setValue(self._to_int_index(value))
 
-    @Property(float)
-    def single_step(self) -> float:
-        """The small step size for arrow clicks."""
+    def singleStep(self) -> float:
         return self._single_step
 
-    @single_step.setter  # type: ignore[no-redef] # notes: [1] see Notes at the end of the file
-    def single_step(self, value: float | int) -> None:
+    def setSingleStep(self, value: float | int) -> None:
         if not isinstance(value, (float, int)):
             raise TypeError('single_step must be a float or int')
         value = float(value)
@@ -224,13 +184,10 @@ class QRealSlider(QSlider):
             self._single_step = value
             self._setup()
 
-    @Property(float)
-    def page_step(self) -> float:
-        """The large step size for page up/down clicks."""
+    def pageStep(self) -> float:
         return self._page_step
 
-    @page_step.setter  # type: ignore[no-redef] # notes: [1] see Notes at the end of the file
-    def page_step(self, value: float | int) -> None:
+    def setPageStep(self, value: float | int) -> None:
         if not isinstance(value, (float, int)):
             raise TypeError('page_step must be a float or int')
         value = float(value)
@@ -240,7 +197,6 @@ class QRealSlider(QSlider):
 
     @Slot(float, float)
     def setRange(self, minimum: float | int, maximum: float | int) -> None:
-        """Sets the slider's range from a float minimum to a float maximum."""
         if not isinstance(minimum, (float, int)):
             raise TypeError('minimum must be a float or int')
         if not isinstance(maximum, (float, int)):
@@ -254,11 +210,6 @@ class QRealSlider(QSlider):
             self._real_maximum = maximum
             self._setup()
             self.realRangeChanged.emit(self._real_minimum, self._real_maximum)
-
-    @Slot(float)
-    def setValue(self, value: float | int) -> None:
-        """Sets the current value of the slider. This is a slot version of the value setter."""
-        self.value = value  # type: ignore[method-assign] # notes: [2] see Notes at the end of the file
 
 
 # -----------------------------------------------------------------------------
@@ -275,41 +226,55 @@ class TestWidget(QWidget):
             QFormLayout, QVBoxLayout, QLabel, QGroupBox, QSpinBox, QDoubleSpinBox
         )
         super().__init__(parent)
-        self.window_title = "QRealSlider Interactive Test"
+        self.setWindowTitle("QRealSlider Interactive Test")
 
         # --- Widgets ---
         self.real_slider = QRealSlider()
-        self.real_slider.orientation = Qt.Orientation.Horizontal  # Qt.Horizontal works too but not recognized by MyPy
+        self.real_slider.setOrientation(Qt.Orientation.Horizontal)
 
         self.value_label = QLabel()
         self.range_label = QLabel()
 
         # Controls for properties
-        self.decimals_spin = QSpinBox(minimum=1, maximum=6)
-        self.min_spin = QDoubleSpinBox(minimum=-1000.0, maximum=1000.0, decimals=4)
-        self.max_spin = QDoubleSpinBox(minimum=-1000.0, maximum=1000.0, decimals=4)
-        self.single_step_spin = QDoubleSpinBox(decimals=4)
-        self.page_step_spin = QDoubleSpinBox(decimals=4)
+        self.decimals_spin = QSpinBox()
+        self.decimals_spin.setMinimum(1)
+        self.decimals_spin.setMaximum(6)
+
+        self.min_spin = QDoubleSpinBox()
+        self.min_spin.setMinimum(-1000.0)
+        self.min_spin.setMaximum(1000.0)
+        self.min_spin.setDecimals(4)
+
+        self.max_spin = QDoubleSpinBox()
+        self.max_spin.setMinimum(-1000.0)
+        self.max_spin.setMaximum(1000.0)
+        self.max_spin.setDecimals(4)
+
+        self.single_step_spin = QDoubleSpinBox()
+        self.single_step_spin.setDecimals(4)
+
+        self.page_step_spin = QDoubleSpinBox()
+        self.page_step_spin.setDecimals(4)
 
         # --- Layout ---
         display_layout = QFormLayout()
-        display_layout.add_row("Current Value:", self.value_label)
-        display_layout.add_row("Current Range:", self.range_label)
+        display_layout.addRow("Current Value:", self.value_label)
+        display_layout.addRow("Current Range:", self.range_label)
 
         controls_layout = QFormLayout()
-        controls_layout.add_row("Decimals:", self.decimals_spin)
-        controls_layout.add_row("Minimum:", self.min_spin)
-        controls_layout.add_row("Maximum:", self.max_spin)
-        controls_layout.add_row("Single Step:", self.single_step_spin)
-        controls_layout.add_row("Page Step:", self.page_step_spin)
+        controls_layout.addRow("Decimals:", self.decimals_spin)
+        controls_layout.addRow("Minimum:", self.min_spin)
+        controls_layout.addRow("Maximum:", self.max_spin)
+        controls_layout.addRow("Single Step:", self.single_step_spin)
+        controls_layout.addRow("Page Step:", self.page_step_spin)
 
         controls_group = QGroupBox("Controls")
-        controls_group.set_layout(controls_layout)
+        controls_group.setLayout(controls_layout)
 
         main_layout = QVBoxLayout(self)
-        main_layout.add_layout(display_layout)
-        main_layout.add_widget(self.real_slider)
-        main_layout.add_widget(controls_group)
+        main_layout.addLayout(display_layout)
+        main_layout.addWidget(self.real_slider)
+        main_layout.addWidget(controls_group)
 
         # --- Initial State & Connections ---
         self.init_control_values()
@@ -318,26 +283,25 @@ class TestWidget(QWidget):
 
     def init_control_values(self):
         """Initializes all control widgets with the slider's default state."""
-        # Temporarily block signals to prevent feedback loops during setup
         for widget in [self.decimals_spin, self.min_spin, self.max_spin,
                        self.single_step_spin, self.page_step_spin]:
-            widget.block_signals(True)
+            widget.blockSignals(True)
 
-        self.real_slider.set_range(0.0, 10.0)
-        self.real_slider.value = 3.142
-        self.real_slider.single_step = 0.01
-        self.real_slider.page_step = 1.0
-        self.real_slider.decimals = 3
+        self.real_slider.setRange(0.0, 10.0)
+        self.real_slider.setValue(3.142)
+        self.real_slider.setSingleStep(0.01)
+        self.real_slider.setPageStep(1.0)
+        self.real_slider.setDecimals(3)
 
-        self.decimals_spin.value = self.real_slider.decimals
-        self.min_spin.value = self.real_slider.minimum
-        self.max_spin.value = self.real_slider.maximum
-        self.single_step_spin.value = self.real_slider.single_step
-        self.page_step_spin.value = self.real_slider.page_step
+        self.decimals_spin.setValue(self.real_slider.decimals())
+        self.min_spin.setValue(self.real_slider.minimum())
+        self.max_spin.setValue(self.real_slider.maximum())
+        self.single_step_spin.setValue(self.real_slider.singleStep())
+        self.page_step_spin.setValue(self.real_slider.pageStep())
 
         for widget in [self.decimals_spin, self.min_spin, self.max_spin,
                        self.single_step_spin, self.page_step_spin]:
-            widget.block_signals(False)
+            widget.blockSignals(False)
 
     def connect_signals(self):
         self.real_slider.realValueChanged.connect(self.update_value_label)
@@ -351,42 +315,41 @@ class TestWidget(QWidget):
 
     @Slot(float)
     def update_value_label(self, value: float):
-        self.value_label.text = f"{value:.{self.real_slider.decimals}f}"
+        self.value_label.setText(f"{value:.{self.real_slider.decimals()}f}")
 
     @Slot()
     def update_all_labels(self):
-        self.update_value_label(self.real_slider.value)
-        min_val, max_val = self.real_slider.minimum, self.real_slider.maximum
-        self.range_label.text = f"[{min_val}, {max_val}]"
-        # Also update control values in case the range change affected them
-        self.single_step_spin.value = self.real_slider.single_step
-        self.page_step_spin.value = self.real_slider.page_step
+        self.update_value_label(self.real_slider.value())
+        min_val, max_val = self.real_slider.minimum(), self.real_slider.maximum()
+        self.range_label.setText(f"[{min_val}, {max_val}]")
+        self.single_step_spin.setValue(self.real_slider.singleStep())
+        self.page_step_spin.setValue(self.real_slider.pageStep())
 
     @Slot(int)
     def on_decimals_changed(self, value: int):
-        self.real_slider.decimals = value  # type: ignore[method-assign] # notes: [2] see Notes at the end of the file
+        self.real_slider.setDecimals(value)
         self.update_all_labels()
 
     @Slot(float)
     def on_range_control_changed(self, value: float):
-        min_val = self.min_spin.value
-        max_val = self.max_spin.value
+        min_val = self.min_spin.value()
+        max_val = self.max_spin.value()
         if is_less(min_val, max_val):
-            self.real_slider.set_range(min_val, max_val)
+            self.real_slider.setRange(min_val, max_val)
         else:
             print(f"Warning: Invalid range ignored (min={min_val}, max={max_val})")
 
     @Slot(float)
     def on_single_step_changed(self, value: float):
         try:
-            self.real_slider.single_step = value  # type: ignore[method-assign] # notes: [2] see Notes at the end of the file
+            self.real_slider.setSingleStep(value)
         except ValueError as e:
             print(f"Warning: {e}")
 
     @Slot(float)
     def on_page_step_changed(self, value: float):
         try:
-            self.real_slider.page_step = value  # type: ignore[method-assign] # notes: [2] see Notes at the end of the file
+            self.real_slider.setPageStep(value)
         except ValueError as e:
             print(f"Warning: {e}")
 

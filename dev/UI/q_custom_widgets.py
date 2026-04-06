@@ -103,6 +103,50 @@ class QRealSliderGroup(QAbstractSliderGroup):
         self._slider.realValueChanged.connect(self.realValueChanged)
         self._spin_box.valueChanged.connect(self._slider.setValue)
 
+    @property
+    def value(self) -> float | int:
+        return self._slider.value()
+
+    @value.setter
+    def value(self, value: float | int):
+        self._slider.setValue(value)
+        self._spin_box.setValue(value)
+
+    @property
+    def maximum(self) -> float | int:
+        return self._slider.maximum()
+
+    @maximum.setter
+    def maximum(self, value: float | int):
+        self._slider.setMaximum(value)
+        self._spin_box.setMaximum(value)
+
+    @property
+    def minimum(self) -> float | int:
+        return self._slider.minimum()
+
+    @minimum.setter
+    def minimum(self, value: float | int):
+        self._slider.setMinimum(value)
+        self._spin_box.setMinimum(value)
+
+    @property
+    def single_step(self) -> float | int:
+        return self._spin_box.singleStep()
+
+    @single_step.setter
+    def single_step(self, step: float | int):
+        self._spin_box.setSingleStep(step)
+        self._slider.setSingleStep(step)
+
+    def set_value(self, value: float | int):
+        self._slider.setValue(value)
+        self._spin_box.setValue(value)
+
+    def set_range(self, min_range: float | int, max_range: float | int):
+        self._slider.setRange(min_range, max_range)
+        self._spin_box.setRange(min_range, max_range)
+
 class QSliderGroup(QAbstractSliderGroup):
     valueChanged = Signal(int)
 
@@ -113,4 +157,48 @@ class QSliderGroup(QAbstractSliderGroup):
         self._slider.valueChanged.connect(self._spin_box.setValue)
         self._slider.valueChanged.connect(self.valueChanged)
         self._spin_box.valueChanged.connect(self._slider.setValue)
+
+    @property
+    def value(self) -> int:
+        return self._slider.value()
+
+    @value.setter
+    def value(self, value: int):
+        self._slider.setValue(value)
+        self._spin_box.setValue(value)
+
+    @property
+    def maximum(self) -> int:
+        return self._slider.maximum()
+
+    @maximum.setter
+    def maximum(self, value: int):
+        self._slider.setMaximum(value)
+        self._spin_box.setMaximum(value)
+
+    @property
+    def minimum(self) -> int:
+        return self._slider.minimum()
+
+    @minimum.setter
+    def minimum(self, value: int):
+        self._slider.setMinimum(value)
+        self._spin_box.setMinimum(value)
+
+    @property
+    def single_step(self) -> int:
+        return self._spin_box.singleStep()
+
+    @single_step.setter
+    def single_step(self, step: int):
+        self._spin_box.setSingleStep(step)
+        self._slider.setSingleStep(step)
+
+    def set_value(self, value: int):
+        self._slider.setValue(value)
+        self._spin_box.setValue(value)
+
+    def set_range(self, min_range: int, max_range: int):
+        self._slider.setRange(min_range, max_range)
+        self._spin_box.setRange(min_range, max_range)
 #endregion

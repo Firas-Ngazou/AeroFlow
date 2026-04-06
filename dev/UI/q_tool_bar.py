@@ -33,17 +33,17 @@ class QToolBar(QWidget):
         primary_layout.setContentsMargins(5, 5, 5, 5)
 
         # default button
-        default_icon = QIcon("../icons/cursor_icon_black.png")
+        default_icon = QIcon(":/res/cursor_icon_black.png")
         self._default_button = QToolPB(default_icon)
         self._default_button.setChecked(True)
 
         # pen button
-        pen_icon = QIcon("../icons/pen_icon_black.png")
+        pen_icon = QIcon(":/res/pen_icon_black.png")
         self._pen_button = QToolPB(pen_icon)
 
         # play button
-        self._play_icon = QIcon("../icons/play_icon_black.png")
-        self._stop_icon = QIcon("../icons/stop_icon_black.png")
+        self._play_icon = QIcon(":/res/play_icon_black.png")
+        self._stop_icon = QIcon(":/res/stop_icon_black.png")
         self._play_button = QPushButton()
         self._play_button.setCheckable(True)
         self._play_button.setProperty("class", "play_pb")
@@ -52,11 +52,11 @@ class QToolBar(QWidget):
         self._play_button.setFixedSize(44, 44)
 
         # optimize button
-        optimize_icon = QIcon("../icons/optimize_icon_black.png")
+        optimize_icon = QIcon(":/res/optimize_icon_black.png")
         optimize_button = QToolPB(optimize_icon, checkable=False)
 
         # pause button
-        self._pause_icon = QIcon("../icons/pause_icon_black.png")
+        self._pause_icon = QIcon(":/res/pause_icon_black.png")
         self._pause_button = QPushButton()
         self._pause_button.setCheckable(True)
         self._pause_button.setVisible(False)
@@ -66,10 +66,10 @@ class QToolBar(QWidget):
         self._pause_button.setFixedSize(44, 44)
 
         # settings
-        settings_icon = QIcon("../icons/settings_icon_black.png")
+        settings_icon = QIcon(":/res/settings_icon_black.png")
         self._settings_button = QToolPB(settings_icon)
-        self._settings_tab = QSettingsTab()
-        self._settings_tab.hide()
+        self._settings = QSettingsTab()
+        self._settings.hide()
 
         primary_layout.addWidget(self._default_button)
         primary_layout.addWidget(self._pen_button)
@@ -79,7 +79,7 @@ class QToolBar(QWidget):
 
         root_layout = QVBoxLayout(self)
         root_layout.setSpacing(5)
-        root_layout.addWidget(self._settings_tab, alignment=Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignBottom)
+        root_layout.addWidget(self._settings, alignment=Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignBottom)
         root_layout.addWidget(self._pause_button, alignment=Qt.AlignmentFlag.AlignHCenter)
         root_layout.addWidget(primary_frame, alignment=Qt.AlignmentFlag.AlignHCenter)
         self.setLayout(root_layout)
@@ -91,6 +91,10 @@ class QToolBar(QWidget):
 
         self._play_button.clicked.connect(self._on_anim_button_pressed)
         self._pause_button.clicked.connect(self._on_anim_button_pressed)
+
+    @property
+    def settings(self):
+        return self._settings
 
     @Slot()
     def _on_cursor_button_pressed(self):
@@ -129,7 +133,7 @@ class QToolBar(QWidget):
         if sender == self._play_button:
             if self._play_button.isChecked():
                 self._settings_button.setDisabled(True)
-                self._settings_tab.hide()
+                self._settings.hide()
 
                 self._pen_button.setDisabled(True)
                 self._state_manager.set_cursor_state(QStateManager.CursorState.DEFAULT)
@@ -161,9 +165,9 @@ class QToolBar(QWidget):
     @Slot()
     def _on_settings_button_pressed(self):
         if self._settings_button.isChecked():
-            self._settings_tab.show()
+            self._settings.show()
         else:
-            self._settings_tab.hide()
+            self._settings.hide()
 
 
 
