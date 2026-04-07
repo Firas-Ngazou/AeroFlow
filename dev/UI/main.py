@@ -6,6 +6,7 @@ from PySide6.QtCore import Qt
 from PySide6.QtGui import QFontDatabase, QPalette, QColor, QIcon
 from PySide6.QtWidgets import QVBoxLayout, QWidget, QApplication, QHBoxLayout
 
+from q_custom_widgets import QAnalysisWidget
 from dev.moteur_physiques.vector_obstacle import VectorObstacle
 from q_state_manager import QStateManager
 from q_editor import QEditor
@@ -14,16 +15,21 @@ from q_custom_window_frame import QCustomWindowFrame
 
 
 class Main(QWidget):
-    def __init__(self, parent: QWidget | None = None):
+    def __init__(self, window_frame: QCustomWindowFrame, parent: QWidget | None = None):
         super().__init__(parent)
 
         self._initial_res = 1080
         self.resize(int((16/9)*self._initial_res), self._initial_res)
 
         self.setMinimumWidth(450)
+
         self._editor: QEditor
         self._state_manager = QStateManager(self)
+        self._window = window_frame
+
         self.__initialize_canvas()
+        self.__initialize_title_bar()
+        self.__initialize_connections()
 
         self._primary_layout = QVBoxLayout(self)
         self._primary_layout.setContentsMargins(0, 0, 0, 0)
@@ -47,15 +53,27 @@ class Main(QWidget):
         self._secondary_layout.addStretch()
         self._secondary_layout.addLayout(self._lower_layout)
 
-        # Signals
+    def __initialize_title_bar(self):
+        self._analysis_tab = QAnalysisWidget(self)
+        self._analysis_tab.hide()
+
+        self._secondary_layout.insertWidget(0, self._analysis_tab, 0,
+                                            alignment=Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
+
+        self._window.title_bar.analysis_button.floating_widget = self._analysis_tab
+
+    def __initialize_connections(self):
         # State Manager
+        # Update editor cursor states on change
         self._state_manager.cursorStateChanged.connect(self._editor.switch_cursor)
         self._state_manager.cursorStateChanged.connect(self._tool_bar.update_cursor_state)
 
         # Editor
+        # Update vector obstacle vertices on change
         self._editor.vectorDrawingChanged.connect(self._vector_obstacle.set_vertices)
 
         # Settings (General)
+        # Update VectorObstacle reduction factor on resolution change
         self._tool_bar.settings.general_tab.resolution.realValueChanged.connect(
             self._vector_obstacle.set_reduction_factor)
 
@@ -64,9 +82,6 @@ class Main(QWidget):
 
     def keyReleaseEvent(self, event):
         self._editor.keyReleaseEvent(event)
-
-    # def resizeEvent(self, event):
-    #     self._tool_bar.settings.general_tab.resolution.maximum = self.width()
 
 class ThemeManager:
     def __init__(self, q_app: QApplication):
@@ -122,7 +137,7 @@ if __name__ == "__main__":
     window.title_bar.icon = QIcon(":/res/app_logo.png")
     window.resize(1920, 1080)
 
-    main = Main()
+    main = Main(window)
 
     window_layout = QVBoxLayout(window)
     window_layout.setSpacing(0)

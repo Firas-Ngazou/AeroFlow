@@ -8,7 +8,8 @@ from PySide6.QtWidgets import QApplication, QWidget, QVBoxLayout, QPushButton, Q
 from PySide6.QtCore import Qt
 
 from qframelesswindow import FramelessWindow, TitleBar
-from q_custom_widgets import QAnalysisTabPB, QHistoryGroup, QVSeperator
+from q_custom_widgets import QFloatingWidgetPB, QHistoryGroup, QVSeperator
+from q_floating_widget import QFloatingWidget
 
 class QSettingsMenu(QMenu):
     def __init__(self, parent: QWidget | None = None):
@@ -130,7 +131,7 @@ class QCustomTitleBar(TitleBar):
         self._file_name.setStyleSheet("QLabel { color: rgba(245, 245, 245, 100); }")
 
         # Analysis button
-        self._analysis_button = QAnalysisTabPB("Analyse")
+        self._analysis_button = QFloatingWidgetPB("Analyse")
 
         # History group
         self._history_group = QHistoryGroup()
@@ -160,6 +161,10 @@ class QCustomTitleBar(TitleBar):
     @icon.setter
     def icon(self, icon: QIcon):
         self._icon_label.setPixmap(icon.pixmap(32, 32))
+
+    @property
+    def analysis_button(self):
+        return self._analysis_button
 
 class QCustomWindowFrame(FramelessWindow):
     def __init__(self, parent: QWidget | None = None):

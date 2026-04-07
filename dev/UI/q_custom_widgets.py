@@ -1,12 +1,16 @@
 import os
+from enum import Enum
+
 import ressources_rc
 
 from PySide6.QtCore import Qt, Slot, Signal, QSize
 from PySide6.QtGui import QFont, QFontDatabase, QPalette, QColor, QIcon
 from PySide6.QtWidgets import QWidget, QFrame, QHBoxLayout, QApplication, QPushButton, QVBoxLayout, QLabel, \
-    QDoubleSpinBox, QSlider, QSpinBox, QComboBox
+    QDoubleSpinBox, QSlider, QSpinBox, QComboBox, QTabWidget
 
 from q_real_slider import QRealSlider
+from q_floating_widget import QFloatingWidget
+
 
 #region Stuff idk
 class QVSeperator(QFrame):
@@ -40,7 +44,7 @@ class QSettingsTabPB(QPushButton):
         self.setFixedSize(150, 30)
         self.setProperty("class", "settings_tab_pb")
 
-class QAnalysisTabPB(QWidget):
+class QFloatingWidgetPB(QWidget):
     def __init__(self, text: str, parent: QWidget | None = None):
         super().__init__(parent)
 
@@ -50,22 +54,40 @@ class QAnalysisTabPB(QWidget):
         font = QFont("JetBrains Mono", 12)
         font.setBold(True)
 
-        button = QPushButton(text)
-        button.setFont(font)
-        button.setFixedSize(114, 24)
-        button.setProperty("class", "title_bar_pb")
-        button.setCheckable(True)
+        self._button = QPushButton(text)
+        self._button.setFont(font)
+        self._button.setFixedSize(114, 24)
+        self._button.setProperty("class", "title_bar_pb")
+        self._button.setCheckable(True)
 
-        analysis_frame = QFrame()
-        analysis_frame.setProperty("class", "constraint_frame")
+        self._floating_widget: QFloatingWidget | None = None
+        self._floating_widget.hide() if self._floating_widget is not None else None
 
-        primary_layout = QHBoxLayout(analysis_frame)
-        primary_layout.addWidget(button)
-        primary_layout.setContentsMargins(2, 2, 2, 2)
+        button_frame = QFrame()
+        button_frame.setProperty("class", "constraint_frame")
+
+        self._primary_layout = QHBoxLayout(button_frame)
+        self._primary_layout.addWidget(self._button)
+        self._primary_layout.setContentsMargins(2, 2, 2, 2)
 
         root_layout = QVBoxLayout(self)
-        root_layout.addWidget(analysis_frame)
+        root_layout.addWidget(button_frame)
         root_layout.setContentsMargins(0, 0, 0, 0)
+
+        self._button.pressed.connect(self._on_button_clicked)
+
+    @Slot()
+    def _on_button_clicked(self):
+        if self._floating_widget is None: return
+        self._floating_widget.show() if not self._floating_widget.isVisible() else self._floating_widget.hide()
+
+    @property
+    def floating_widget(self) -> QFloatingWidget | None:
+        return self._floating_widget
+    @floating_widget.setter
+    def floating_widget(self, widget: QFloatingWidget | None):
+        self._floating_widget = widget
+
 #endregion
 
 #region Groups
@@ -288,5 +310,180 @@ class QHistoryGroup(QWidget):
         root_layout = QVBoxLayout(self)
         root_layout.addWidget(primary_frame)
         root_layout.setContentsMargins(0, 0, 0, 0)
-
 #endregion
+
+class BarStatus(Enum):
+    IDLE = 0
+    RUNNING = 1
+    FINISHED = 2
+
+class QProgressPoint(QWidget):
+    def __init__(self, parent: QWidget | None = None):
+        super().__init__(parent)
+
+        self._idle_qss = """background-color: #BC6E6E; border-radius: 10px;""" # Red
+        self._running_qss = """background-color: #E4B653; border-radius: 10px;""" # Yellow
+        self._finished_qss = """background-color: #8DB182; border-radius: 10px;""" # Green
+
+        background_frame = QFrame()
+        background_frame.setProperty("class", "progress_point_background")
+        background_frame.setFixedSize(30, 30)
+
+        self._point_frame = QFrame()
+        self._point_frame.setStyleSheet(self._idle_qss)
+        self._point_frame.setFixedSize(20, 20)
+
+        self._status: BarStatus = BarStatus.IDLE
+
+        self._primary_layout = QHBoxLayout(background_frame)
+        self._primary_layout.addWidget(self._point_frame)
+        self._primary_layout.setContentsMargins(0, 0, 0, 0)
+
+        root_layout = QVBoxLayout(self)
+        root_layout.addWidget(background_frame)
+        root_layout.setContentsMargins(0, 0, 0, 0)
+
+class QProgressBar(QWidget):
+    def __init__(self, parent: QWidget | None = None):
+        super().__init__(parent)
+
+        self._bar_length = 450
+        self._fill_percentage = 0
+        self._min_filling = 6 # Under that, filling's edges will be squared
+
+        # Colors
+        self._idle_qss = """background-color: #BC6E6E; border-radius: 10px;"""  # Red
+        self._running_qss = """background-color: #E4B653; border-radius: 10px;"""  # Yellow
+        self._finished_qss = """background-color: #8DB182; border-radius: 10px;"""  # Green
+
+        self._status: BarStatus = BarStatus.IDLE
+
+        # Backgrounds
+        background_frame = QFrame()
+        background_frame.setFixedHeight(30)
+        background_frame.setProperty("class", "light_analysis_frame")
+
+        bar_frame = QFrame()
+        bar_frame.setFixedWidth(self._bar_length)
+        bar_frame.setFixedHeight(30)
+        bar_frame.setProperty("class", "dark_analysis_frame")
+
+        # The filling
+        self._fill_frame = QFrame()
+        self._fill_frame.setFixedWidth(int(self._fill_percentage*((self._bar_length-6)/100)))
+        self._fill_frame.setFixedHeight(24)
+        self._fill_frame.setStyleSheet(self._idle_qss)
+
+        bar_layout = QHBoxLayout(bar_frame)
+        bar_layout.addWidget(self._fill_frame, alignment=Qt.AlignmentFlag.AlignLeft)
+        bar_layout.setContentsMargins(2, 2, 2, 2)
+
+        status_label = QLabel("Statut")
+        status_label.setProperty("class", "dark_text")
+        status_label.setFont(QFont("JetBrains Mono", 12))
+
+        self._progress_point = QProgressPoint()
+
+        self._primary_layout = QHBoxLayout(background_frame)
+        self._primary_layout.addSpacing(15)
+        self._primary_layout.addWidget(status_label)
+        self._primary_layout.addSpacing(10)
+        self._primary_layout.addWidget(self._progress_point)
+        self._primary_layout.addWidget(bar_frame)
+        self._primary_layout.setContentsMargins(0, 0, 0, 0)
+
+        root_layout = QVBoxLayout(self)
+        root_layout.addWidget(background_frame)
+        root_layout.setContentsMargins(0, 0, 0, 0)
+
+class QResultField(QWidget):
+    def __init__(self, text: str, parent: QWidget | None = None):
+        super().__init__(parent)
+
+        primary_field_frame = QFrame()
+        primary_field_frame.setFixedHeight(30)
+        primary_field_frame.setProperty("class", "light_analysis_frame")
+
+        secondary_field_frame = QFrame()
+        secondary_field_frame.setFixedHeight(30)
+        secondary_field_frame.setProperty("class", "dark_analysis_frame")
+
+        self._result_name = QLabel(text)
+        self._result_name.setProperty("class", "dark_text")
+        self._result_name.setFont(QFont("JetBrains Mono", 8))
+
+        self._result_value = QLabel("Place Holder")
+        self._result_value.setFont(QFont("JetBrains Mono", 8))
+
+        self._primary_layout = QHBoxLayout(primary_field_frame)
+        self._primary_layout.setContentsMargins(0, 0, 0, 0)
+
+        self._secondary_field_layout = QHBoxLayout(secondary_field_frame)
+        self._secondary_field_layout.addWidget(self._result_value)
+        self._secondary_field_layout.setContentsMargins(10, 2, 10, 2)
+
+        self._primary_layout.addSpacing(10)
+        self._primary_layout.addWidget(self._result_name)
+        self._primary_layout.addSpacing(10)
+        self._primary_layout.addWidget(secondary_field_frame)
+
+        root_layout = QVBoxLayout(self)
+        root_layout.addWidget(primary_field_frame)
+        root_layout.setContentsMargins(0, 0, 0, 0)
+
+class QAnalysisTab(QWidget):
+    def __init__(self, parent: QWidget | None = None):
+        super().__init__(parent)
+
+        self._progress_bar = QProgressBar()
+        self._info_label = QLabel("     Durée estimée : 00:00:00")
+        self._info_label.setFont(QFont("JetBrains Mono", 7))
+
+        self._primary_layout = QVBoxLayout(self)
+        self._primary_layout.addWidget(self._progress_bar, alignment=Qt.AlignmentFlag.AlignTop)
+        self._primary_layout.addWidget(self._info_label, alignment=Qt.AlignmentFlag.AlignTop)
+
+class QOptimizationAnalysis(QAnalysisTab):
+    def __init__(self, parent: QWidget | None = None):
+        super().__init__(parent)
+
+        self._performance_gain_field = QResultField("Gain de performance")
+        self._secondary_layout = QHBoxLayout()
+        self._secondary_layout.addWidget(self._performance_gain_field)
+        self._secondary_layout.addStretch()
+
+        self._primary_layout.addLayout(self._secondary_layout)
+        self._primary_layout.addStretch()
+
+class QResultAnalysis(QAnalysisTab):
+    def __init__(self, parent: QWidget | None = None):
+        super().__init__(parent)
+
+        self._drag_coef_field = QResultField("Coefficient de traîné")
+        self._lift_coef_field = QResultField("Coefficient de portance")
+
+        self._secondary_layout = QHBoxLayout()
+        self._secondary_layout.addWidget(self._drag_coef_field)
+        self._secondary_layout.addWidget(self._lift_coef_field)
+        self._secondary_layout.addStretch()
+
+        self._primary_layout.addLayout(self._secondary_layout)
+        self._primary_layout.addStretch()
+
+class QAnalysisWidget(QFloatingWidget):
+    def __init__(self, parent: QWidget | None = None):
+        super().__init__(parent)
+
+        self._tabs = QTabWidget()
+        self._tabs.setProperty("class", "analysis_tabs")
+        self._tabs.tabBar().setProperty("class", "analysis_tabs")
+
+        self._optimization_tab = QOptimizationAnalysis()
+        self._tabs.addTab(self._optimization_tab, "Optimisation")
+
+        self._results_tab = QResultAnalysis()
+        self._tabs.addTab(self._results_tab, "Résultats")
+
+        self._tabs.setFont(QFont("JetBrains Mono", 12))
+
+        self._v_box_layout.addWidget(self._tabs)

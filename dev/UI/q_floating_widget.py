@@ -3,15 +3,16 @@ import sys
 import ressources_rc
 
 from PySide6.QtCore import Qt, QPoint
-from PySide6.QtGui import QImage, QPixmap, QPainter, QMouseEvent
-from PySide6.QtWidgets import QWidget, QApplication, QVBoxLayout, QLabel, QStyleOption, QStyle, QFrame
+from PySide6.QtGui import QImage, QPixmap, QPainter, QMouseEvent, QFont
+from PySide6.QtWidgets import QWidget, QApplication, QVBoxLayout, QLabel, QStyleOption, QStyle, QFrame, QTabWidget, \
+    QHBoxLayout
 
 class QFloatingWidget(QFrame):
     def __init__(self, parent: QWidget | None = None):
         super().__init__(parent)
-        self.setFixedSize(600, 300)
+        self.setMinimumWidth(600)
 
-        self.setWindowFlags(self.windowFlags().FramelessWindowHint | self.windowFlags().WindowStaysOnTopHint)
+        # self.setWindowFlags(self.windowFlags().FramelessWindowHint | self.windowFlags().WindowStaysOnTopHint)
         self.setProperty("class", "floating_widget")
         self.setMouseTracking(True)
 
@@ -19,10 +20,10 @@ class QFloatingWidget(QFrame):
         floating_dots_label = QLabel()
         floating_dots_label.setPixmap(floating_dots.scaled(50, 10))
 
-        self.v_box_layout = QVBoxLayout(self)
-        self.v_box_layout.addWidget(floating_dots_label, alignment=Qt.AlignmentFlag.AlignTop |
+        self._v_box_layout = QVBoxLayout(self)
+        self._v_box_layout.addWidget(floating_dots_label, alignment=Qt.AlignmentFlag.AlignTop |
                                                                    Qt.AlignmentFlag.AlignRight)
-        self.v_box_layout.setContentsMargins(5, 2, 10, 5)
+        self._v_box_layout.setContentsMargins(5, 2, 10, 5)
 
         self._old_pos = None
 
@@ -32,9 +33,20 @@ class QFloatingWidget(QFrame):
 
     def mouseMoveEvent(self, event: QMouseEvent):
         if self._old_pos is not None:
-            delta = QPoint(event.globalPosition().toPoint() - self._old_pos)
-            self.move(self.x() + delta.x(), self.y() + delta.y())
-            self._old_pos = event.globalPosition().toPoint()
+            current_pos = event.globalPosition().toPoint()
+            delta = current_pos - self._old_pos
+
+            new_x = delta.x() + self.x()
+            new_y = delta.y() + self.y()
+
+            # Clamping
+            max_x_pos = self.parent().width() - self.width()
+            max_y_pos = self.parent().height() - self.height()
+            new_x = max(0, min(new_x, max_x_pos))
+            new_y = max(0, min(new_y, max_y_pos))
+
+            self.move(new_x, new_y)
+            self._old_pos = current_pos
 
     def mouseReleaseEvent(self, event: QMouseEvent):
         if event.button() == Qt.MouseButton.LeftButton:
@@ -50,10 +62,3 @@ def load_styles(q_app: QApplication):
 
     else:
         print("'styles.qss' file was not found.")
-
-if __name__ == "__main__":
-    app = QApplication(sys.argv)
-    load_styles(app)
-    window = QFloatingWidget()
-    window.show()
-    app.exec()

@@ -1377,7 +1377,7 @@ class QEditor(QWidget):
                         self._current_shape.delete_selected_vertices()
                         self._on_vertices_changed()
 
-        if event.key() == Qt.Key.Key_Escape: self._exit_current_shape()
+        if event.key() == Qt.Key.Key_Escape and self._current_shape is not None: self._exit_current_shape()
         if self._current_shape is not None and len(self._current_shape.vertices) < 1: self._exit_current_shape()
 
         self._update_selected_rect()
