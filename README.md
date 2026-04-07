@@ -37,7 +37,6 @@ forme tout en respectant des contraintes données.
 - **Quang-Vinh Nguyen** : Modèle d'algorithme génétique et implémentation **@vinh9336**
 
 ### Liens
-- [ChangeLog](./CHANGELOG.md)
 - [Document de spécifications](./docs/extrants/conception/Spécifications.md)
 - [Document de Conception](./docs/extrants/conception/Conception.md)
 - [Document de Modélisation-Science](./docs/extrants/conception/Modélisation-Science.md)

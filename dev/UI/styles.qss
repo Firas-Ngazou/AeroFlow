@@ -1,0 +1,362 @@
+QPushButton[class="reset_pb"]{
+    background-color: #8EE7FF;
+    color: #1D1D1D;
+    padding-left: 15px;
+    padding-right: 15px;
+    border-radius: 12px;
+}
+QPushButton[class="reset_pb"]:hover{
+    background-color: #99DEFFFF;
+}
+QPushButton[class="reset_pb"]:pressed{
+    background-color: #AEE7FFFF;
+}
+
+
+
+QPushButton[class="settings_tab_pb"]{
+    background-color: #F5F5F5;
+    color: #1D1D1D;
+    padding-left: 15px;
+    padding-right: 15px;
+    border-radius: 15px;
+}
+QPushButton[class="settings_tab_pb"]:hover{
+    background-color: #e0e0e0;
+}
+QPushButton[class="settings_tab_pb"]:pressed{
+    background-color: #c0c0c0;
+}
+QPushButton[class="settings_tab_pb"]:checked{
+    background-color: #A6A6A6;
+}
+
+
+
+QPushButton[class="tool_pb"]{
+    background-color: #F5F5F5;
+    color: #1D1D1D;
+    padding-left: 15px;
+    padding-right: 15px;
+    border-radius: 22px;
+}
+QPushButton[class="tool_pb"]:hover{
+    background-color: #e0e0e0;
+}
+QPushButton[class="tool_pb"]:pressed{
+    background-color: #c0c0c0;
+}
+QPushButton[class="tool_pb"]:checked{
+    background-color: #A6A6A6;
+}
+
+
+
+QPushButton[class="title_bar_pb"]{
+    background-color: #F5F5F5;
+    color: #1D1D1D;
+    padding-left: 15px;
+    padding-right: 15px;
+    border-radius: 12px;
+}
+QPushButton[class="title_bar_pb"]:hover{
+    background-color: #e0e0e0;
+}
+QPushButton[class="title_bar_pb"]:pressed{
+    background-color: #c0c0c0;
+}
+QPushButton[class="title_bar_pb"]:checked{
+    background-color: #A6A6A6;
+}
+
+
+
+QPushButton[class="play_pb"]{
+    background-color: #92B28A;
+    color: #1D1D1D;
+    padding-left: 15px;
+    padding-right: 15px;
+    border-radius: 22px;
+}
+QPushButton[class="play_pb"]:hover{
+    background-color: #a1c9ac;
+}
+QPushButton[class="play_pb"]:pressed{
+    background-color: #c0c0c0;
+}
+QPushButton[class="play_pb"]:checked{
+    background-color: #BA7475;
+}
+
+
+
+QPushButton[class="pause_pb"]{
+    background-color: #FFCACB;
+    color: #1D1D1D;
+    padding-left: 15px;
+    padding-right: 15px;
+    border-radius: 22px;
+}
+QPushButton[class="pause_pb"]:hover{
+    background-color: #BA7475;
+}
+QPushButton[class="pause_pb"]:pressed{
+    background-color: #BA7475;
+}
+QPushButton[class="pause_pb"]:checked{
+    background-color: #92B28A;
+}
+
+
+
+QPushButton[class="titlebar_settings_pb"]{
+    background-color: transparent;
+    color: #F5F5F5;
+    padding-left: 5px;
+    padding-right: 5px;
+    border-radius: 6px;
+}
+QPushButton[class="titlebar_settings_pb"]:hover{
+    background-color: rgba(224, 224, 224, 50);
+}
+QPushButton[class="titlebar_settings_pb"]:pressed{
+    background-color: rgba(166, 166, 166, 50);
+}
+QPushButton[class="titlebar_settings_pb"]::menu-indicator{
+    image: none;
+    width: 0px;
+}
+
+
+
+QLineEdit[class="file_name"]{
+    background-color: transparent;
+    border: none;
+}
+
+
+
+QFrame[class="primary_frame"]{
+    background-color: #222;
+    border: 1px solid #F5F5F5;
+    border-radius: 26px;
+}
+
+QFrame[class="constraint_frame"]{
+    background-color: #222;
+    border: 1px solid #F5F5F5;
+    border-radius: 15px;
+}
+
+QFrame[class="floating_widget"]{
+    background-color: #1D1D1D;
+    border: 1px solid #F5F5F5;
+    border-radius: 15px;
+}
+
+QFrame[class="light_analysis_frame"]{
+    background-color: #F5F5F5;
+    border: none;
+    border-radius: 15px;
+}
+
+QFrame[class="dark_text"]{
+    color: #1D1D1D;
+}
+
+
+QFrame[class="dark_analysis_frame"]{
+    background-color: #1D1D1D;
+    border: 1px solid #F5F5F5;
+    border-radius: 15px;
+}
+
+QFrame[class="progress_point_background"]{
+    background-color: #1D1D1D;
+    border: 1px solid #F5F5F5;
+    border-radius: 15px;
+}
+
+
+
+QSlider[class="settings_slider"]::groove:horizontal{
+    border: 1px solid #F5F5F5;
+    height: 4px;
+    background-color: #1D1D1D;
+    margin: 2px 0;
+    border-radius: 5px;
+}
+QSlider[class="settings_slider"]::handle:horizontal{
+    background-color: #F5F5F5;
+    width: 18px;
+    height: 18px;
+    margin: -7px 0;
+    border-radius: 9px;
+}
+QSlider[class="settings_slider"]::sub-page:horizontal{
+    background-color: #F5F5F5;
+    border-color: transparent;
+    height: 4px;
+    border-radius: 5px;
+}
+QSlider[class="settings_slider"]::add-page:horizontal{
+    background-color: #1D1D1D;
+    border: 1px solid #F5F5F5;
+    height: 4px;
+    border-radius: 5px;
+}
+
+
+
+QDoubleSpinBox[class="settings_spin_box"]{
+    background-color: #F5F5F5;
+    color: #1D1D1D;
+    border-radius: 12px;
+    padding-left: 7px;
+    padding-right: 40px;
+}
+QDoubleSpinBox[class="settings_spin_box"]::up-button{
+    background-color: transparent;
+    border: none;
+    subcontrol-origin: border;
+    subcontrol-position: center right;
+    width: 20px;
+    height: 20px;
+}
+QDoubleSpinBox[class="settings_spin_box"]::down-button{
+    background-color: transparent;
+    border: none;
+    subcontrol-origin: border;
+    subcontrol-position: center right;
+    width: 20px;
+    height: 20px;
+}
+QDoubleSpinBox[class="settings_spin_box"]::up-button{
+    right: 20px;
+}
+QDoubleSpinBox[class="settings_spin_box"]::down-button{
+    right: 2px;
+}
+QDoubleSpinBox[class="settings_spin_box"]::up-arrow{
+    image: url(:/res/up_arrow_black.png);
+    width: 16px;
+    height: 16px;
+}
+QDoubleSpinBox[class="settings_spin_box"]::down-arrow{
+    image: url(:/res/down_arrow_black.png);
+    width: 16px;
+    height: 16px;
+}
+QDoubleSpinBox[class="settings_spin_box"]::up-button:hover{
+    background-color: rgba(0, 0, 0, 0.1);
+    border-radius: 4px;
+}
+QDoubleSpinBox[class="settings_spin_box"]::down-button:hover{
+    background-color: rgba(0, 0, 0, 0.1);
+    border-radius: 4px;
+}
+
+
+
+QSpinBox[class="settings_spin_box"]{
+    background-color: #F5F5F5;
+    color: #1D1D1D;
+    border-radius: 12px;
+    padding-left: 7px;
+    padding-right: 40px;
+}
+QSpinBox[class="settings_spin_box"]::up-button{
+    background-color: transparent;
+    border: none;
+    subcontrol-origin: border;
+    subcontrol-position: center right;
+    width: 20px;
+    height: 20px;
+}
+QSpinBox[class="settings_spin_box"]::down-button{
+    background-color: transparent;
+    border: none;
+    subcontrol-origin: border;
+    subcontrol-position: center right;
+    width: 20px;
+    height: 20px;
+}
+QSpinBox[class="settings_spin_box"]::up-button{
+    right: 20px;
+}
+QSpinBox[class="settings_spin_box"]::down-button{
+    right: 2px;
+}
+QSpinBox[class="settings_spin_box"]::up-arrow{
+    image: url(:/res/up_arrow_black.png);
+    width: 16px;
+    height: 16px;
+}
+QSpinBox[class="settings_spin_box"]::down-arrow{
+    image: url(:/res/down_arrow_black.png);
+    width: 16px;
+    height: 16px;
+}
+QSpinBox[class="settings_spin_box"]::up-button:hover{
+    background-color: rgba(0, 0, 0, 0.1);
+    border-radius: 4px;
+}
+QSpinBox[class="settings_spin_box"]::down-button:hover{
+    background-color: rgba(0, 0, 0, 0.1);
+    border-radius: 4px;
+}
+
+
+
+QComboBox[class="settings_combo_box"]{
+    border: 2px solid #1D1D1D;
+    padding: 1px 18px 1px 20px;
+    background-color: #F5F5F5;
+    border-radius: 15;
+    color: #1D1D1D;
+}
+QComboBox[class="settings_combo_box"]::drop-down{
+    subcontrol-origin: padding;
+    subcontrol-position: top right;
+    width: 30px;
+    border-left-width: 0px;
+    border-top-right-radius: 20px;
+    border-bottom-right-radius: 20px;
+}
+QComboBox[class="settings_combo_box"]::down-arrow{
+    image: url(:/res/double_arrows_black.png);
+    width: 20px;
+    height: 20px;
+}
+QAbstractItemView{
+    background-color: #1D1D1D;
+    color: #F5F5F5;
+    border: 1px solid #F5F5F5;
+    selection-background-color: #8EE7FF;
+    selection-color: #1D1D1D;
+    outline: 0px;
+}
+
+
+
+QTabWidget[class="analysis_tabs"]{
+    background-color: #1D1D1D;
+}
+QTabWidget[class="analysis_tabs"]::pane{
+    border: 1px solid #F5F5F5;
+    border-radius: 15px;
+    border-top-left-radius: 0px;
+}
+QTabBar[class="analysis_tabs"]::tab{
+    background-color: rgba(166, 166, 166, 50);
+    color: #1D1D1D;
+    border-top-left-radius: 10px;
+    border-top-right-radius: 10px;
+    padding: 5px 10px;
+}
+QTabBar[class="analysis_tabs"]::tab:selected{
+    background-color: #F5F5F5;
+}
+QTabBar[class="analysis_tabs"]::tab:!selected:hover{
+    background-color: rgba(224, 224, 224, 50);
+}
