@@ -20,16 +20,7 @@ class SimulationEngine:
         self._grid.macro_velocity_x[:, :] = initial_velocity
         self._grid.macro_density[:, :] = 1.0
 
-        f_eq = np.zeros_like(self._grid.distributions)
-        last_term = (self._grid.macro_velocity_x**2 +
-                     self._grid.macro_velocity_y**2)
-
-        for i in range(9):
-            term_2 = (self._constants.E_X[i]*self._grid.macro_velocity_x +
-                      self._constants.E_Y[i]*self._grid.macro_velocity_y)
-
-            f_eq[:, :, i] = (self._constants.WEIGHTS[i] * self._grid.macro_density*
-                             (1 + (3*term_2) + (4.5*term_2**2) - (1.5*last_term)))
+        f_eq = self._get_f_eq()
 
         self._grid.distributions = f_eq
 
@@ -60,18 +51,9 @@ class SimulationEngine:
     def __apply_collision(self):
 
         # on trouve les valeurs de f_eq pour chaque distribution
-        f_eq = np.zeros_like(self._grid.distributions)
-        last_term = (self._grid.macro_velocity_x**2 +
-                     self._grid.macro_velocity_y**2)
+        f_eq = self._get_f_eq()
 
-        for i in range(9):
-            term_2 = (self._constants.E_X[i]*self._grid.macro_velocity_x +
-                      self._constants.E_Y[i]*self._grid.macro_velocity_y)
-
-            f_eq[:, :, i] = (self._constants.WEIGHTS[i]*self._grid.macro_density*
-                             (1 + (3*term_2) + (4.5*term_2**2) - (1.5*last_term)))
-
-        # applivation du facteur de relaxation
+        # application du facteur de relaxation
         self._grid.distributions += (1/self._tau)*(f_eq - self._grid.distributions)
 
 
@@ -79,8 +61,22 @@ class SimulationEngine:
         temp_distributions = np.copy(self._grid.distributions)
         for i in range(9):
             opposite = self._constants.OPPOSITES[i]
-            # on bouge les particules ds le cote opposee
-            self._grid.distributions[self.obstacle.vertices, i] = temp_distributions[self.obstacle.vertices, opposite]
+            # on bouge les particules dans le coter opposee
+            self._grid.distributions[self.obstacle.binary_mask, i] = temp_distributions[self.obstacle.binary_mask,
+            opposite]
+
+    def _get_f_eq(self):
+        f_eq = np.zeros_like(self._grid.distributions)
+        last_term = (self._grid.macro_velocity_x ** 2 +
+                     self._grid.macro_velocity_y ** 2)
+        for i in range(9):
+            term_2 = (self._constants.E_X[i] * self._grid.macro_velocity_x +
+                      self._constants.E_Y[i] * self._grid.macro_velocity_y)
+
+            f_eq[:, :, i] = (self._constants.WEIGHTS[i] * self._grid.macro_density *
+                             (1 + (3 * term_2) + (4.5 * term_2 ** 2) - (1.5 * last_term)))
+
+        return f_eq
 
     @property
     def obstacle(self):
@@ -88,16 +84,3 @@ class SimulationEngine:
     @obstacle.setter
     def obstacle(self, obstacle: VectorObstacle):
         self._obstacle = obstacle
-
-if __name__ == "__main__":
-    np.set_printoptions(precision=2, suppress=True)
-    engine = SimulationEngine()
-
-    obstacle_temporaire = np.zeros((10, 10), dtype=bool)
-    obstacle_temporaire[5, 5] = True
-    obstacle_temporaire[5, 6] = True
-    print(obstacle_temporaire)
-
-    engine.obstacle = VectorObstacle(obstacle_temporaire)
-    engine.initialize(0.05)
-    engine.execute_time_step()
