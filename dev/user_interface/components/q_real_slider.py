@@ -1,7 +1,7 @@
-from tools.float_comparator import is_not_close, is_less
+from dev.user_interface.tools.float_comparator import is_not_close, is_less
 from PySide6.QtCore import Signal, Slot
 from PySide6.QtWidgets import QWidget, QSlider
-from tools.q_utils import BlockSignals
+from dev.user_interface.tools.q_utils import BlockSignals
 
 
 # -----------------------------------------------------------------------------

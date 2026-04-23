@@ -1,11 +1,11 @@
 import sys
 
-from PySide6.QtCore import QSize, Slot, Qt
+from PySide6.QtCore import QSize, Slot, Qt, Signal
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QWidget, QFrame, QHBoxLayout, QPushButton, QVBoxLayout, QApplication
 
-from q_state_manager import QStateManager
-from q_settings_tab import QSettingsTab
+from dev.user_interface.canvas.q_state_manager import QStateManager
+from dev.user_interface.canvas.q_settings_tab import QSettingsTab
 
 class QToolPB(QPushButton):
     def __init__(self, icon: QIcon, checkable: bool = True, parent: QWidget | None = None):
@@ -18,6 +18,12 @@ class QToolPB(QPushButton):
         self.setProperty("class", "tool_pb")
 
 class QToolBar(QWidget):
+    constraintChanged = Signal(str)
+    iterationsChanged = Signal(int)
+    thresholdChanged = Signal(int)
+    qualityChanged = Signal(float)
+    windSpeedChanged = Signal(float)
+
     def __init__(self, state_manager: QStateManager, parent: QWidget | None = None):
         super().__init__(parent)
 
@@ -92,9 +98,11 @@ class QToolBar(QWidget):
         self._play_button.clicked.connect(self._on_anim_button_pressed)
         self._pause_button.clicked.connect(self._on_anim_button_pressed)
 
-    @property
-    def settings(self):
-        return self._settings
+        self._settings.constraintChanged.connect(self.constraintChanged.emit)
+        self._settings.iterationsChanged.connect(self.iterationsChanged.emit)
+        self._settings.thresholdChanged.connect(self.thresholdChanged.emit)
+        self._settings.qualityChanged.connect(self.qualityChanged.emit)
+        self._settings.windSpeedChanged.connect(self.windSpeedChanged.emit)
 
     @Slot()
     def _on_cursor_button_pressed(self):
@@ -169,6 +177,40 @@ class QToolBar(QWidget):
         else:
             self._settings.hide()
 
+    @property
+    def constraint_method(self) -> str:
+        return self._settings.constraint_method
+    @constraint_method.setter
+    def constraint_method(self, constraint: str):
+        self._settings.constraint_method = constraint
+
+    @property
+    def threshold(self) -> int:
+        return self._settings.threshold
+    @threshold.setter
+    def threshold(self, threshold: int):
+        self._settings.threshold = threshold
+
+    @property
+    def iterations(self) -> int:
+        return self._settings.iterations
+    @iterations.setter
+    def iterations(self, iterations: int):
+        self._settings.iterations = iterations
+
+    @property
+    def quality(self) -> float:
+        return self._settings.quality
+    @quality.setter
+    def quality(self, quality: float):
+        self._settings.quality = quality
+
+    @property
+    def wind_speed(self) -> float:
+        return self._settings.wind_speed
+    @wind_speed.setter
+    def wind_speed(self, wind_speed: float):
+        self._settings.wind_speed = wind_speed
 
 
 if __name__ == "__main__":

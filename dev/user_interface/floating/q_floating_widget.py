@@ -1,8 +1,4 @@
-import os
-import sys
-import ressources_rc
-
-from PySide6.QtCore import Qt, QPoint
+from PySide6.QtCore import Qt, QPoint, QTimer
 from PySide6.QtGui import QImage, QPixmap, QPainter, QMouseEvent, QFont
 from PySide6.QtWidgets import QWidget, QApplication, QVBoxLayout, QLabel, QStyleOption, QStyle, QFrame, QTabWidget, \
     QHBoxLayout
@@ -10,9 +6,7 @@ from PySide6.QtWidgets import QWidget, QApplication, QVBoxLayout, QLabel, QStyle
 class QFloatingWidget(QFrame):
     def __init__(self, parent: QWidget | None = None):
         super().__init__(parent)
-        self.setMinimumWidth(600)
 
-        # self.setWindowFlags(self.windowFlags().FramelessWindowHint | self.windowFlags().WindowStaysOnTopHint)
         self.setProperty("class", "floating_widget")
         self.setMouseTracking(True)
 
@@ -26,10 +20,14 @@ class QFloatingWidget(QFrame):
         self._v_box_layout.setContentsMargins(5, 2, 10, 5)
 
         self._old_pos = None
+        self._saved_position = self.pos()
 
     def mousePressEvent(self, event: QMouseEvent):
         if event.button() == Qt.MouseButton.LeftButton:
             self._old_pos = event.globalPosition().toPoint()
+        if event.button() == Qt.MouseButton.RightButton:
+            self._correct_position()
+            self._old_pos = None
 
     def mouseMoveEvent(self, event: QMouseEvent):
         if self._old_pos is not None:
@@ -51,14 +49,21 @@ class QFloatingWidget(QFrame):
     def mouseReleaseEvent(self, event: QMouseEvent):
         if event.button() == Qt.MouseButton.LeftButton:
             self._old_pos = None
+            self._saved_position = self.pos()
 
-def load_styles(q_app: QApplication):
-    base_path = os.path.dirname(os.path.abspath(__file__))
-    styles_path = os.path.join(base_path, "styles.qss")
+    def showEvent(self, event):
+        self.delayed_correct_position()
 
-    if os.path.exists(styles_path):
-        with open(styles_path, "r") as file:
-            q_app.setStyleSheet(file.read())
+    def delayed_correct_position(self):
+        QTimer.singleShot(3, self._correct_position)
 
-    else:
-        print("'styles.qss' file was not found.")
+    def _correct_position(self):
+        self.move(self._saved_position)
+
+    @property
+    def saved_position(self):
+        return self._saved_position
+    @saved_position.setter
+    def saved_position(self, new_pos: QPoint):
+        self._saved_position = new_pos
+        self.delayed_correct_position()
