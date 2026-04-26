@@ -1,17 +1,21 @@
-from PySide6.QtCore import Qt
-from PySide6.QtGui import QFontDatabase, QPalette, QColor, QIcon, QPixmap, QFont
+import json
+
+from PySide6.QtCore import Qt, QByteArray, QMargins, Signal
+from PySide6.QtGui import QFontDatabase, QPalette, QColor, QIcon, QPixmap, QFont, QPainter, QPainterPath
 from PySide6.QtWidgets import QVBoxLayout, QWidget, QApplication, QHBoxLayout, QStackedWidget, QMainWindow, QLabel, \
     QFrame
 
 class QProjectPreview(QWidget):
-    def __init__(self, path: str, preview_width: int = 300, parent: QWidget | None = None):
+    selected = Signal(str)
+
+    def __init__(self, path: str, preview_width: int = 390, parent: QWidget | None = None):
         super().__init__(parent)
 
         self.setFixedSize(400, 250)
         self.setMouseTracking(True)
 
         self._preview_width = preview_width
-        self._preview_height = int(self._preview_width*(9/16))
+        self._preview_height = int(self._preview_width*(1/2.39))
         self._path = path
 
         # Fonts
@@ -49,8 +53,8 @@ class QProjectPreview(QWidget):
         # Layout
         self._primary_layout = QVBoxLayout(self._primary_frame)
         self._primary_layout.addWidget(self._preview_label, alignment=Qt.AlignmentFlag.AlignCenter)
-        self._primary_layout.addWidget(self._header, alignment=Qt.AlignmentFlag.AlignLeft)
-        self._primary_layout.addWidget(self._description, alignment=Qt.AlignmentFlag.AlignLeft |
+        self._primary_layout.addWidget(self._header, alignment=Qt.AlignmentFlag.AlignHCenter)
+        self._primary_layout.addWidget(self._description, alignment=Qt.AlignmentFlag.AlignHCenter |
                                                                     Qt.AlignmentFlag.AlignTop)
         self._primary_layout.setSpacing(0)
         self._primary_layout.addStretch()
@@ -60,6 +64,8 @@ class QProjectPreview(QWidget):
         root_layout.addWidget(self._primary_frame)
         root_layout.setContentsMargins(0, 0, 0, 0)
         root_layout.addStretch()
+
+        self._init_config()
 
     def mousePressEvent(self, event):
         if event.button() == Qt.MouseButton.LeftButton:
@@ -72,13 +78,56 @@ class QProjectPreview(QWidget):
         self.setStyleSheet("background-color: transparent;")
 
     def _on_selected(self):
-        ...
+        self.selected.emit(self._path)
 
-    def set_preview(self, preview: QPixmap):
+    def _get_config(self) -> list[QPixmap|str]:
+        config = []
+        with open(self._path, "r") as file:
+            save = json.load(file)
+
+        preview_base64 = save["Drawing"]["Preview"]
+        encoded_preview = QByteArray.fromBase64(preview_base64.encode("utf-8"))
+
+        raw_preview = QPixmap()
+        raw_preview.loadFromData(encoded_preview)
+
+        rounded_preview = QPixmap(raw_preview.size())
+        rounded_preview.fill(Qt.GlobalColor.transparent)
+
+        painter = QPainter(rounded_preview)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
+
+        radius = 25
+        painter_path = QPainterPath()
+        painter_path.addRoundedRect(raw_preview.rect(), radius, radius)
+
+        painter.setClipPath(painter_path)
+        painter.drawPixmap(0, 0, raw_preview)
+        painter.end()
+
+        config.append(rounded_preview)
+
+        header = save["General"]["Project_name"]
+        config.append(header)
+
+        description = save["General"]["Project_description"]
+        config.append(description)
+
+        return config
+
+    def _init_config(self):
+        preview = self._get_config()[0]
+        header = self._get_config()[1]
+        description = self._get_config()[2]
+
         scaled_preview = preview.scaled(self._preview_width, self._preview_height, Qt.AspectRatioMode.KeepAspectRatio,
                                         Qt.TransformationMode.SmoothTransformation)
         self._preview_pixmap = scaled_preview
         self._preview_label.setPixmap(self._preview_pixmap)
+
+        self._header.setText(f"{header}")
+        self._description.setText(f"{description}")
 
 if __name__ == "__main__":
     app = QApplication([])

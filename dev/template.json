@@ -1,0 +1,20 @@
+{
+  "General" : {
+    "Project_name" : "Untitled",
+    "Project_description" : "No description currently available."
+  },
+
+  "Drawing" : {
+    "Shapes" : "NAN",
+    "Preview" : "NAN"
+  },
+
+  "Simulation" : {
+    "Cached_velocity" : "NAN",
+    "Cached_density" : "NAN"
+  },
+
+  "Other" : {
+    "Project_number" : "0"
+  }
+}

@@ -1,8 +1,8 @@
 import sys
 
 from PySide6.QtGui import QIcon, QFont, QAction, QColor
-from PySide6.QtWidgets import QApplication, QWidget, QPushButton, QLabel, QMenu
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtWidgets import QApplication, QWidget, QPushButton, QLabel, QMenu, QFileDialog
+from PySide6.QtCore import Qt, Signal, Slot
 
 from qframelesswindow import FramelessWindow, TitleBar
 
@@ -12,7 +12,7 @@ from dev.user_interface.components.q_seperators import QVSeperator
 
 class QFileMenu(QMenu):
     newFileRequested = Signal()
-    openFileRequested = Signal()
+    openFileRequested = Signal(str)
     saveFileRequested = Signal()
     saveAsFileRequested = Signal()
 
@@ -20,23 +20,37 @@ class QFileMenu(QMenu):
         super().__init__(parent)
 
         # Setup
-        new_action = QAction("Nouveau", self)
-        open_action = QAction("Ouvrir", self)
-        save_action = QAction("Enregistrer (CTRL + S)", self)
-        save_as_action = QAction("Enregistrer sous (CTRL + SHIFT + S)", self)
+        self._new_action = QAction("Nouveau", self)
+        self._open_action = QAction("Ouvrir", self)
+        self._save_action = QAction("Enregistrer (CTRL + S)", self)
+        self._save_as_action = QAction("Enregistrer sous (CTRL + SHIFT + S)", self)
 
         # Add actions
-        self.addAction(new_action)
-        self.addAction(open_action)
+        self.addAction(self._new_action)
+        self.addAction(self._open_action)
         self.addSeparator()
-        self.addAction(save_action)
-        self.addAction(save_as_action)
+        self.addAction(self._save_action)
+        self.addAction(self._save_as_action)
 
         # Connect actions
-        new_action.triggered.connect(self.newFileRequested.emit)
-        open_action.triggered.connect(self.openFileRequested.emit)
-        save_action.triggered.connect(self.saveFileRequested.emit)
-        save_as_action.triggered.connect(self.saveAsFileRequested.emit)
+        self._new_action.triggered.connect(self.newFileRequested.emit)
+        self._open_action.triggered.connect(self._on_open_file_requested)
+        self._save_action.triggered.connect(self.saveFileRequested.emit)
+        self._save_as_action.triggered.connect(self.saveAsFileRequested.emit)
+
+    @Slot()
+    def _on_open_file_requested(self):
+        path, _ = QFileDialog.getOpenFileName(self, "Ouvrir un fichier", "../../",
+                                           "JSON Files (*.json);;All Files (*")
+        if path: self.openFileRequested.emit(path)
+
+    @Slot()
+    def set_save_action_enabled(self, enabled: bool):
+        self._save_action.setEnabled(enabled)
+
+    @Slot()
+    def set_new_action_enabled(self, enabled: bool):
+        self._new_action.setEnabled(enabled)
 
 class QEditMenu(QMenu):
     renameFileRequested = Signal()
@@ -119,7 +133,7 @@ class QTitleBarSettingsPB(QPushButton):
 
 class QCustomTitleBar(TitleBar):
     newFileRequested = Signal()
-    openFileRequested = Signal()
+    openFileRequested = Signal(str)
     saveFileRequested = Signal()
     saveAsFileRequested = Signal()
     renameFileRequested = Signal()
@@ -162,7 +176,7 @@ class QCustomTitleBar(TitleBar):
         self._file_name.setFixedSize(170, 32)
         self._file_name.setFont(QFont("JetBrains Mono", 12))
         self._file_name.setText("*Nouveau_fichier")
-        self._file_name.setStyleSheet("QLabel { color: rgba(245, 245, 245, 100); }")
+        self._file_name.setStyleSheet("QLabel { color: rgba(245, 245, 245, 120); }")
 
         # Analysis button
         self._analysis_button = QSpecialSettingPB("Analyse")
@@ -216,6 +230,13 @@ class QCustomTitleBar(TitleBar):
     @is_analysis_checked.setter
     def is_analysis_checked(self, value: bool):
         self._analysis_button.is_checked = value
+
+    @property
+    def file_name(self):
+        return self._file_name.text
+    @file_name.setter
+    def file_name(self, new_name: str):
+        self._file_name.setText(new_name)
 
 class QCustomWindowFrame(FramelessWindow):
     def __init__(self, parent: QWidget | None = None):
