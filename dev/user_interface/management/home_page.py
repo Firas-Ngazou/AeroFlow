@@ -1,0 +1,284 @@
+import sys
+
+from PySide6.QtCore import Qt, Signal, Slot, QPoint
+from PySide6.QtGui import QFont
+from PySide6.QtWidgets import QVBoxLayout, QWidget, QApplication, QHBoxLayout, QLabel, \
+    QScrollArea, QGridLayout, QPushButton, QFileDialog, QFrame
+
+from dev.user_interface.components.q_seperators import QHSeperator
+from dev.user_interface.floating.q_floating_content import QFloatingSlider
+from dev.user_interface.management.q_custom_window_frame import FramelessWindow
+from dev.user_interface.management.q_project_preview import QProjectPreview
+
+class QHomePageSettingsPB(QPushButton):
+    """
+    Represents a push button specifically styled and configured for settings in a
+    home page title bar.
+
+    This class provides a custom QPushButton that is initialized with specific
+    styling, size, and font, making it suitable for use within a title bar in a
+    home page interface. The button includes pre-defined properties and behavior
+    for uniform appearance and functionality when integrated into an application.
+
+    :ivar text: The text displayed on the button.
+    :type text: str
+    """
+    def __init__(self, text: str, parent: QWidget | None = None):
+        super().__init__(parent)
+
+        self.setText(text)
+        self.setFont(QFont("JetBrains Mono", 12))
+        self.setProperty("class", "titlebar_settings_pb")
+        self.setFixedSize(100, 32)
+
+class HomePage(QWidget):
+    """
+    HomePage is a QWidget subclass that serves as the main interface for managing projects.
+
+    This class provides a graphical user interface where users can create new projects, open
+    existing projects, and view a scrollable list of project previews. It leverages PyQt
+    widgets and layouts to create a responsive and interactive design suitable for a desktop
+    application.
+
+    Attributes:
+        newProjectPressed: Signal emitted when the "New Project" button is clicked.
+        projectSelected: Signal emitted when a project is selected, providing the project's path.
+
+    :ivar project_count: The total number of projects currently displayed in the scroll area.
+    :type project_count: int
+    """
+    newProjectPressed = Signal()
+    projectSelected = Signal(str)
+    changedAllocation = Signal(int)
+
+    def __init__(self, parent: FramelessWindow|None = None):
+        super().__init__(parent)
+
+        self.resize(1920, 500)
+        self.setMinimumWidth(1080)
+
+        # New project button
+        self._new_project_pb = QHomePageSettingsPB("Nouveau")
+
+        # Memory allocation button
+        self._allocation_pb = QHomePageSettingsPB("Mémoire")
+
+        self._allocation = QFrame(self)
+        self._allocation.setObjectName("home_page_allocation")
+        self._allocation.setStyleSheet("""#home_page_allocation {background-color: rgba(245, 245, 245, 30);}""")
+        self._allocation_window = QFloatingSlider("Allocation de mémoire vive", self._allocation)
+        self._allocation_window.minimum = 1500
+        self._allocation_window.maximum = 14000
+        self._allocation_window.default_value = 2000
+        self._allocation.hide()
+
+        # Open project button
+        self._open_project_pb = QHomePageSettingsPB("Ouvrir")
+
+        # Software name
+        self._software_name = QLabel("AeroFlow")
+        self._software_name.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self._software_name.setFont(QFont("JetBrains Mono", 24))
+        self._software_name.setFixedWidth(500)
+
+        # ScrollArea
+        self._scroll_area = QScrollArea()
+        self._scroll_area.setObjectName("home_page_scroll_area")
+        self._scroll_area.setStyleSheet("#home_page_scroll_area {border: none;}")
+        self._scroll_area.setMinimumHeight(self.height())
+        self._scroll_area.setWidgetResizable(True)
+        self._scroll_content = QWidget()
+        self._scroll_area.setWidget(self._scroll_content)
+
+        self._scroll_content_layout = QGridLayout(self._scroll_content)
+        self._scroll_content_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+
+        # Layout
+        self._settings_layout = QHBoxLayout()
+        self._settings_layout.setSpacing(10)
+        self._settings_layout.setContentsMargins(0, 0, 0, 0)
+        self._settings_layout.addStretch()
+
+        h_seperator_left = QHSeperator()
+        h_seperator_left.setFixedWidth(200)
+        self._settings_layout.addWidget(h_seperator_left, alignment=Qt.AlignmentFlag.AlignCenter)
+        self._settings_layout.addWidget(self._new_project_pb, alignment=Qt.AlignmentFlag.AlignCenter)
+
+        self._settings_layout.addWidget(self._allocation_pb, alignment=Qt.AlignmentFlag.AlignCenter)
+        self._settings_layout.addWidget(self._open_project_pb, alignment=Qt.AlignmentFlag.AlignCenter)
+
+        h_seperator_right = QHSeperator()
+        h_seperator_right.setFixedWidth(200)
+        self._settings_layout.addWidget(h_seperator_right, alignment=Qt.AlignmentFlag.AlignCenter)
+        self._settings_layout.addStretch()
+
+        self._secondary_layout = QVBoxLayout()
+        self._secondary_layout.setContentsMargins(10, 10, 10, 10)
+        self._secondary_layout.addWidget(self._software_name, alignment=Qt.AlignmentFlag.AlignCenter)
+        self._secondary_layout.addLayout(self._settings_layout)
+        self._secondary_layout.addWidget(self._scroll_area)
+
+        self._primary_layout = QHBoxLayout(self)
+        self._primary_layout.setContentsMargins(0, 0, 0, 0)
+        self._primary_layout.setSpacing(10)
+        self._primary_layout.addLayout(self._secondary_layout)
+
+        self._new_project_pb.clicked.connect(self.newProjectPressed.emit)
+        self._allocation_pb.clicked.connect(self._on_allocation_pressed)
+        self._open_project_pb.clicked.connect(self._on_open_project_pressed)
+        self._allocation_window.cancelPressed.connect(lambda: self._allocation.hide())
+        self._allocation_window.applyPressed.connect(lambda: self._allocation.hide())
+        self._allocation_window.applyPressed.connect(self.changedAllocation.emit)
+
+
+        # ScrollArea setup
+        self._max_column = 4
+        self._previous_max_row = 0
+        self._current_column = 0
+        self._current_row = 0
+
+        # self.add_project("")
+
+    @Slot()
+    def _on_allocation_pressed(self):
+        self._allocation.show()
+        self._allocation.raise_()
+
+        width = self._allocation_window.width()
+        height = self._allocation_window.height()
+
+        screen_center = QPoint(int(self.width()/2 - width/2), int(self.height()/2 - height/2))
+        self._allocation_window.saved_position = screen_center
+
+        self._allocation_window.raise_()
+
+    @Slot()
+    def _on_open_project_pressed(self):
+        """
+        Handles the action triggered when the "Open Project" button is pressed. Opens a file
+        dialog to allow the user to select a project file. If a valid file is selected, the
+        projectSelected signal is emitted with the selected file path. - Generated by OpenAI's GPT 5.5
+
+        :raises RuntimeError: If there is an issue during the file dialog interaction.
+        :param self: The instance of the class.
+
+        :return: None
+        """
+        path, _ = QFileDialog.getOpenFileName(self, "Ouvrir un fichier", "../../",
+                                              "JSON Files (*.json);;All Files (*")
+        if path: self.projectSelected.emit(path)
+
+    def resizeEvent(self, event, /):
+        """
+        Handles the resize event of the widget to dynamically adjust its layout.
+
+        This method is invoked automatically when the widget is resized. It recalculates
+        the maximum number of columns that can fit within the new width of the widget's
+        rectangular area and triggers a rearrangement of the widget's content based on
+        the updated column count. - Generated by OpenAI's GPT 5.5
+
+        :param event: The resize event triggering this handler.
+        :type event: QResizeEvent
+        """
+        super().resizeEvent(event)
+        width = self.rect().width()
+        self._max_column = int(width) // 400
+        self._allocation.setGeometry(0, 0, self.width(), self.height())
+        self._rearrange()
+
+    def add_project(self, project_path: str):
+        """
+        Adds a project to the interface and updates the layout accordingly.
+
+        The method creates a project preview widget using the given project path and
+        adds it to the grid layout at the currently tracked position (row and column).
+        It then updates internal tracking variables for layout management. Additionally,
+        it connects the `selected` signal of the created project preview widget to the
+        `projectSelected` method for further interaction. - Generated by OpenAI's GPT 5.5
+
+        :param project_path: Path to the project directory. Used to create a preview
+        widget for display in the interface.
+        :type project_path: str
+        :return: None
+        """
+        project_preview = QProjectPreview(project_path)
+        self._scroll_content_layout.addWidget(project_preview, self._current_row, self._current_column)
+
+        self._update_current_values()
+        project_preview.selected.connect(self.projectSelected)
+
+    def _rearrange(self):
+        """
+        Rearranges the widgets in the scroll content layout based on the internal grid
+        positioning.
+
+        Iterates through all widgets currently in the scroll content layout, removing
+        them first and then re-adding them one by one. The function ensures widgets are
+        placed correctly in sequential order into the layout grid. - Generated by OpenAI's GPT 5.5
+
+        :raises KeyError: If an unexpected issue occurs during widget retrieval.
+        """
+        if self._scroll_content_layout.count() == 0: return
+
+        self._current_column = 0
+        self._current_row = 0
+
+        widgets = []
+        while self._scroll_content_layout.count():
+            item = self._scroll_content_layout.takeAt(0)
+            if item is None:
+                continue
+            widget = item.widget()
+            if widget is not None:
+                self._scroll_content_layout.removeWidget(widget)
+                widgets.append(widget)
+
+        for widget in widgets:
+            self._scroll_content_layout.addWidget(widget, self._current_row, self._current_column)
+
+            self._update_current_values()
+
+    def _update_current_values(self):
+        """
+        Updates the current row and column values based on the position within
+        the grid. If the current column reaches the maximum column value, it
+        resets to the first column and increments the row. Otherwise, it simply
+        moves to the next column. - Generated by OpenAI's GPT 5.5
+
+        This method operates internally to manage the state of the grid and
+        should not be accessed directly.
+
+        :returns: None
+        """
+        if self._current_column == self._max_column - 1:
+            self._current_column = 0
+            self._current_row += 1
+        else:
+            self._current_column += 1
+
+    @property
+    def project_count(self) -> int:
+        """
+        Returns the number of projects currently managed.
+
+        This property gives the total count of items contained within the
+        scrollable content layout. It provides a read-only access to the
+        number of projects in the current context. - Generated by OpenAI's GPT 5.5
+
+        :return: The total number of projects.
+        :rtype: int
+        """
+        return self._scroll_content_layout.count()
+
+    @property
+    def allocation_value(self) -> QWidget:
+        return self._allocation_window.value
+    @allocation_value.setter
+    def allocation_value(self, value: QWidget):
+        self._allocation_window.value = value
+
+if __name__ == "__main__":
+    app = QApplication(sys.argv)
+    window = HomePage()
+    window.show()
+    sys.exit(app.exec())

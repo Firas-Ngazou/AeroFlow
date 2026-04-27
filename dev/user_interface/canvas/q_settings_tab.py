@@ -1,62 +1,88 @@
 import sys
-import ressources_rc
 
 from PySide6.QtCore import Qt, Slot, Signal
 from PySide6.QtGui import QFont
 from PySide6.QtWidgets import QWidget, QFrame, QHBoxLayout, QApplication, QPushButton, QVBoxLayout, QDoubleSpinBox, \
     QLabel, QComboBox
 
-from q_custom_widgets import QSettingsTabPB, QSliderGroup, QRealSliderGroup
+from dev.user_interface.components.q_buttons import QSettingsTabPB
+from dev.user_interface.groups.q_slider_groups import QSliderGroup, QRealSliderGroup
 
 class QSettingsGeneralTab(QWidget):
+    qualityChanged = Signal(float)
+    windSpeedChanged = Signal(float)
+
     def __init__(self, parent: QWidget | None = None):
         super().__init__(parent)
 
         # Resolution
-        self._resolution_setting = QRealSliderGroup("QUALITY")
+        self._quality = QRealSliderGroup("QUALITY")
 
-        self._resolution_setting.minimum = 0.1
-        self._resolution_setting.maximum = 1.0
-        self._resolution_setting.single_step = 0.01
+        self._quality.minimum = 0.1
+        self._quality.maximum = 1.0
+        self._quality.single_step = 0.01
+        self._quality.default_value = 1.0
 
-        high_res_warning = QLabel("        ATTENTION : Une trop haute valeur peut résulter en une \n"
-                                  "        perte de performance importante.")
-        high_res_warning.setFont(QFont("Author", 8))
+        high_res_warning = QLabel("   ATTENTION : Une trop haute valeur peut résulter \n"
+                                  "   en une perte de performance importante.")
+        high_res_warning.setFont(QFont("JetBrains Mono", 8))
 
         # Wind speed
-        self._wind_speed_setting = QRealSliderGroup("VITESSE (m/s)")
+        self._wind_speed = QRealSliderGroup("VITESSE (m/s)")
+        self._wind_speed.minimum = 1.0
+        self._wind_speed.maximum = 100.0
 
         # Layouts
         root_layout = QVBoxLayout(self)
-        root_layout.addWidget(self._resolution_setting)
+        root_layout.addWidget(self._quality)
         root_layout.addWidget(high_res_warning, alignment=Qt.AlignmentFlag.AlignTop)
         root_layout.addSpacing(20)
-        root_layout.addWidget(self._wind_speed_setting)
+        root_layout.addWidget(self._wind_speed)
         root_layout.setContentsMargins(0, 0, 0, 0)
         root_layout.addStretch()
 
+        # Connections
+        self._quality.realValueChanged.connect(self.qualityChanged.emit)
+        self._wind_speed.realValueChanged.connect(self.windSpeedChanged.emit)
+
     @property
-    def resolution(self):
-        return self._resolution_setting
+    def quality(self) -> float:
+        return self._quality.value
+    @quality.setter
+    def quality(self, value: float):
+        self._quality.value = value
+
+    @property
+    def wind_speed(self) -> float:
+        return self._wind_speed.value
+    @wind_speed.setter
+    def wind_speed(self, value: float):
+        self._wind_speed.value = value
 
 class QSettingsOptimizationTab(QWidget):
+    constraintChanged = Signal(str)
+    iterationsChanged = Signal(int)
+    thresholdChanged = Signal(int)
+
     def __init__(self, parent: QWidget | None = None):
         super().__init__(parent)
 
         # Constraint method
         # Title
         self._title = QLabel("CONTRAINTE")
-        self._title.setFont(QFont("Author", 11))
+        self._title.setFont(QFont("JetBrains Mono", 11))
 
         # Combobox
         self._combo_box = QComboBox()
         self._combo_box.setPlaceholderText("MÉTHODE")
         self._combo_box.setProperty("class", "settings_combo_box")
         self._combo_box.setFixedSize(150, 30)
-        self._combo_box.setFont(QFont("Author", 9))
+        self._combo_box.setFont(QFont("JetBrains Mono", 9))
 
         self._combo_box.addItem("DISTANCE")
         self._combo_box.addItem("SURFACE")
+
+        self._combo_box.setCurrentIndex(1)
 
         # Primary frame & layout
         constraint_frame = QFrame()
@@ -69,9 +95,17 @@ class QSettingsOptimizationTab(QWidget):
 
         # Threshold
         self._threshold_setting = QSliderGroup("SEUIL (%)")
+        self._threshold_setting.minimum = 1
+        self._threshold_setting.maximum = 100
+        self._threshold_setting.single_step = 5
+        self._threshold_setting.default_value = 5
 
         # Iterations
-        self._iterations_setting = QSliderGroup("ITÉRATIONS MAX")
+        self._iterations_setting = QSliderGroup("ITÉRATIONS")
+        self._iterations_setting.minimum = 1
+        self._iterations_setting.maximum = 1000
+        self._iterations_setting.single_step = 5
+        self._iterations_setting.default_value = 20
 
         # Root
         root_layout = QVBoxLayout(self)
@@ -81,7 +115,39 @@ class QSettingsOptimizationTab(QWidget):
         root_layout.setContentsMargins(0, 0, 0, 0)
         root_layout.addStretch()
 
+        # Connections
+        self._combo_box.currentTextChanged.connect(self.constraintChanged.emit)
+        self._threshold_setting.valueChanged.connect(self.thresholdChanged.emit)
+        self._iterations_setting.valueChanged.connect(self.iterationsChanged.emit)
+
+    @property
+    def constraint_method(self) -> str:
+        return self._combo_box.currentText()
+    @constraint_method.setter
+    def constraint_method(self, constraint: str):
+        self._combo_box.setCurrentText(constraint)
+
+    @property
+    def threshold(self) -> int:
+        return self._threshold_setting.value
+    @threshold.setter
+    def threshold(self, threshold: int):
+        self._threshold_setting.set_value(threshold)
+
+    @property
+    def iterations(self) -> int:
+        return self._iterations_setting.value
+    @iterations.setter
+    def iterations(self, iterations: int):
+        self._iterations_setting.set_value(iterations)
+
 class QSettingsTab(QWidget):
+    constraintChanged = Signal(str)
+    iterationsChanged = Signal(int)
+    thresholdChanged = Signal(int)
+    qualityChanged = Signal(float)
+    windSpeedChanged = Signal(float)
+
     def __init__(self, parent: QWidget | None = None):
         super().__init__(parent)
 
@@ -120,13 +186,46 @@ class QSettingsTab(QWidget):
         self._general_button.clicked.connect(self._on_tab_changed)
         self._optimization_button.clicked.connect(self._on_tab_changed)
 
-    @property
-    def general_tab(self):
-        return self._general_tab
+        self._general_tab.qualityChanged.connect(self.qualityChanged.emit)
+        self._general_tab.windSpeedChanged.connect(self.windSpeedChanged.emit)
+        self._optimization_tab.constraintChanged.connect(self.constraintChanged.emit)
+        self._optimization_tab.iterationsChanged.connect(self.iterationsChanged.emit)
+        self._optimization_tab.thresholdChanged.connect(self.thresholdChanged.emit)
 
     @property
-    def optimization_tab(self):
-        return self._optimization_tab
+    def constraint_method(self) -> str:
+        return self._optimization_tab.constraint_method
+    @constraint_method.setter
+    def constraint_method(self, constraint: str):
+        self._optimization_tab.constraint_method = constraint
+
+    @property
+    def threshold(self) -> int:
+        return self._optimization_tab.threshold
+    @threshold.setter
+    def threshold(self, threshold: int):
+        self._optimization_tab.threshold = threshold
+
+    @property
+    def iterations(self) -> int:
+        return self._optimization_tab.iterations
+    @iterations.setter
+    def iterations(self, iterations: int):
+        self._optimization_tab.iterations = iterations
+
+    @property
+    def quality(self) -> float:
+        return self._general_tab.quality
+    @quality.setter
+    def quality(self, quality: float):
+        self._general_tab.quality = quality
+
+    @property
+    def wind_speed(self) -> float:
+        return self._general_tab.wind_speed
+    @wind_speed.setter
+    def wind_speed(self, wind_speed: float):
+        self._general_tab.wind_speed = wind_speed
 
     @Slot()
     def _on_tab_changed(self):
@@ -163,7 +262,7 @@ class QSettingsTab(QWidget):
 
 
 def load_styles(q_app: QApplication) -> None:
-    with open("styles.qss", "r") as file:
+    with open("../styles.qss", "r") as file:
         q_app.setStyleSheet(file.read())
 
 if __name__ == "__main__":

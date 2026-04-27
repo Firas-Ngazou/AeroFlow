@@ -2,7 +2,6 @@ from enum import Enum
 
 from PySide6.QtCore import QObject, Signal
 
-
 class QStateManager(QObject):
 
     class MouseState(Enum):
