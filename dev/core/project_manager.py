@@ -103,7 +103,6 @@ class ProjectManager(QObject):
         self._current_project.saveWarningNoPressed.connect(lambda: self._current_project.set_warning_visible(False))
 
         self._project_title_bar.openFileRequested.connect(self.open_project)
-        self._project_title_bar.newFileRequested.connect(self.new_project)
 
     def __ini_connections(self):
         """
@@ -120,17 +119,17 @@ class ProjectManager(QObject):
         :return: None
         """
         self._current_project.qualityChanged.connect(
-            lambda y: self._save_ini_number("Simulation", "Quality", y))
+            lambda y: self.save_ini_number("Simulation", "Quality", y))
         self._current_project.windSpeedChanged.connect(
-            lambda y: self._save_ini_number("Simulation", "Wind_speed", y))
+            lambda y: self.save_ini_number("Simulation", "Wind_speed", y))
         self._current_project.constraintChanged.connect(
             lambda y: self._save_ini_string("Optimization", "Constraint_method", y)
         )
         self._current_project.iterationsChanged.connect(
-            lambda y: self._save_ini_number("Optimization", "Iterations", y)
+            lambda y: self.save_ini_number("Optimization", "Iterations", y)
         )
         self._current_project.thresholdChanged.connect(
-            lambda y: self._save_ini_number("Optimization", "Constraint_threshold", y)
+            lambda y: self.save_ini_number("Optimization", "Constraint_threshold", y)
         )
 
     @Slot()
@@ -328,7 +327,7 @@ class ProjectManager(QObject):
             self._current_json_path = path
 
     @Slot(float, int)
-    def _save_ini_number(self, category: str, parameter: str, value: float | int):
+    def save_ini_number(self, category: str, parameter: str, value: float | int):
         """
         Saves a numerical value (float or integer) to an `.ini` configuration file under the
         specified category and parameter keys. The value is stored as a string and written to
@@ -445,3 +444,11 @@ class ProjectManager(QObject):
         self._home_page = page
         self._update_previews()
         self._projects_count = self._home_page.project_count
+        self._update_home_ini()
+
+    def _update_home_ini(self):
+        self._ini_config.read(self._ini_path)
+
+        allocation = self._ini_config.getint("General", "memory_allocation")
+
+        self._home_page.allocation_value = allocation

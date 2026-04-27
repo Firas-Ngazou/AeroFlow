@@ -1,9 +1,13 @@
+import sys
+
 from PySide6.QtCore import Qt, Signal, QPoint
 from PySide6.QtGui import QFont, QShowEvent, QHideEvent
-from PySide6.QtWidgets import QWidget, QHBoxLayout, QLabel
+from PySide6.QtWidgets import QWidget, QHBoxLayout, QLabel, QSlider, QApplication, QMainWindow, QVBoxLayout
 
 from dev.user_interface.floating.q_floating_widget import QFloatingWidget
 from dev.user_interface.components.q_buttons import QFloatingSettingPB
+from dev.user_interface.groups.q_slider_groups import QSliderGroup
+
 
 class QFloatingContent(QFloatingWidget):
     """
@@ -117,3 +121,67 @@ class QFloatingWarning(QFloatingContent):
         """
         self._warning_text = text
         self._warning_label.setText(self._warning_text)
+
+class QFloatingSlider(QFloatingContent):
+    applyPressed = Signal(int)
+    cancelPressed = Signal()
+
+    def __init__(self, title: str,  parent: QWidget | None = None):
+        super().__init__(title, parent)
+
+        self.setMinimumSize(300, 150)
+
+        self._left_pb.setText("Appliquer")
+        self._right_pb.setText("Annuler")
+
+        self._slider_group = QSliderGroup("")
+
+        self._v_box_layout.insertWidget(2, self._slider_group, alignment=Qt.AlignmentFlag.AlignCenter)
+
+        self._left_pb.clicked.connect(lambda: self.applyPressed.emit(self._slider_group.value))
+        self._right_pb.clicked.connect(self.cancelPressed)
+
+        self.cancelPressed.connect(lambda: self._slider_group.set_value(self._slider_group.default_value))
+
+    @property
+    def maximum(self):
+        return self._slider_group.maximum
+    @maximum.setter
+    def maximum(self, value):
+        self._slider_group.maximum = value
+
+    @property
+    def minimum(self):
+        return self._slider_group.minimum
+    @minimum.setter
+    def minimum(self, value):
+        self._slider_group.minimum = value
+
+    @property
+    def value(self):
+        return self._slider_group.value
+    @value.setter
+    def value(self, value):
+        self._slider_group.value = value
+
+    @property
+    def single_step(self) -> int:
+        return self._slider_group.single_step
+
+    @single_step.setter
+    def single_step(self, step: int):
+        self._slider_group.single_step = step
+
+    @property
+    def default_value(self):
+        return self._slider_group.default_value
+    @default_value.setter
+    def default_value(self, value):
+        self._slider_group.default_value = value
+
+if __name__ == "__main__":
+    app = QApplication(sys.argv)
+    window = QMainWindow()
+    main = QFloatingSlider("Allocation", window)
+    window.show()
+    sys.exit(app.exec())

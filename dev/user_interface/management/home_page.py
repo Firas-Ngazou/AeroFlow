@@ -1,11 +1,12 @@
 import sys
 
-from PySide6.QtCore import Qt, Signal, Slot
+from PySide6.QtCore import Qt, Signal, Slot, QPoint
 from PySide6.QtGui import QFont
 from PySide6.QtWidgets import QVBoxLayout, QWidget, QApplication, QHBoxLayout, QLabel, \
-    QScrollArea, QGridLayout, QPushButton, QFileDialog
+    QScrollArea, QGridLayout, QPushButton, QFileDialog, QFrame
 
 from dev.user_interface.components.q_seperators import QHSeperator
+from dev.user_interface.floating.q_floating_content import QFloatingSlider
 from dev.user_interface.management.q_custom_window_frame import FramelessWindow
 from dev.user_interface.management.q_project_preview import QProjectPreview
 
@@ -48,6 +49,7 @@ class HomePage(QWidget):
     """
     newProjectPressed = Signal()
     projectSelected = Signal(str)
+    changedAllocation = Signal(int)
 
     def __init__(self, parent: FramelessWindow|None = None):
         super().__init__(parent)
@@ -57,6 +59,18 @@ class HomePage(QWidget):
 
         # New project button
         self._new_project_pb = QHomePageSettingsPB("Nouveau")
+
+        # Memory allocation button
+        self._allocation_pb = QHomePageSettingsPB("Mémoire")
+
+        self._allocation = QFrame(self)
+        self._allocation.setObjectName("home_page_allocation")
+        self._allocation.setStyleSheet("""#home_page_allocation {background-color: rgba(245, 245, 245, 30);}""")
+        self._allocation_window = QFloatingSlider("Allocation de mémoire vive", self._allocation)
+        self._allocation_window.minimum = 1500
+        self._allocation_window.maximum = 14000
+        self._allocation_window.default_value = 2000
+        self._allocation.hide()
 
         # Open project button
         self._open_project_pb = QHomePageSettingsPB("Ouvrir")
@@ -90,9 +104,7 @@ class HomePage(QWidget):
         self._settings_layout.addWidget(h_seperator_left, alignment=Qt.AlignmentFlag.AlignCenter)
         self._settings_layout.addWidget(self._new_project_pb, alignment=Qt.AlignmentFlag.AlignCenter)
 
-        h_seperator_center = QHSeperator()
-        h_seperator_center.setFixedWidth(50)
-        self._settings_layout.addWidget(h_seperator_center, alignment=Qt.AlignmentFlag.AlignCenter)
+        self._settings_layout.addWidget(self._allocation_pb, alignment=Qt.AlignmentFlag.AlignCenter)
         self._settings_layout.addWidget(self._open_project_pb, alignment=Qt.AlignmentFlag.AlignCenter)
 
         h_seperator_right = QHSeperator()
@@ -112,7 +124,12 @@ class HomePage(QWidget):
         self._primary_layout.addLayout(self._secondary_layout)
 
         self._new_project_pb.clicked.connect(self.newProjectPressed.emit)
+        self._allocation_pb.clicked.connect(self._on_allocation_pressed)
         self._open_project_pb.clicked.connect(self._on_open_project_pressed)
+        self._allocation_window.cancelPressed.connect(lambda: self._allocation.hide())
+        self._allocation_window.applyPressed.connect(lambda: self._allocation.hide())
+        self._allocation_window.applyPressed.connect(self.changedAllocation.emit)
+
 
         # ScrollArea setup
         self._max_column = 4
@@ -121,6 +138,19 @@ class HomePage(QWidget):
         self._current_row = 0
 
         # self.add_project("")
+
+    @Slot()
+    def _on_allocation_pressed(self):
+        self._allocation.show()
+        self._allocation.raise_()
+
+        width = self._allocation_window.width()
+        height = self._allocation_window.height()
+
+        screen_center = QPoint(int(self.width()/2 - width/2), int(self.height()/2 - height/2))
+        self._allocation_window.saved_position = screen_center
+
+        self._allocation_window.raise_()
 
     @Slot()
     def _on_open_project_pressed(self):
@@ -153,6 +183,7 @@ class HomePage(QWidget):
         super().resizeEvent(event)
         width = self.rect().width()
         self._max_column = int(width) // 400
+        self._allocation.setGeometry(0, 0, self.width(), self.height())
         self._rearrange()
 
     def add_project(self, project_path: str):
@@ -238,6 +269,13 @@ class HomePage(QWidget):
         :rtype: int
         """
         return self._scroll_content_layout.count()
+
+    @property
+    def allocation_value(self) -> QWidget:
+        return self._allocation_window.value
+    @allocation_value.setter
+    def allocation_value(self, value: QWidget):
+        self._allocation_window.value = value
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)

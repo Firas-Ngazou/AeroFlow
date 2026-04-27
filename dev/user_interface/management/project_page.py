@@ -131,7 +131,6 @@ class ProjectPage(QWidget):
         self._save_warning = QFrame(self)
         self._save_warning.setObjectName("save_warning")
         self._save_warning.setStyleSheet("#save_warning { background-color: rgba(245, 245, 245, 70);}")
-        self._save_warning.setFixedSize(self.width(), self.height())
         self._save_warning_window = QFloatingWarning(QPoint(int(self.width()/2), int(self.height()/2)),
                                                      "Attention",
                                                      "Quitter sans sauvegarder vos modifications "
@@ -143,8 +142,6 @@ class ProjectPage(QWidget):
 
         self._secondary_layout.insertWidget(0, self._analysis_tab, 0,
                                             alignment=Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
-        self._secondary_layout.insertWidget(2, self._save_warning, 0,
-                                            alignment=Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignVCenter)
 
     def __initialize_connections(self):
         """
@@ -186,7 +183,7 @@ class ProjectPage(QWidget):
             resizing operation.
         :return: None
         """
-        self._save_warning.setFixedSize(self.width(), self.height())
+        self._save_warning.setGeometry(0, 0, self.width(), self.height())
 
     @Slot()
     def _on_save_project(self):
@@ -218,15 +215,17 @@ class ProjectPage(QWidget):
         :type visible: bool
         :return: None
         """
-        self._title_bar.setDisabled(visible)
-
         if visible:
             self._save_warning.show()
+            self._save_warning.raise_()
             if self._title_bar.is_analysis_checked:
                 self._title_bar.is_analysis_checked = False
                 self._analysis_tab.hide()
+
+            self._title_bar.setDisabled(True)
         else:
             self._save_warning.hide()
+            self._title_bar.setDisabled(False)
 
     def load_editor_data(self, data: dict):
         """

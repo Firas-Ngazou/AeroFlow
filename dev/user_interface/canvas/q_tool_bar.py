@@ -144,7 +144,7 @@ class QToolBar(QWidget):
                 self._settings.hide()
 
                 self._pen_button.setDisabled(True)
-                self._state_manager.set_cursor_state(QStateManager.CursorState.DEFAULT)
+                self._state_manager.set_cursor_state(QStateManager.CursorState.LOCKED)
 
                 self._pause_button.setChecked(False)
                 self._pause_button.setVisible(True)
@@ -158,6 +158,7 @@ class QToolBar(QWidget):
 
                 self._pause_button.setVisible(False)
                 self._play_button.setIcon(self._play_icon)
+                self._state_manager.set_cursor_state(QStateManager.CursorState.DEFAULT)
         elif sender == self._pause_button:
             if self._pause_button.isChecked():
                 self._pause_button.setIcon(self._play_icon)
@@ -211,7 +212,6 @@ class QToolBar(QWidget):
     @wind_speed.setter
     def wind_speed(self, wind_speed: float):
         self._settings.wind_speed = wind_speed
-
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)

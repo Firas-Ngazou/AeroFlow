@@ -67,10 +67,13 @@ class AeroFlow:
 
         self._home_page.newProjectPressed.connect(self.__show_project_page)
         self._home_page.projectSelected.connect(self._on_project_selected)
+        self._home_page.changedAllocation.connect(lambda y: self._project_manager.save_ini_number(
+            "General", "memory_allocation", y))
         self._project_page_title_bar.closeBtn.clicked.disconnect(self._project_page_title_bar.window().close)
         self._project_page_title_bar.newFileRequested.connect(self.__show_project_page)
 
         self.__show_home_page()
+        self._window.move(800, 200)
         self._window.show()
 
     def __show_home_page(self):
