@@ -47,9 +47,6 @@ class VectorObstacle:
         self._vertices = new_vertices
         self._update_default_grid()
 
-    def set_vertices(self, vertices: np.ndarray):
-        self.vertices = vertices
-
     @property
     def binary_mask(self) -> np.ndarray:
         return self._binary_mask
@@ -65,6 +62,3 @@ class VectorObstacle:
     def reduction_factor(self, new_factor: float):
         self._reduction_factor = new_factor
         self._update_binary_mask()
-
-    def set_reduction_factor(self, factor: float):
-        self.reduction_factor = factor

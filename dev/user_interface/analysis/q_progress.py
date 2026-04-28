@@ -72,6 +72,20 @@ class QProgressPoint(QWidget):
         root_layout.addWidget(background_frame)
         root_layout.setContentsMargins(0, 0, 0, 0)
 
+    @property
+    def status(self) -> BarStatus:
+        return self._status
+
+    @status.setter
+    def status(self, value: BarStatus):
+        self._status = value
+        if self._status == BarStatus.IDLE:
+            self._point_frame.setStyleSheet(self._idle_qss)
+        elif self._status == BarStatus.RUNNING:
+            self._point_frame.setStyleSheet(self._running_qss)
+        elif self._status == BarStatus.FINISHED:
+            self._point_frame.setStyleSheet(self._finished_qss)
+
 class QProgressBar(QWidget):
     """
     Represents a custom progress bar widget.
@@ -154,3 +168,37 @@ class QProgressBar(QWidget):
         root_layout = QVBoxLayout(self)
         root_layout.addWidget(background_frame)
         root_layout.setContentsMargins(0, 0, 0, 0)
+
+    @property
+    def fill_percentage(self) -> int:
+        return self._fill_percentage
+
+    @fill_percentage.setter
+    def fill_percentage(self, value: int):
+        if 0 < value < self._min_filling:
+            value = self._min_filling
+
+        self._fill_percentage = value
+        self._fill_frame.setFixedWidth(int(self._fill_percentage*((self._bar_length-6)/100)))
+
+        if self._fill_percentage >= 100:
+            self.status = BarStatus.FINISHED
+        elif self._fill_percentage > 0:
+            self.status = BarStatus.RUNNING
+        else:
+            self.status = BarStatus.IDLE
+
+    @property
+    def status(self) -> BarStatus:
+        return self._status
+
+    @status.setter
+    def status(self, value: BarStatus):
+        self._status = value
+        if self._status == BarStatus.IDLE:
+            self._fill_frame.setStyleSheet(self._idle_qss)
+        elif self._status == BarStatus.RUNNING:
+            self._fill_frame.setStyleSheet(self._running_qss)
+        elif self._status == BarStatus.FINISHED:
+            self._fill_frame.setStyleSheet(self._finished_qss)
+        self._progress_point.status = value

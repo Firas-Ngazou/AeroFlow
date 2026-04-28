@@ -1,21 +1,46 @@
 import math
+from datetime import time, datetime
 
 import numpy as np
-from lattice_grid import LatticeGrid, D2Q9Constants
-from vector_obstacle import  VectorObstacle
+from PySide6.QtCore import QObject, Signal
+from PySide6.QtGui import QPixmap
 
-class SimulationEngine:
-    def __init__(self):
+from dev.physics_engine.lattice_grid import LatticeGrid, D2Q9Constants
+from dev.physics_engine.vector_obstacle import  VectorObstacle
+
+class SimulationEngine(QObject):
+    progressUpdated = Signal(int)
+    simulationFinished = Signal(str)
+    statusMessageUpdated = Signal(str)
+
+    def __init__(self, parent: QObject | None = None):
+        super().__init__(parent)
         self._grid: LatticeGrid | None = None
-        self._obstacle: VectorObstacle | None = None
+        self._obstacle = VectorObstacle(1080)
         self._tau = 0.6
         self._current_step: int = 0
-        self._resolution_x: int = 10
-        self._resolution_y: int = 10
+        self._max_step: int = 100
+        self._resolution_x: int = 950
+        self._resolution_y: int = 1689 # TODO: For some reason, the grid is not 1080x1920 (IndexError)
+
+        self._allocation = 5000
+        self._estimate_time = 0
+
+        self._frame_start_time = datetime.now()
+        self._frame_end_time = datetime.now()
+        self._last_times = np.array([])
 
         self._constants = D2Q9Constants()
 
-    def initialize(self, initial_velocity: float):
+        self._background: QPixmap | None = None
+
+    def run(self, initial_velocity: float):
+        # self._max_step = self._evaluate_max_step()
+        self._max_step = 100
+        self._initialize(initial_velocity)
+        self._execute_time_step()
+
+    def _initialize(self, initial_velocity: float):
         self._grid = LatticeGrid(self._resolution_x, self._resolution_y)
         self._grid.macro_velocity_x[:, :] = initial_velocity
         self._grid.macro_density[:, :] = 1.0
@@ -24,14 +49,23 @@ class SimulationEngine:
 
         self._grid.distributions = f_eq
 
-    def execute_time_step(self):
-        self.__apply_streaming()
-        self.__apply_boundaries()
-        self._grid.update_macroscopic()
-        self.__apply_collision()
-        if self._current_step >= 10: return
-        self._current_step += 1
-        self.execute_time_step()
+    def _execute_time_step(self):
+        for _ in range(self._max_step):
+            self._frame_start_time = datetime.now()
+            self.__apply_streaming()
+            self.__apply_boundaries()
+            self._grid.update_macroscopic()
+            self.__apply_collision()
+            self.__end_current_frame()
+
+    def _evaluate_max_step(self):
+        width = self._resolution_x
+        height = self._resolution_y
+
+        # 16-bits
+        size_bytes = (width * height * 2) + height + 100
+        size = size_bytes / 1024 / 1024
+        return math.ceil(self._allocation / size)
 
     def calculate_drag_coef(self):
         ...
@@ -46,7 +80,6 @@ class SimulationEngine:
                                      (self._constants.E_X[i], self._constants.E_Y[i]), axis=(0, 1))
 
         self._grid.distributions = new_f
-        print(self._grid.distributions)
 
     def __apply_collision(self):
 
@@ -62,7 +95,7 @@ class SimulationEngine:
         for i in range(9):
             opposite = self._constants.OPPOSITES[i]
             # on bouge les particules dans le coter opposee
-            self._grid.distributions[self.obstacle.binary_mask, i] = temp_distributions[self.obstacle.binary_mask,
+            self._grid.distributions[self._obstacle.binary_mask, i] = temp_distributions[self._obstacle.binary_mask,
             opposite]
 
     def _get_f_eq(self):
@@ -78,9 +111,44 @@ class SimulationEngine:
 
         return f_eq
 
+    def __end_current_frame(self):
+        self._current_step += 1
+
+        progress = int((self._current_step / self._max_step) * 100)
+        self.progressUpdated.emit(progress)
+        self.__update_status_message()
+
+    def __update_status_message(self):
+        self._frame_end_time = datetime.now()
+        delta_time = self._frame_end_time - self._frame_start_time
+        self._last_times = np.append(self._last_times, delta_time)
+        mean_time = np.mean(self._last_times)
+        time_left = mean_time * (self._max_step - self._current_step)
+        formatted_time = str(time_left).split('.')[0]
+
+        self.statusMessageUpdated.emit(f"Temps restant: {formatted_time}")
+
+    def set_reduction_factor(self, factor: float):
+        self._obstacle.reduction_factor = factor
+
     @property
-    def obstacle(self):
-        return self._obstacle
-    @obstacle.setter
-    def obstacle(self, obstacle: VectorObstacle):
-        self._obstacle = obstacle
+    def vertices(self):
+        return self._obstacle.vertices
+    @vertices.setter
+    def vertices(self, vertices: np.ndarray):
+        self._obstacle.vertices = vertices
+
+    @property
+    def background(self):
+        return self._background
+    @background.setter
+    def background(self, background: QPixmap):
+        self._background = background
+
+    @property
+    def allocation(self):
+        return self._allocation
+
+    @allocation.setter
+    def allocation(self, allocation: int):
+        self._allocation = allocation

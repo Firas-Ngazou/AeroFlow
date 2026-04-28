@@ -103,6 +103,14 @@ class QAnalysisTab(QWidget):
         self._primary_layout.addWidget(self._progress_bar, alignment=Qt.AlignmentFlag.AlignTop)
         self._primary_layout.addWidget(self._info_label, alignment=Qt.AlignmentFlag.AlignTop)
 
+    @property
+    def progress(self):
+        return self._progress_bar.fill_percentage
+
+    @progress.setter
+    def progress(self, value: int):
+        self._progress_bar.fill_percentage = value
+
 class QOptimizationAnalysis(QAnalysisTab):
     """
     Representation of the QOptimizationAnalysis class.
@@ -208,3 +216,11 @@ class QAnalysisWidget(QFloatingWidget):
         self._v_box_layout.addWidget(self._tabs)
 
         self._tabs.currentChanged.connect(self.delayed_correct_position)
+
+    @property
+    def simulation_progress(self):
+        return self._results_tab.progress
+
+    @simulation_progress.setter
+    def simulation_progress(self, value: int):
+        self._results_tab.progress = value

@@ -23,6 +23,7 @@ class QToolBar(QWidget):
     thresholdChanged = Signal(int)
     qualityChanged = Signal(float)
     windSpeedChanged = Signal(float)
+    playPressed = Signal()
 
     def __init__(self, state_manager: QStateManager, parent: QWidget | None = None):
         super().__init__(parent)
@@ -151,6 +152,7 @@ class QToolBar(QWidget):
 
                 self._pause_button.setIcon(self._pause_icon)
                 self._play_button.setIcon(self._stop_icon)
+                self.playPressed.emit()
             else:
                 self._settings_button.setDisabled(False)
                 self._settings_button.setChecked(False)

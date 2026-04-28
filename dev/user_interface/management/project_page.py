@@ -1,10 +1,11 @@
 from datetime import date
 
 import numpy as np
-from PySide6.QtCore import Qt, Signal, QPoint, Slot
+from PySide6.QtCore import Qt, Signal, QPoint, Slot, QThread, QMetaObject, Q_ARG
 from PySide6.QtGui import QShortcut, QKeySequence
-from PySide6.QtWidgets import QVBoxLayout, QWidget, QHBoxLayout, QFrame
+from PySide6.QtWidgets import QVBoxLayout, QWidget, QHBoxLayout, QFrame, QLabel
 
+from dev.physics_engine.simulation_engine import SimulationEngine
 from dev.user_interface.analysis.q_analysis_tabs import QAnalysisWidget
 from dev.user_interface.floating.q_floating_content import QFloatingWarning
 from dev.physics_engine.vector_obstacle import VectorObstacle
@@ -61,9 +62,11 @@ class ProjectPage(QWidget):
     thresholdChanged = Signal(int)
     qualityChanged = Signal(float)
     windSpeedChanged = Signal(float)
-    vectorDrawingChanged = Signal(np.ndarray)
+    vectorDrawingChanged = Signal()
     saveWarningYesPressed = Signal()
     saveWarningNoPressed = Signal()
+
+    runSimulation = Signal(float)
 
     def __init__(self, parent: FramelessWindow):
         super().__init__(parent)
@@ -77,6 +80,15 @@ class ProjectPage(QWidget):
         self._window = parent
 
         self._title_bar: QCustomTitleBar = self._window.titleBar
+
+        self._sim_thread = QThread()
+        self._simulation_engine = SimulationEngine()
+        self._simulation_engine.moveToThread(self._sim_thread)
+
+        self._simulation_engine.progressUpdated.connect(self._on_sim_progressed)
+        self.runSimulation.connect(self._simulation_engine.run)
+
+        self._sim_thread.start()
 
         self.__initialize_canvas()
         self.__initialize_title_bar()
@@ -101,8 +113,6 @@ class ProjectPage(QWidget):
         self._editor.switch_cursor(QStateManager.CursorState.DEFAULT)
 
         self._tool_bar = QToolBar(self._state_manager)
-
-        self._vector_obstacle = VectorObstacle(self._initial_res)
 
         self._lower_layout = QHBoxLayout()
         self._lower_layout.addWidget(self._tool_bar, alignment=Qt.AlignmentFlag.AlignHCenter)
@@ -156,6 +166,8 @@ class ProjectPage(QWidget):
         self._tool_bar.thresholdChanged.connect(self.thresholdChanged.emit)
         self._tool_bar.qualityChanged.connect(self.qualityChanged.emit)
         self._tool_bar.windSpeedChanged.connect(self.windSpeedChanged.emit)
+        self._tool_bar.playPressed.connect(self._start_simulation)
+
         self._editor.vectorDrawingChanged.connect(self.vectorDrawingChanged.emit)
 
         self._state_manager.cursorStateChanged.connect(self._editor.switch_cursor)
@@ -166,14 +178,31 @@ class ProjectPage(QWidget):
 
         self._title_bar.analysisPressed.connect(lambda y: self._on_analysis_pressed(y))
 
-        self.vectorDrawingChanged.connect(self._vector_obstacle.set_vertices)
-        self.qualityChanged.connect(self._vector_obstacle.set_reduction_factor)
+        self.qualityChanged.connect(self._simulation_engine.set_reduction_factor)
 
         # Project saving
         self._save_shortcut = QShortcut(QKeySequence("Ctrl+S"), self)
         self._save_shortcut.setContext(Qt.ShortcutContext.WindowShortcut)
 
         self._save_shortcut.activated.connect(self._on_save_project)
+
+    @Slot()
+    def _start_simulation(self):
+        vertices = self._editor.get_vertices()
+        pixmap = self._editor.get_pixmap(self.width(), self.height())
+
+        # TODO: Update vertices and pixmap from simulation engine, lock window resizing, call update method,
+        #  open analysis tab and lock title bar.
+
+        self._simulation_engine.vertices = vertices
+        self._simulation_engine.background = pixmap
+
+        self.runSimulation.emit(self.wind_speed)
+
+    @Slot(int)
+    def _on_sim_progressed(self, progress: int):
+        print(f"Simulation progress: {progress}%")
+        self._analysis_tab.simulation_progress = progress
 
     def resizeEvent(self, event, /):
         """
