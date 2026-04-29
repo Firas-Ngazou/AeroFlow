@@ -1,7 +1,7 @@
 import numpy as np
 
 class VectorObstacle:
-    def __init__(self, initial_res: int):
+    def __init__(self, initial_res: int = 1080):
         self._vertices: np.ndarray = np.array([])
 
         self._default_grid: np.ndarray | None = None
@@ -27,15 +27,22 @@ class VectorObstacle:
         # Clean the grid to only keep the relevant part (removes the + 1 added under _update_default_grid)
         clean_height = target_height*factor
         clean_width = target_width*factor
-        clean_grid = self._default_grid[:clean_height, :clean_width]
+        clean_grid = self._default_grid[:clean_width, :clean_height]
 
         # Downsampling
-        self._binary_mask = clean_grid.reshape(target_height, factor, target_width, factor).any(axis=(1, 3))
+        self._binary_mask = clean_grid.reshape(target_width, factor, target_height, factor).any(axis=(1, 3))
 
     def _update_default_grid(self):
-        self._default_grid = np.zeros((self._initial_res + 1, (int((16/9)*self._initial_res)) + 1), dtype=bool)
+        height = self._initial_res + 1
+        width = int((16/9) * self._initial_res) + 1
+
+        self._default_grid = np.zeros((width, height), dtype=bool)
         if self._vertices.size > 0:
-            self._default_grid[self._vertices[:, 0], self._vertices[:, 1]] = True
+            x_coords = self._vertices[:, 0]
+            y_coords = self._vertices[:, 1]
+
+            valids = (x_coords >= 0) & (x_coords < width) & (y_coords >= 0) & (y_coords < height)
+            self._default_grid[x_coords[valids], y_coords[valids]] = True
 
         self._update_binary_mask()
 
@@ -62,3 +69,12 @@ class VectorObstacle:
     def reduction_factor(self, new_factor: float):
         self._reduction_factor = new_factor
         self._update_binary_mask()
+
+    @property
+    def initial_res(self) -> int:
+        return self._initial_res
+
+    @initial_res.setter
+    def initial_res(self, new_res: int):
+        self._initial_res = new_res
+        self._update_default_grid()

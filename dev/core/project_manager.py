@@ -4,7 +4,8 @@ from enum import Enum
 from pathlib import Path
 
 from PySide6.QtCore import Slot, QObject
-from PySide6.QtWidgets import QFileDialog
+from PySide6.QtGui import QPixmap
+from PySide6.QtWidgets import QFileDialog, QLabel
 
 from dev.user_interface.management.home_page import HomePage
 from dev.user_interface.management.project_page import ProjectPage
@@ -101,6 +102,8 @@ class ProjectManager(QObject):
         self._current_project.vectorDrawingChanged.connect(self._on_vector_drawing_changed)
         self._current_project.saveWarningYesPressed.connect(self._project_title_bar.window().close)
         self._current_project.saveWarningNoPressed.connect(lambda: self._current_project.set_warning_visible(False))
+        self._current_project.heatmapFrameFinished.connect(self._on_heatmap_frame_finished)
+        self._current_project.streamFrameFinished.connect(self._on_stream_frame_finished)
 
         self._project_title_bar.openFileRequested.connect(self.open_project)
 
@@ -388,12 +391,14 @@ class ProjectManager(QObject):
         """
         self._ini_config.read(self._ini_path)
 
+        allocation = self._ini_config.getint("General", "Memory_allocation")
         quality = self._ini_config.getfloat("Simulation", "Quality")
         wind_speed = self._ini_config.getfloat("Simulation", "Wind_speed")
         constraint_method = self._ini_config.get("Optimization", "Constraint_method")
         iterations = self._ini_config.getint("Optimization", "Iterations")
         threshold = self._ini_config.getint("Optimization", "Constraint_threshold")
 
+        self._current_project.allocation = allocation
         self._current_project.quality = quality
         self._current_project.wind_speed = wind_speed
         self._current_project.constraint_method = constraint_method
@@ -417,6 +422,17 @@ class ProjectManager(QObject):
                 print(f"Project path {path} does not exist.")
                 continue
             self._home_page.add_project(path)
+
+    @Slot(QPixmap)
+    def _on_heatmap_frame_finished(self, frame: QPixmap):
+        self._label = QLabel()
+        self._label.setPixmap(frame)
+        self._label.setFixedSize(1920, 1080)
+        self._label.show()
+
+    @Slot(QPixmap)
+    def _on_stream_frame_finished(self, frame: QPixmap):
+        print("Done simulating frame.")
 
     @property
     def home_page(self) -> HomePage | None:
