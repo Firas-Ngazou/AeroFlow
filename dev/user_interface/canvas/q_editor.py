@@ -1464,6 +1464,8 @@ class QEditor(QWidget):
         self._draw_shapes(painter)
         painter.end()
 
+        print(canvas.width(), canvas.height())
+
         return canvas
 
     def get_base64_image(self, width: int, height: int) -> str:

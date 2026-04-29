@@ -1,7 +1,9 @@
 import numpy as np
 
 class VectorObstacle:
-    def __init__(self, initial_res: int = 1080):
+    def __init__(self, initial_res=None):
+        if initial_res is None:
+            initial_res = [1920, 1080]
         self._vertices: np.ndarray = np.array([])
 
         self._default_grid: np.ndarray | None = None
@@ -15,11 +17,13 @@ class VectorObstacle:
         ...
 
     def _update_binary_mask(self):
+
+        # Doesnt work
+
         if self._default_grid is None: return
 
-        # Get the target size with respect to a 16:9 ratio
-        target_width = int(self._reduction_factor*(16/9)*self._initial_res)
-        target_height = int(self._reduction_factor*self._initial_res)
+        target_width = int(self._reduction_factor*self._initial_res[0])
+        target_height = int(self._reduction_factor*self._initial_res[1])
 
         # Calculate the actual factor
         factor = int(1/self._reduction_factor)
@@ -33,16 +37,16 @@ class VectorObstacle:
         self._binary_mask = clean_grid.reshape(target_width, factor, target_height, factor).any(axis=(1, 3))
 
     def _update_default_grid(self):
-        height = self._initial_res + 1
-        width = int((16/9) * self._initial_res) + 1
+        width = self._initial_res[0]
+        height = self._initial_res[1]
 
         self._default_grid = np.zeros((width, height), dtype=bool)
         if self._vertices.size > 0:
             x_coords = self._vertices[:, 0]
             y_coords = self._vertices[:, 1]
 
-            valids = (x_coords >= 0) & (x_coords < width) & (y_coords >= 0) & (y_coords < height)
-            self._default_grid[x_coords[valids], y_coords[valids]] = True
+            valid = (x_coords >= 0) & (x_coords < width) & (y_coords >= 0) & (y_coords < height)
+            self._default_grid[x_coords[valid], y_coords[valid]] = True
 
         self._update_binary_mask()
 
@@ -71,10 +75,10 @@ class VectorObstacle:
         self._update_binary_mask()
 
     @property
-    def initial_res(self) -> int:
+    def initial_res(self) -> list[int]:
         return self._initial_res
 
     @initial_res.setter
-    def initial_res(self, new_res: int):
+    def initial_res(self, new_res: list[int] | tuple[int, int]):
         self._initial_res = new_res
         self._update_default_grid()

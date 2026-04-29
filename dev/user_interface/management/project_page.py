@@ -27,8 +27,9 @@ class ProjectPage(QWidget):
     saveWarningNoPressed = Signal()
 
     runSimulation = Signal(list)
-    heatmapFrameFinished = Signal(QPixmap)
+    heatmapFrameFinished = Signal(list)
     streamFrameFinished = Signal(QPixmap)
+    heatmapFinished = Signal()
 
     def __init__(self, parent: FramelessWindow):
         super().__init__(parent)
@@ -43,6 +44,8 @@ class ProjectPage(QWidget):
         self._window = parent
 
         self._title_bar: QCustomTitleBar = self._window.titleBar
+        self._analysis_tab = QAnalysisWidget(QPoint(0, 0), self)
+        self._analysis_tab.hide()
 
         self._sim_thread = QThread()
         self._simulation_engine = SimulationEngine()
@@ -55,6 +58,8 @@ class ProjectPage(QWidget):
         self._simulation_engine.progressUpdated.connect(self._on_sim_progressed)
         self._simulation_engine.heatmapFrameFinished.connect(self.heatmapFrameFinished.emit)
         self._simulation_engine.streamFrameFinished.connect(self.streamFrameFinished.emit)
+        self._simulation_engine.statusMessageUpdated.connect(self._analysis_tab.set_sim_info_label)
+        self._simulation_engine.heatmapFinished.connect(self.heatmapFinished.emit)
         self.runSimulation.connect(self._simulation_engine.run)
 
         self._sim_thread.start()
@@ -100,9 +105,6 @@ class ProjectPage(QWidget):
 
         :return: None
         """
-        self._analysis_tab = QAnalysisWidget(QPoint(0, 0), self)
-        self._analysis_tab.hide()
-
         self._save_warning = QFrame(self)
         self._save_warning.setObjectName("save_warning")
         self._save_warning.setStyleSheet("#save_warning { background-color: rgba(245, 245, 245, 70);}")
@@ -154,12 +156,12 @@ class ProjectPage(QWidget):
     @Slot()
     def _start_simulation(self):
         vertices = self._editor.get_vertices()
-        pixmap = self._editor.get_pixmap(self.width(), self.height())
+        pixmap = self._editor.get_pixmap(self._editor.width(), self._editor.height())
 
         self._simulation_engine.vertices = vertices
         self._simulation_engine.background = pixmap
 
-        data = [self.wind_speed, self.height()]
+        data = [self.wind_speed, [self._editor.width(), self._editor.height()]]
 
         self.runSimulation.emit(data)
 
@@ -169,7 +171,7 @@ class ProjectPage(QWidget):
         self._analysis_tab.simulation_progress = progress
 
     @Slot(str)
-    def _on_sim_finished(self, path: str):
+    def on_heat_mp4_ready(self, path: str):
         self._editor.show_mp4(path)
 
     def resizeEvent(self, event, /):

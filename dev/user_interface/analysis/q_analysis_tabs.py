@@ -1,4 +1,4 @@
-from PySide6.QtCore import Qt, QPoint
+from PySide6.QtCore import Qt, QPoint, Slot
 from PySide6.QtGui import QFont
 from PySide6.QtWidgets import QWidget, QFrame, QHBoxLayout, QVBoxLayout, QLabel, QTabWidget
 
@@ -110,6 +110,14 @@ class QAnalysisTab(QWidget):
     @progress.setter
     def progress(self, value: int):
         self._progress_bar.fill_percentage = value
+
+    @property
+    def info_label_text(self):
+        return self._info_label.text()
+
+    @info_label_text.setter
+    def info_label_text(self, value: str):
+        self._info_label.setText(value)
 
 class QOptimizationAnalysis(QAnalysisTab):
     """
@@ -224,3 +232,15 @@ class QAnalysisWidget(QFloatingWidget):
     @simulation_progress.setter
     def simulation_progress(self, value: int):
         self._results_tab.progress = value
+
+    @property
+    def simulation_info_label(self):
+        return self._results_tab.info_label_text
+
+    @simulation_info_label.setter
+    def simulation_info_label(self, value: str):
+        self._results_tab.info_label_text = value
+
+    @Slot(str)
+    def set_sim_info_label(self, value: str):
+        self._results_tab.info_label_text = value

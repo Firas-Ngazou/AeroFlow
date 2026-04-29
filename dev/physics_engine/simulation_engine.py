@@ -2,8 +2,8 @@ import math
 from datetime import time, datetime
 
 import numpy as np
-from PySide6.QtCore import QObject, Signal
-from PySide6.QtGui import QPixmap, QImage, qRgb
+from PySide6.QtCore import QObject, Signal, Qt
+from PySide6.QtGui import QPixmap, QImage, qRgb, qRgba, QPainter
 
 from dev.physics_engine.lattice_grid import LatticeGrid, D2Q9Constants
 from dev.physics_engine.vector_obstacle import  VectorObstacle
@@ -11,8 +11,9 @@ from dev.physics_engine.vector_obstacle import  VectorObstacle
 class SimulationEngine(QObject):
     progressUpdated = Signal(int)
     streamFrameFinished = Signal(QPixmap)
-    heatmapFrameFinished = Signal(QPixmap)
+    heatmapFrameFinished = Signal(list)
     statusMessageUpdated = Signal(str)
+    heatmapFinished = Signal()
 
     def __init__(self, parent: QObject | None = None):
         super().__init__(parent)
@@ -40,7 +41,7 @@ class SimulationEngine(QObject):
 
     def run(self, data: list[float | int]):
         self._max_step = self._evaluate_max_step()
-        # self._max_step = 10
+        # self._max_step = 1
 
         initial_velocity = data[0]
         initial_res = data[1]
@@ -75,6 +76,8 @@ class SimulationEngine(QObject):
             self._grid.update_macroscopic()
             self.__apply_collision()
             self.__end_current_frame()
+
+        self.heatmapFinished.emit()
 
     def _evaluate_max_step(self):
         width = self._resolution_x
@@ -139,7 +142,7 @@ class SimulationEngine(QObject):
         heatmap = self._generate_heatmap()
         # stream_lines = self._generate_stream()
 
-        self.heatmapFrameFinished.emit(heatmap)
+        self.heatmapFrameFinished.emit([heatmap, self._current_step])
         # self.streamFrameFinished.emit(stream_lines)
 
     def __update_status_message(self):
@@ -155,6 +158,9 @@ class SimulationEngine(QObject):
     def _generate_heatmap(self):
         speeds = np.sqrt(self._grid.macro_velocity_x**2 + self._grid.macro_velocity_y**2)
 
+        unaffected = speeds.shape[1]//2
+        base_speed = speeds[0, unaffected]
+
         if self._obstacle.binary_mask is not None:
             speeds[self._obstacle.binary_mask] = 0
 
@@ -162,6 +168,7 @@ class SimulationEngine(QObject):
         if max_speed == 0:
             max_speed = 1
 
+        base_index = int((base_speed / max_speed) * 255)
         normalized_speeds = np.clip((speeds / max_speed) * 255, 0, 255).astype(np.uint8)
 
         image_data = np.ascontiguousarray(normalized_speeds.T)
@@ -176,12 +183,29 @@ class SimulationEngine(QObject):
             r = int(255 * max(0, min(1, 1.5 - abs(1 - 4 * (f - 0.5)))))
             g = int(255 * max(0, min(1, 1.5 - abs(1 - 4 * (f - 0.25)))))
             b = int(255 * max(0, min(1, 1.5 - abs(1 - 4 * f))))
-            color_table.append(qRgb(r, g, b))
+
+            if i == 0:
+                alpha = 0
+
+            else:
+                difference = abs(i - base_index)
+                alpha = int(np.clip(difference * difference, 0, 255))
+
+            color_table.append(qRgba(r, g, b, alpha))
 
         temp_image.setColorTable(color_table)
+        heatmap_pixmap = QPixmap.fromImage(temp_image.copy())
 
-        image = temp_image.copy()
-        return QPixmap.fromImage(image)
+        final_pixmap = QPixmap(self._background.size())
+        final_pixmap.fill(Qt.GlobalColor.transparent)
+
+        painter = QPainter(final_pixmap)
+        painter.drawPixmap(0, 0, self._background)
+
+        painter.drawPixmap(final_pixmap.rect(), heatmap_pixmap)
+        painter.end()
+
+        return final_pixmap
 
     def _generate_stream(self):
         ...
