@@ -3,7 +3,8 @@ from datetime import time, datetime
 
 import numpy as np
 from PySide6.QtCore import QObject, Signal, Qt
-from PySide6.QtGui import QPixmap, QImage, qRgb, qRgba, QPainter
+from PySide6.QtGui import QPixmap, QImage, qRgb, qRgba, QPainter, QPen, QColor
+from numba.core.types import none
 
 from dev.physics_engine.lattice_grid import LatticeGrid, D2Q9Constants
 from dev.physics_engine.vector_obstacle import  VectorObstacle
@@ -208,6 +209,79 @@ class SimulationEngine(QObject):
         return final_pixmap
 
     def _generate_stream(self):
+        velocity_x = self._grid.macro_velocity_x
+        velocity_y = self._grid.macro_velocity_y
+
+        width_grid = velocity_x.shape[0]
+        height_grid = velocity_y.shape[1]
+
+        final_pixmap = QPixmap(self._background.size())
+        final_pixmap.fill(Qt.GlobalColor.transparent)
+
+        painter = QPainter(final_pixmap)
+        painter.drawPixmap(0, 0, self._background)
+
+        pen = QPen(QColor(230, 230, 230, 150))
+        pen.setWidth(2)
+        painter.setPen(pen)
+
+        spacing_y = 30 # la distance entre les lignes
+        spacing_x = 50 # la distance entre chaque point sur l'axe des x
+        max_steps = 180 # resolution max
+        min_speed = 1e-8
+        step_size = 3.0
+
+        scale_x = self._background.width() / width_grid
+        scale_y = self._background.height() / height_grid
+
+        for start_x in range(0, width_grid, spacing_x):
+            for start_y in range(spacing_y//2, height_grid, spacing_y):
+                x = float(start_x)
+                y = float(start_y)
+
+                last_x = None
+                last_y = None
+
+                for _ in range(max_steps):
+                    if not np.isfinite(x) or not np.isfinite(y):
+                        break
+
+                    rounded_x = int(round(x))
+                    rounded_y = int(round(y))
+
+                    if rounded_x < 0 or rounded_x >= width_grid:
+                        break
+
+                    if rounded_y < 0 or rounded_y >= height_grid:
+                        break
+
+                    if self._obstacle.binary_mask[rounded_x, rounded_y]:
+                        break
+
+                    vx = velocity_x[rounded_x, rounded_y]
+                    vy = velocity_y[rounded_x, rounded_y]
+                    speed = math.sqrt(vx**2 + vy**2)
+
+                    if speed < min_speed:
+                        break
+
+                    screen_x = int(scale_x*x)
+                    screen_y = int(scale_y*y)
+
+                    if last_x is not None and last_y is not None:
+                        painter.drawLine(last_x, last_y, screen_x, screen_y)
+
+                    last_x = rounded_x
+                    last_y = rounded_y
+
+                    x += (vx/speed)*step_size
+                    y += (vy/speed)*step_size
+
+        painter.end()
+
+        return final_pixmap
+
+    def _generate_density(self):
         densities = np.copy(self._grid.macro_density)
 
         unaffected = densities.shape[1]//2
@@ -222,7 +296,7 @@ class SimulationEngine(QObject):
         if max_difference == 0:
             max_difference = 1
 
-        normalized_densities = np.clip(((density_difference/max_difference)*127) +127, 0, 255).astype(np.uint8)
+        normalized_densities = np.clip(((density_difference/max_difference)*127) + 127, 0, 255).astype(np.uint8)
         image_data = np.ascontiguousarray(normalized_densities.T)
         height, width = image_data.shape
         bytes_per_line = width
@@ -232,11 +306,11 @@ class SimulationEngine(QObject):
         color_table = []
         base_index = 127
         for i in range(256):
-            difference = abs(i-base_index)
+            difference = abs(i - base_index)
             strength = difference/127
 
             gray = int(255*strength)
-            alpha = int(np.clip(difference*difference, 0, 255))
+            alpha = int(np.clip(difference**2, 0, 255))
             color_table.append(qRgba(gray, gray, gray, alpha))
 
         temp_image.setColorTable(color_table)
