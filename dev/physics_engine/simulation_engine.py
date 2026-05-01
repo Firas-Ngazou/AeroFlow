@@ -3,8 +3,7 @@ from datetime import time, datetime
 
 import numpy as np
 from PySide6.QtCore import QObject, Signal, Qt
-from PySide6.QtGui import QPixmap, QImage, qRgb, qRgba, QPainter, QPen, QColor
-from numba.core.types import none
+from PySide6.QtGui import QPixmap, QImage, qRgba, QPainter, QPen, QColor
 
 from dev.physics_engine.lattice_grid import LatticeGrid, D2Q9Constants
 from dev.physics_engine.vector_obstacle import  VectorObstacle
@@ -20,7 +19,7 @@ class SimulationEngine(QObject):
         super().__init__(parent)
         self._grid: LatticeGrid | None = None
         self._obstacle = VectorObstacle()
-        self._tau = 0.6
+        self._tau = 0.8
         self._boltzmann_k = 1.38 * (10 ** -23)
         self._air_particle_mass = 4.81 * (10 ** -26)
         self._room_temperature = 293
@@ -140,7 +139,7 @@ class SimulationEngine(QObject):
         self.progressUpdated.emit(progress)
         self.__update_status_message()
 
-        heatmap = self._generate_stream()
+        heatmap = self._generate_curl()
         # stream_lines = self._generate_stream()
 
         self.heatmapFrameFinished.emit([heatmap, self._current_step])
@@ -226,56 +225,55 @@ class SimulationEngine(QObject):
         painter.setPen(pen)
 
         spacing_y = 30 # la distance entre les lignes
-        spacing_x = 50 # la distance entre chaque point sur l'axe des x
-        max_steps = 180 # resolution max
+        max_steps = 1920 # resolution max
         min_speed = 1e-8
         step_size = 3.0
 
         scale_x = self._background.width() / width_grid
         scale_y = self._background.height() / height_grid
 
-        for start_x in range(0, width_grid, spacing_x):
-            for start_y in range(spacing_y//2, height_grid, spacing_y):
-                x = float(start_x)
-                y = float(start_y)
+        # for start_x in range(0, width_grid, spacing_x):
+        for start_y in range(spacing_y//2, height_grid, spacing_y):
+            x = 0.0
+            y = float(start_y)
 
-                last_x = None
-                last_y = None
+            last_x = None
+            last_y = None
 
-                for _ in range(max_steps):
-                    if not np.isfinite(x) or not np.isfinite(y):
-                        break
+            for _ in range(max_steps):
+                if not np.isfinite(x) or not np.isfinite(y):
+                    break
 
-                    rounded_x = int(round(x))
-                    rounded_y = int(round(y))
+                rounded_x = int(round(x))
+                rounded_y = int(round(y))
 
-                    if rounded_x < 0 or rounded_x >= width_grid:
-                        break
+                if rounded_x < 0 or rounded_x >= width_grid:
+                    break
 
-                    if rounded_y < 0 or rounded_y >= height_grid:
-                        break
+                if rounded_y < 0 or rounded_y >= height_grid:
+                    break
 
-                    if self._obstacle.binary_mask[rounded_x, rounded_y]:
-                        break
+                if self._obstacle.binary_mask[rounded_x, rounded_y]:
+                    break
 
-                    vx = velocity_x[rounded_x, rounded_y]
-                    vy = velocity_y[rounded_x, rounded_y]
-                    speed = math.sqrt(vx**2 + vy**2)
+                vx = velocity_x[rounded_x, rounded_y]
+                vy = velocity_y[rounded_x, rounded_y]
+                speed = math.sqrt(vx**2 + vy**2)
 
-                    if speed < min_speed:
-                        break
+                # if speed < min_speed:
+                #     break
 
-                    screen_x = int(scale_x*x)
-                    screen_y = int(scale_y*y)
+                screen_x = int(scale_x*x)
+                screen_y = int(scale_y*y)
 
-                    if last_x is not None and last_y is not None:
-                        painter.drawLine(last_x, last_y, screen_x, screen_y)
+                if last_x is not None and last_y is not None:
+                    painter.drawLine(last_x, last_y, screen_x, screen_y)
 
-                    last_x = rounded_x
-                    last_y = rounded_y
+                last_x = rounded_x
+                last_y = rounded_y
 
-                    x += (vx/speed)*step_size
-                    y += (vy/speed)*step_size
+                x += (vx/speed)*step_size
+                y += (vy/speed)*step_size
 
         painter.end()
 
@@ -322,6 +320,53 @@ class SimulationEngine(QObject):
         painter = QPainter(final_pixmap)
         painter.drawPixmap(0, 0, self._background)
         painter.drawPixmap(final_pixmap.rect(), stream_pixmap)
+        painter.end()
+
+        return final_pixmap
+
+    def _generate_curl(self):
+        ux = self._grid.macro_velocity_x
+        uy = self._grid.macro_velocity_y
+
+        # curl = d(uy)/dx - d(ux)/dy
+        curls = (np.roll(uy, -1, axis=0) - np.roll(uy, 1, axis=0) - np.roll(ux, -1, axis=1) + np.roll(ux, 1, axis=1))
+
+        if self._obstacle.binary_mask is not None:
+            curls[self._obstacle.binary_mask] = 0
+
+        max_curl = np.max(np.abs(curls))
+
+        if max_curl == 0:
+            max_curl = 1
+
+        normalized_curls = np.clip(((curls/max_curl)*127) + 127,0,255).astype(np.uint8)
+
+        image_data = np.ascontiguousarray(normalized_curls.T)
+        height, width = image_data.shape
+        bytes_per_line = width
+
+        temp_image = QImage(image_data.data, width, height, bytes_per_line, QImage.Format.Format_Indexed8)
+
+        color_table = []
+        base_index = 127
+        for i in range(256):
+            difference = abs(i - base_index)
+            strength = difference / 127
+
+            gray = int(255*strength)
+            alpha = int(np.clip(difference**2, 0, 255))
+
+            color_table.append(qRgba(gray, gray, gray, alpha))
+
+        temp_image.setColorTable(color_table)
+        curl_pixmap = QPixmap.fromImage(temp_image.copy())
+
+        final_pixmap = QPixmap(self._background.size())
+        final_pixmap.fill(Qt.GlobalColor.transparent)
+
+        painter = QPainter(final_pixmap)
+        painter.drawPixmap(0, 0, self._background)
+        painter.drawPixmap(final_pixmap.rect(), curl_pixmap)
         painter.end()
 
         return final_pixmap

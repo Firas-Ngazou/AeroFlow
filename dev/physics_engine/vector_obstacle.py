@@ -17,9 +17,6 @@ class VectorObstacle:
         ...
 
     def _update_binary_mask(self):
-
-        # Doesnt work
-
         if self._default_grid is None: return
 
         target_width = int(self._reduction_factor*self._initial_res[0])

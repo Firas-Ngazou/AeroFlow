@@ -54,3 +54,6 @@ class LatticeGrid:
     @property
     def macro_velocity_y(self):
         return self._macro_velocity_y
+    @macro_velocity_y.setter
+    def macro_velocity_y(self, new_macro_velocity_y):
+        self._macro_velocity_y = new_macro_velocity_y
