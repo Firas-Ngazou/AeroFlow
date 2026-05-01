@@ -139,7 +139,7 @@ class SimulationEngine(QObject):
         self.progressUpdated.emit(progress)
         self.__update_status_message()
 
-        heatmap = self._generate_heatmap()
+        heatmap = self._generate_stream()
         # stream_lines = self._generate_stream()
 
         self.heatmapFrameFinished.emit([heatmap, self._current_step])
@@ -208,7 +208,49 @@ class SimulationEngine(QObject):
         return final_pixmap
 
     def _generate_stream(self):
-        ...
+        densities = np.copy(self._grid.macro_density)
+
+        unaffected = densities.shape[1]//2
+        base_density = densities[0, unaffected]
+
+        if self._obstacle.binary_mask is not None:
+            densities[self._obstacle.binary_mask] = base_density
+
+        density_difference = densities - base_density
+        max_difference = np.max(np.abs(density_difference))
+
+        if max_difference == 0:
+            max_difference = 1
+
+        normalized_densities = np.clip(((density_difference/max_difference)*127) +127, 0, 255).astype(np.uint8)
+        image_data = np.ascontiguousarray(normalized_densities.T)
+        height, width = image_data.shape
+        bytes_per_line = width
+
+        temp_image = QImage(image_data.data, width, height, bytes_per_line, QImage.Format.Format_Indexed8)
+
+        color_table = []
+        base_index = 127
+        for i in range(256):
+            difference = abs(i-base_index)
+            strength = difference/127
+
+            gray = int(255*strength)
+            alpha = int(np.clip(difference*difference, 0, 255))
+            color_table.append(qRgba(gray, gray, gray, alpha))
+
+        temp_image.setColorTable(color_table)
+        stream_pixmap = QPixmap.fromImage(temp_image.copy())
+
+        final_pixmap = QPixmap(self._background.size())
+        final_pixmap.fill(Qt.GlobalColor.transparent)
+
+        painter = QPainter(final_pixmap)
+        painter.drawPixmap(0, 0, self._background)
+        painter.drawPixmap(final_pixmap.rect(), stream_pixmap)
+        painter.end()
+
+        return final_pixmap
 
     def set_reduction_factor(self, factor: float):
         self._obstacle.reduction_factor = factor
