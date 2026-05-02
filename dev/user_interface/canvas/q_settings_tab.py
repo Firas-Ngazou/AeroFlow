@@ -1,6 +1,6 @@
 import sys
 
-from PySide6.QtCore import Qt, Slot, Signal
+from PySide6.QtCore import Qt, Slot, Signal, QPropertyAnimation, QEasingCurve
 from PySide6.QtGui import QFont, QIcon
 from PySide6.QtWidgets import QWidget, QFrame, QHBoxLayout, QApplication, QPushButton, QVBoxLayout, QDoubleSpinBox, \
     QLabel, QComboBox
@@ -156,24 +156,28 @@ class QSettingsSideBar(QWidget):
         self._current_tab = 0
         self._primary_frame = QFrame()
         self._primary_frame.setProperty("class", "primary_frame")
-        self._primary_frame.setFixedSize(395, 280)
-        self._primary_layout = QVBoxLayout(self._primary_frame)
+        self._primary_frame.setFixedHeight(280)
+        self._side_button_layout = QHBoxLayout(self._primary_frame)
+        self._primary_layout = QVBoxLayout()
         self._primary_layout.setContentsMargins(10, 10, 10, 5)
         self._secondary_layout = QHBoxLayout()
         self._secondary_layout.setContentsMargins(10, 5, 10, 5)
         self._primary_layout.addLayout(self._secondary_layout)
+        self._collapsed_width = 25
+        self._expanded_width = 395
 
-        # Open button
-        open_frame = QFrame()
-        open_frame.setProperty("class", "open_frame")
-        self._open_layout = QHBoxLayout(open_frame)
-        self._open_button = QPushButton()
-        self._open_button.setCheckable(True)
-        self._open_button.setProperty("class", "open_pb")
-        self._open_button.setFixedSize(30, 30)
-        settings_icon = QIcon(":/res/settings_icon_black.png")
-        self._open_button.setIcon(settings_icon)
-        self._open_layout.addWidget(self._open_button, alignment=Qt.AlignmentFlag.AlignRight)
+        self._primary_frame.setMaximumWidth(self._collapsed_width)
+        self._primary_frame.setMinimumWidth(self._collapsed_width)
+
+        self._is_collapsed = True
+
+        # Side button
+        self._side_button = QPushButton()
+        self._side_button.setProperty("class", "side_pb")
+        self._side_button.setFixedSize(25, 250)
+        self._side_button_layout.setContentsMargins(2, 0, 0, 0)
+        self._side_button_layout.addWidget(self._side_button, alignment=Qt.AlignmentFlag.AlignLeft)
+        self._side_button_layout.addLayout(self._primary_layout)
 
         # General tab
         self._general_button = QSettingsTabPB("GÉNÉRAL")
@@ -193,9 +197,7 @@ class QSettingsSideBar(QWidget):
 
         root_layout = QVBoxLayout(self)
         root_layout.setContentsMargins(0, 0, 0, 0)
-        root_layout.addWidget(open_frame, alignment=Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignRight)
         root_layout.addWidget(self._primary_frame)
-        self._primary_frame.hide()
 
         # Connections
         self._general_button.clicked.connect(self._on_tab_changed)
@@ -207,7 +209,14 @@ class QSettingsSideBar(QWidget):
         self._optimization_tab.iterationsChanged.connect(self.iterationsChanged.emit)
         self._optimization_tab.thresholdChanged.connect(self.thresholdChanged.emit)
 
-        self._open_button.pressed.connect(self._on_open_button_pressed)
+        self._side_button.pressed.connect(self._on_side_button_pressed)
+
+        # Animation
+        self._animation = QPropertyAnimation(self._primary_frame, b"maximumWidth")
+        self._animation.setDuration(200)
+        self._animation.setEasingCurve(QEasingCurve.Type.InOutQuad)
+
+        # self.is_collapsed = True
 
     @property
     def constraint_method(self) -> str:
@@ -278,13 +287,27 @@ class QSettingsSideBar(QWidget):
             self._optimization_tab.show()
 
     @Slot()
-    def _on_open_button_pressed(self):
-        if self._open_button.isChecked():
-            self._primary_frame.hide()
-            self._open_button.setChecked(True)
+    def _on_side_button_pressed(self):
+        if self.is_collapsed:
+            self.is_collapsed = False
         else:
-            self._primary_frame.show()
-            self._open_button.setChecked(False)
+            self.is_collapsed = True
+
+    @property
+    def is_collapsed(self) -> bool:
+        return self._is_collapsed
+
+    @is_collapsed.setter
+    def is_collapsed(self, value: bool):
+        self._is_collapsed = value
+        if self._is_collapsed:
+            self._animation.setStartValue(self._expanded_width)
+            self._animation.setEndValue(self._collapsed_width)
+        else:
+            self._animation.setStartValue(self._collapsed_width)
+            self._animation.setEndValue(self._expanded_width)
+
+        self._animation.start()
 
 def load_styles(q_app: QApplication) -> None:
     with open("../styles.qss", "r") as file:
