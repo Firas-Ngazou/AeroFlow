@@ -5,7 +5,7 @@ from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QWidget, QFrame, QHBoxLayout, QPushButton, QVBoxLayout, QApplication
 
 from dev.user_interface.canvas.q_state_manager import QStateManager
-from dev.user_interface.canvas.q_settings_tab import QSettingsTab
+from dev.user_interface.canvas.q_settings_tab import QSettingsSideBar
 
 class QToolPB(QPushButton):
     def __init__(self, icon: QIcon, checkable: bool = True, parent: QWidget | None = None):
@@ -75,7 +75,7 @@ class QToolBar(QWidget):
         # settings
         settings_icon = QIcon(":/res/settings_icon_black.png")
         self._settings_button = QToolPB(settings_icon)
-        self._settings = QSettingsTab()
+        self._settings = QSettingsSideBar()
         self._settings.hide()
 
         primary_layout.addWidget(self._default_button)

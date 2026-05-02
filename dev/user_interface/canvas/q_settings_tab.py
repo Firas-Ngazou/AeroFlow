@@ -1,9 +1,10 @@
 import sys
 
 from PySide6.QtCore import Qt, Slot, Signal
-from PySide6.QtGui import QFont
+from PySide6.QtGui import QFont, QIcon
 from PySide6.QtWidgets import QWidget, QFrame, QHBoxLayout, QApplication, QPushButton, QVBoxLayout, QDoubleSpinBox, \
     QLabel, QComboBox
+from numpy.core import _dtype
 
 from dev.user_interface.components.q_buttons import QSettingsTabPB
 from dev.user_interface.groups.q_slider_groups import QSliderGroup, QRealSliderGroup
@@ -141,7 +142,7 @@ class QSettingsOptimizationTab(QWidget):
     def iterations(self, iterations: int):
         self._iterations_setting.set_value(iterations)
 
-class QSettingsTab(QWidget):
+class QSettingsSideBar(QWidget):
     constraintChanged = Signal(str)
     iterationsChanged = Signal(int)
     thresholdChanged = Signal(int)
@@ -153,34 +154,48 @@ class QSettingsTab(QWidget):
 
         # Setup
         self._current_tab = 0
-        primary_frame = QFrame()
-        primary_frame.setProperty("class", "primary_frame")
-        primary_frame.setFixedSize(395, 280)
-        primary_layout = QVBoxLayout(primary_frame)
-        primary_layout.setContentsMargins(10, 10, 10, 5)
-        secondary_layout = QHBoxLayout()
-        secondary_layout.setContentsMargins(10, 5, 10, 5)
-        primary_layout.addLayout(secondary_layout)
+        self._primary_frame = QFrame()
+        self._primary_frame.setProperty("class", "primary_frame")
+        self._primary_frame.setFixedSize(395, 280)
+        self._primary_layout = QVBoxLayout(self._primary_frame)
+        self._primary_layout.setContentsMargins(10, 10, 10, 5)
+        self._secondary_layout = QHBoxLayout()
+        self._secondary_layout.setContentsMargins(10, 5, 10, 5)
+        self._primary_layout.addLayout(self._secondary_layout)
+
+        # Open button
+        open_frame = QFrame()
+        open_frame.setProperty("class", "open_frame")
+        self._open_layout = QHBoxLayout(open_frame)
+        self._open_button = QPushButton()
+        self._open_button.setCheckable(True)
+        self._open_button.setProperty("class", "open_pb")
+        self._open_button.setFixedSize(30, 30)
+        settings_icon = QIcon(":/res/settings_icon_black.png")
+        self._open_button.setIcon(settings_icon)
+        self._open_layout.addWidget(self._open_button, alignment=Qt.AlignmentFlag.AlignRight)
 
         # General tab
         self._general_button = QSettingsTabPB("GÉNÉRAL")
         self._general_button.setChecked(True)
-        secondary_layout.addWidget(self._general_button, alignment=Qt.AlignmentFlag.AlignTop |
+        self._secondary_layout.addWidget(self._general_button, alignment=Qt.AlignmentFlag.AlignTop |
                                                                    Qt.AlignmentFlag.AlignLeft)
         self._general_tab = QSettingsGeneralTab()
-        primary_layout.addWidget(self._general_tab)
+        self._primary_layout.addWidget(self._general_tab)
 
         # Optimization tab
         self._optimization_button = QSettingsTabPB("OPTIMIZATION")
-        secondary_layout.addWidget(self._optimization_button, alignment=Qt.AlignmentFlag.AlignTop |
+        self._secondary_layout.addWidget(self._optimization_button, alignment=Qt.AlignmentFlag.AlignTop |
                                                                         Qt.AlignmentFlag.AlignRight)
         self._optimization_tab = QSettingsOptimizationTab()
-        primary_layout.addWidget(self._optimization_tab)
+        self._primary_layout.addWidget(self._optimization_tab)
         self._optimization_tab.hide()
 
         root_layout = QVBoxLayout(self)
         root_layout.setContentsMargins(0, 0, 0, 0)
-        root_layout.addWidget(primary_frame)
+        root_layout.addWidget(open_frame, alignment=Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignRight)
+        root_layout.addWidget(self._primary_frame)
+        self._primary_frame.hide()
 
         # Connections
         self._general_button.clicked.connect(self._on_tab_changed)
@@ -191,6 +206,8 @@ class QSettingsTab(QWidget):
         self._optimization_tab.constraintChanged.connect(self.constraintChanged.emit)
         self._optimization_tab.iterationsChanged.connect(self.iterationsChanged.emit)
         self._optimization_tab.thresholdChanged.connect(self.thresholdChanged.emit)
+
+        self._open_button.pressed.connect(self._on_open_button_pressed)
 
     @property
     def constraint_method(self) -> str:
@@ -260,6 +277,14 @@ class QSettingsTab(QWidget):
             self._general_tab.hide()
             self._optimization_tab.show()
 
+    @Slot()
+    def _on_open_button_pressed(self):
+        if self._open_button.isChecked():
+            self._primary_frame.hide()
+            self._open_button.setChecked(True)
+        else:
+            self._primary_frame.show()
+            self._open_button.setChecked(False)
 
 def load_styles(q_app: QApplication) -> None:
     with open("../styles.qss", "r") as file:
@@ -268,6 +293,6 @@ def load_styles(q_app: QApplication) -> None:
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     load_styles(app)
-    window = QSettingsTab()
+    window = QSettingsSideBar()
     window.show()
     sys.exit(app.exec())

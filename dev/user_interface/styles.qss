@@ -52,6 +52,25 @@ QPushButton[class="tool_pb"]:checked{
 
 
 
+QPushButton[class="open_pb"]{
+    background-color: #F5F5F5;
+    color: #1D1D1D;
+    padding-left: 10px;
+    padding-right: 10px;
+    border-radius: 15px;
+}
+QPushButton[class="open_pb"]:hover{
+    background-color: #e0e0e0;
+}
+QPushButton[class="open_pb"]:pressed{
+    background-color: #c0c0c0;
+}
+QPushButton[class="open_pb"]:checked{
+    background-color: #A6A6A6;
+}
+
+
+
 QPushButton[class="title_bar_pb"]{
     background-color: #F5F5F5;
     color: #1D1D1D;
@@ -174,6 +193,12 @@ QFrame[class="primary_frame"]{
     border-radius: 26px;
 }
 
+QFrame[class="open_frame"]{
+    background-color: #222;
+    border: 1px solid #F5F5F5;
+    border-radius: 25px;
+}
+
 QFrame[class="constraint_frame"]{
     background-color: #222;
     border: 1px solid #F5F5F5;
@@ -195,7 +220,6 @@ QFrame[class="light_analysis_frame"]{
 QFrame[class="dark_text"]{
     color: #1D1D1D;
 }
-
 
 QFrame[class="dark_analysis_frame"]{
     background-color: #1D1D1D;

@@ -7,6 +7,7 @@ from PySide6.QtWidgets import QVBoxLayout, QWidget, QHBoxLayout, QFrame, QLabel
 
 from dev.physics_engine.simulation_engine import SimulationEngine
 from dev.user_interface.analysis.q_analysis_tabs import QAnalysisWidget
+from dev.user_interface.canvas.q_settings_tab import QSettingsSideBar
 from dev.user_interface.floating.q_floating_content import QFloatingWarning
 from dev.physics_engine.vector_obstacle import VectorObstacle
 from dev.user_interface.canvas.q_state_manager import QStateManager
@@ -83,11 +84,14 @@ class ProjectPage(QWidget):
         self._editor.switch_cursor(QStateManager.CursorState.DEFAULT)
 
         self._tool_bar = QToolBar(self._state_manager)
+        self._settings_side_bar = QSettingsSideBar()
 
         self._lower_layout = QHBoxLayout()
         self._lower_layout.addWidget(self._tool_bar, alignment=Qt.AlignmentFlag.AlignHCenter)
         self._secondary_layout = QVBoxLayout(self._editor)
-        self._secondary_layout.setContentsMargins(0, 0, 0, 0)
+        self._secondary_layout.setContentsMargins(5, 5, 5, 0)
+        self._secondary_layout.addWidget(self._settings_side_bar,
+                                         alignment=Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignRight)
         self._secondary_layout.addStretch()
         self._secondary_layout.addLayout(self._lower_layout)
 
@@ -116,9 +120,6 @@ class ProjectPage(QWidget):
                                                      "Êtes-vous sûr de vouloir continuer ?",
                                                      self._save_warning)
         self._save_warning.hide()
-
-        self._secondary_layout.insertWidget(0, self._analysis_tab, 0,
-                                            alignment=Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
 
     def __initialize_connections(self):
         """
@@ -252,6 +253,7 @@ class ProjectPage(QWidget):
         """
         if pressed:
             self._analysis_tab.show()
+            self._analysis_tab.raise_()
         else:
             self._analysis_tab.hide()
 

@@ -207,6 +207,7 @@ class QAnalysisWidget(QFloatingWidget):
         super().__init__(parent)
 
         self.setMinimumWidth(600)
+        self.setMinimumHeight(200)
         self.saved_position = initial_position
 
         self._tabs = QTabWidget()
@@ -222,8 +223,6 @@ class QAnalysisWidget(QFloatingWidget):
         self._tabs.setFont(QFont("JetBrains Mono", 12))
 
         self._v_box_layout.addWidget(self._tabs)
-
-        self._tabs.currentChanged.connect(self.delayed_correct_position)
 
     @property
     def simulation_progress(self):
