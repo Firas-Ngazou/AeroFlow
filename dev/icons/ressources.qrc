@@ -22,5 +22,7 @@
     <file>JetBrainsMono-Medium.ttf</file>
     <file>app_logo.png</file>
     <file>floating_dots_white.png</file>
+    <file>left_arrow_icon_black.png</file>
+    <file>right_arrow_icon_black.png</file>
 </qresource>
 </RCC>

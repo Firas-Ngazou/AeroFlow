@@ -154,30 +154,41 @@ class QSettingsSideBar(QWidget):
 
         # Setup
         self._current_tab = 0
+
+        self._height = 900
         self._primary_frame = QFrame()
         self._primary_frame.setProperty("class", "primary_frame")
-        self._primary_frame.setFixedHeight(280)
-        self._side_button_layout = QHBoxLayout(self._primary_frame)
-        self._primary_layout = QVBoxLayout()
+
+        self._full_frame = QFrame()
+        self._full_frame.setFixedHeight(self._height)
+
+        self._side_button_layout = QHBoxLayout(self._full_frame)
+
+        self._primary_layout = QVBoxLayout(self._primary_frame)
         self._primary_layout.setContentsMargins(10, 10, 10, 5)
+
         self._secondary_layout = QHBoxLayout()
         self._secondary_layout.setContentsMargins(10, 5, 10, 5)
         self._primary_layout.addLayout(self._secondary_layout)
+
         self._collapsed_width = 25
         self._expanded_width = 395
 
-        self._primary_frame.setMaximumWidth(self._collapsed_width)
-        self._primary_frame.setMinimumWidth(self._collapsed_width)
+        self._full_frame.setMaximumWidth(self._collapsed_width)
+        self._full_frame.setMinimumWidth(self._collapsed_width)
 
         self._is_collapsed = True
 
         # Side button
+        self._open_icon = QIcon(":/res/left_arrow_icon_black.png")
+        self._close_icon = QIcon(":/res/right_arrow_icon_black.png")
         self._side_button = QPushButton()
-        self._side_button.setProperty("class", "side_pb")
-        self._side_button.setFixedSize(25, 250)
+        self._side_button.setIcon(self._open_icon)
+        self._side_button.setProperty("class", "sidebar_pb")
+        self._side_button.setFixedSize(25, self._height - 30)
         self._side_button_layout.setContentsMargins(2, 0, 0, 0)
         self._side_button_layout.addWidget(self._side_button, alignment=Qt.AlignmentFlag.AlignLeft)
-        self._side_button_layout.addLayout(self._primary_layout)
+        self._side_button_layout.addWidget(self._primary_frame)
 
         # General tab
         self._general_button = QSettingsTabPB("GÉNÉRAL")
@@ -197,7 +208,7 @@ class QSettingsSideBar(QWidget):
 
         root_layout = QVBoxLayout(self)
         root_layout.setContentsMargins(0, 0, 0, 0)
-        root_layout.addWidget(self._primary_frame)
+        root_layout.addWidget(self._full_frame)
 
         # Connections
         self._general_button.clicked.connect(self._on_tab_changed)
@@ -212,11 +223,12 @@ class QSettingsSideBar(QWidget):
         self._side_button.pressed.connect(self._on_side_button_pressed)
 
         # Animation
-        self._animation = QPropertyAnimation(self._primary_frame, b"maximumWidth")
-        self._animation.setDuration(200)
+        self._animation = QPropertyAnimation(self._full_frame, b"maximumWidth")
+        self._animation.setDuration(400)
         self._animation.setEasingCurve(QEasingCurve.Type.InOutQuad)
+        self._animation.finished.connect(self._on_animation_finished)
 
-        # self.is_collapsed = True
+        self.is_collapsed = True
 
     @property
     def constraint_method(self) -> str:
@@ -300,22 +312,19 @@ class QSettingsSideBar(QWidget):
     @is_collapsed.setter
     def is_collapsed(self, value: bool):
         self._is_collapsed = value
+        self._primary_frame.show()
         if self._is_collapsed:
+            self._side_button.setIcon(self._open_icon)
             self._animation.setStartValue(self._expanded_width)
             self._animation.setEndValue(self._collapsed_width)
         else:
+            self._side_button.setIcon(self._close_icon)
             self._animation.setStartValue(self._collapsed_width)
             self._animation.setEndValue(self._expanded_width)
 
         self._animation.start()
 
-def load_styles(q_app: QApplication) -> None:
-    with open("../styles.qss", "r") as file:
-        q_app.setStyleSheet(file.read())
-
-if __name__ == "__main__":
-    app = QApplication(sys.argv)
-    load_styles(app)
-    window = QSettingsSideBar()
-    window.show()
-    sys.exit(app.exec())
+    @Slot()
+    def _on_animation_finished(self):
+        if self._is_collapsed:
+            self._primary_frame.hide()
