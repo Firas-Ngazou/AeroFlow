@@ -27,9 +27,6 @@ class ProjectPage(QWidget):
     saveWarningNoPressed = Signal()
 
     runSimulation = Signal(list)
-    heatmapFrameFinished = Signal(list)
-    streamFrameFinished = Signal(QPixmap)
-    heatmapFinished = Signal()
 
     def __init__(self, parent: FramelessWindow):
         super().__init__(parent)
@@ -56,10 +53,8 @@ class ProjectPage(QWidget):
         self.__initialize_connections()
 
         self._simulation_engine.progressUpdated.connect(self._on_sim_progressed)
-        self._simulation_engine.heatmapFrameFinished.connect(self.heatmapFrameFinished.emit)
-        self._simulation_engine.streamFrameFinished.connect(self.streamFrameFinished.emit)
         self._simulation_engine.statusMessageUpdated.connect(self._analysis_tab.set_sim_info_label)
-        self._simulation_engine.heatmapFinished.connect(self.heatmapFinished.emit)
+        self._simulation_engine.iterationCompleted.connect(self._editor.add_sim_data)
         self.runSimulation.connect(self._simulation_engine.run)
 
         self._sim_thread.start()
