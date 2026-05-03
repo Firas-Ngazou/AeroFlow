@@ -1,5 +1,8 @@
 from enum import Enum
-from unittest import case
+import h5py
+import threading
+import queue
+import numpy as np
 
 from PySide6.QtCore import Signal, Slot, QTimer
 from PySide6.QtGui import QPixmap, QIcon, Qt, QFont
@@ -26,16 +29,13 @@ class QSimController(QWidget):
 
         # Setup
         self.setFixedSize(300, 40)
-        self._canvas_height: int = 1080
-        self._canvas_width: int = 1920
         self._timer = QTimer(self)
         self._fps = 30
 
         # Data
-        self._max_soft_steps = 400
+        self._max_soft_steps = 120
         self._max_hard_steps = 1000
         self._sim_data = {}
-        self._current_step = 0
         self._image_type = SimImageType.VELOCITY_HEAT
 
         # Layout
@@ -85,9 +85,52 @@ class QSimController(QWidget):
         self._timer.timeout.connect(self._send_sim_pixmap)
         self._slider.valueChanged.connect(self._on_slider_value_changed)
 
+        # h5py
+        self._h5py_file = None
+        self._dataset = None
+
+        # I/O
+        self._lock = threading.Lock()
+        self._io_write_queue = queue.Queue()
+        self._io_read_queue = queue.Queue()
+
+        self._io_write_thread = threading.Thread(target=self._io_write_worker, daemon=True)
+        self._io_write_thread.start()
+
+        self._io_read_thread = threading.Thread(target=self._io_read_worker, daemon=True)
+        self._io_read_thread.start()
+
+    def _io_write_worker(self):
+        while True:
+            step, data = self._io_write_queue.get()
+            with self._lock:
+                if self._dataset is not None:
+                    if self._dataset.shape[0] <= step:
+                        self._dataset.resize(step + 1, axis=0)
+                    self._dataset[step] = data
+
+            self._io_write_queue.task_done()
+
+    def _io_read_worker(self):
+        while True:
+            step = self._io_read_queue.get()
+            if step in self._sim_data:
+                self._io_read_queue.task_done()
+                continue
+
+            with self._lock:
+                if self._dataset is None or self._dataset.shape[0] <= step:
+                    self._io_read_queue.task_done()
+                    continue
+                stacked_data = self._dataset[step]
+
+            self._sim_data[step] = [stacked_data]
+            self._io_read_queue.task_done()
+
     @Slot(int)
     def _on_slider_value_changed(self, value: int):
         self._update_label(value)
+        self._update_sim_data()
 
         if not self._control_button.isChecked():
             self._send_sim_pixmap()
@@ -112,32 +155,35 @@ class QSimController(QWidget):
 
     @Slot(list)
     def add_sim_data(self, data: list):
-        grid = data[0]
-        obstacle = data[1]
-        step = data[2]
+        stacked_data = data[0]
+        step = data[1]
 
-        self._sim_data[str(step)] = [grid, obstacle]
+        _, _, _, mask = np.unstack(stacked_data, axis=-1)
+
+        if self._h5py_file is None:
+            self._initiate_cache(mask.shape[0], mask.shape[1])
+
+        self._sim_data[step] = [stacked_data]
         self._slider.setMaximum(step)
 
     @Slot()
     def _send_sim_pixmap(self):
         step = self._slider.value()
+        if step not in self._sim_data: return
+
         if self._control_button.isChecked(): self._slider.setValue(step + 1)
 
-        if str(step) not in self._sim_data: return
-
-        grid = self._sim_data[str(step)][0]
-        obstacle = self._sim_data[str(step)][1]
+        stacked_data = self._sim_data[step][0]
 
         match self._image_type:
             case SimImageType.VELOCITY_HEAT:
-                pixmap = PixmapGen.generate_heatmap(grid, obstacle)
+                pixmap = PixmapGen.generate_heatmap(stacked_data)
             case SimImageType.DENSITY_HEAT:
-                pixmap = PixmapGen.generate_density(grid, obstacle)
+                pixmap = PixmapGen.generate_density(stacked_data)
             case SimImageType.CURL:
-                pixmap = PixmapGen.generate_curl(grid, obstacle)
+                pixmap = PixmapGen.generate_curl(stacked_data)
             case SimImageType.STREAM:
-                pixmap = PixmapGen.generate_stream(grid, obstacle)
+                pixmap = PixmapGen.generate_stream(stacked_data)
             case SimImageType.VELOCITY_HEAT_STREAM:
                 raise NotImplementedError("Velocity heat stream pixmap not implemented yet")
             case SimImageType.DENSITY_HEAT_STREAM:
@@ -151,12 +197,49 @@ class QSimController(QWidget):
 
         self.showPixmapRequested.emit(pixmap)
 
-    @property
-    def canvas_width(self) -> int:
-        return self._canvas_width
-    @canvas_width.setter
-    def canvas_width(self, width: int):
-        self._canvas_width = width
+    def _initiate_cache(self, width: int, height: int):
+        with self._lock:
+            self._h5py_file = h5py.File("sim_cache.h5", "w")
+            self._dataset = self._h5py_file.create_dataset("sim_data", (0, width, height, 4),
+                                                           maxshape=(None, width, height, 4),
+                                                           dtype=np.float32,
+                                                           chunks=True)
+
+    def _update_sim_data(self):
+        current_step = self._slider.value()
+        left_soft = max(current_step - self._max_soft_steps//2, 1)
+        right_soft = min(current_step + self._max_soft_steps//2, self._slider.maximum())
+
+        left_hard = None
+        right_hard = None
+        if left_soft != 1:
+            left_hard = max(left_soft - self._max_hard_steps//2, 1)
+        if right_soft != self._slider.maximum():
+            right_hard = min(right_soft + self._max_hard_steps//2, self._slider.maximum())
+
+        if left_hard is not None:
+            for step in range(left_hard, left_soft):
+                self._save_step_to_disk(step)
+
+        if right_hard is not None:
+            for step in range(right_soft, right_hard + 1):
+                self._save_step_to_disk(step)
+
+        for step in range(left_soft, right_soft):
+            self._make_soft(step)
+
+    def _save_step_to_disk(self, step: int):
+        if step not in self._sim_data: return
+        stacked_data = self._sim_data[step][0]
+
+        self._io_write_queue.put((step, stacked_data))
+
+        self._sim_data.pop(step)
+
+    def _make_soft(self, step: int):
+        if step in self._sim_data: return
+
+        self._io_read_queue.put(step)
 
     @property
     def fps(self) -> int:
@@ -172,11 +255,44 @@ class QSimController(QWidget):
     def image_type(self, image_type: SimImageType):
         self._image_type = image_type
 
+    @property
+    def max_soft_steps(self) -> int:
+        return self._max_soft_steps
+    @max_soft_steps.setter
+    def max_soft_steps(self, max_soft_steps: int):
+        self._max_soft_steps = max_soft_steps
+
+    @property
+    def max_hard_steps(self) -> int:
+        return self._max_hard_steps
+    @max_hard_steps.setter
+    def max_hard_steps(self, max_hard_steps: int):
+        self._max_hard_steps = max_hard_steps
+
+    @Slot(int)
+    def set_max_soft_steps(self, max_soft_steps: int):
+        self.max_soft_steps = max_soft_steps
+
+    @Slot(int)
+    def set_max_hard_steps(self, max_hard_steps: int):
+        self.max_hard_steps = max_hard_steps
+
     def reset(self):
         self._slider.setValue(1)
         self._update_label(0)
         self._control_button.setChecked(False)
         self._control_button.setIcon(self._play_icon)
         self._timer.stop()
-        self._sim_data = {}
-        self._current_step = 0
+        self._sim_data.clear()
+
+        with self._io_write_queue.mutex:
+            self._io_write_queue.queue.clear()
+        with self._io_read_queue.mutex:
+            self._io_read_queue.queue.clear()
+
+        with self._lock:
+            if self._h5py_file is not None:
+                self._h5py_file.close()
+
+            self._h5py_file = None
+            self._dataset = None

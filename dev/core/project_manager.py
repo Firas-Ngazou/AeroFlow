@@ -348,7 +348,6 @@ class ProjectManager(QObject):
             category. The value can be of type float or int.
         :return: None
         """
-        print(f"Saving {category} {parameter} to {value:.2f}")
         self._ini_config[category][parameter] = str(f"{value}")
         with open(self._ini_path, 'w') as configfile:
             self._ini_config.write(configfile)
@@ -369,8 +368,6 @@ class ProjectManager(QObject):
         :type value: str
         :return: None
         """
-        print(f"Saving {category} {parameter} to {value}")
-
         paths = self._ini_config[category].values()
         if value in paths: return
         self._ini_config[category][parameter] = value

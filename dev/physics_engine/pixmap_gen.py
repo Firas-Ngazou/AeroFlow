@@ -11,14 +11,15 @@ from dev.physics_engine.vector_obstacle import VectorObstacle
 
 class PixmapGen:
     @staticmethod
-    def generate_heatmap(grid: LatticeGrid, obstacle: VectorObstacle) -> QPixmap:
-        speeds = np.sqrt(grid.macro_velocity_x ** 2 + grid.macro_velocity_y ** 2)
+    def generate_heatmap(data: np.ndarray) -> QPixmap:
+        macro_velocity_x, macro_velocity_y, macro_density, binary_mask = np.unstack(data, axis=-1)
+        speeds = np.sqrt(macro_velocity_x ** 2 + macro_velocity_y ** 2)
 
         unaffected = speeds.shape[1] // 2
         base_speed = speeds[0, unaffected]
 
-        if obstacle.binary_mask is not None:
-            speeds[obstacle.binary_mask] = 0
+        if binary_mask is not None:
+            speeds[binary_mask.astype(bool)] = 0
 
         max_speed = np.max(speeds)
         if max_speed == 0:
@@ -52,7 +53,7 @@ class PixmapGen:
         temp_image.setColorTable(color_table)
         heatmap_pixmap = QPixmap.fromImage(temp_image.copy())
 
-        width, height = obstacle.binary_mask.shape
+        width, height = binary_mask.shape
 
         final_pixmap = QPixmap(width, height)
         final_pixmap.fill(Qt.GlobalColor.transparent)
@@ -65,14 +66,15 @@ class PixmapGen:
         return final_pixmap
 
     @staticmethod
-    def generate_density(grid: LatticeGrid, obstacle: VectorObstacle) -> QPixmap:
-        densities = np.copy(grid.macro_density)
+    def generate_density(data: np.ndarray) -> QPixmap:
+        macro_velocity_x, macro_velocity_y, macro_density, binary_mask = np.unstack(data, axis=-1)
+        densities = np.copy(macro_density)
 
         unaffected = densities.shape[1] // 2
         base_density = densities[0, unaffected]
 
-        if obstacle.binary_mask is not None:
-            densities[obstacle.binary_mask] = base_density
+        if binary_mask is not None:
+            densities[binary_mask.astype(bool)] = base_density
 
         density_difference = densities - base_density
         max_difference = np.max(np.abs(density_difference))
@@ -80,7 +82,8 @@ class PixmapGen:
         if max_difference == 0:
             max_difference = 1
 
-        normalized_densities = np.clip(((density_difference / max_difference) * 127) + 127, 0, 255).astype(np.uint8)
+        normalized_densities = np.clip(((density_difference / max_difference) * 127) + 127,
+                                       0, 255).astype(np.uint8)
         image_data = np.ascontiguousarray(normalized_densities.T)
         height, width = image_data.shape
         bytes_per_line = width
@@ -110,16 +113,17 @@ class PixmapGen:
         return final_pixmap
 
     @staticmethod
-    def generate_curl(grid: LatticeGrid, obstacle: VectorObstacle) -> QPixmap:
-        ux = grid.macro_velocity_x
-        uy = grid.macro_velocity_y
+    def generate_curl(data: np.ndarray) -> QPixmap:
+        macro_velocity_x, macro_velocity_y, macro_density, binary_mask = np.unstack(data, axis=-1)
+        ux = macro_velocity_x
+        uy = macro_velocity_y
 
         # curl = d(uy)/dx - d(ux)/dy
         curls = (np.roll(uy, -1, axis=0) - np.roll(uy, 1, axis=0) -
                  np.roll(ux, -1, axis=1) + np.roll(ux, 1, axis=1))
 
-        if obstacle.binary_mask is not None:
-            curls[obstacle.binary_mask] = 0
+        if binary_mask is not None:
+            curls[binary_mask.astype(bool)] = 0
 
         max_curl = np.max(np.abs(curls))
 
@@ -158,14 +162,15 @@ class PixmapGen:
         return final_pixmap
 
     @staticmethod
-    def generate_stream(grid: LatticeGrid, obstacle: VectorObstacle) -> QPixmap:
-        velocity_x = grid.macro_velocity_x
-        velocity_y = grid.macro_velocity_y
+    def generate_stream(data: np.ndarray) -> QPixmap:
+        macro_velocity_x, macro_velocity_y, macro_density, binary_mask = np.unstack(data, axis=-1)
+        velocity_x = macro_velocity_x
+        velocity_y = macro_velocity_y
 
         width_grid = velocity_x.shape[0]
         height_grid = velocity_y.shape[1]
 
-        width, height = obstacle.binary_mask.shape
+        width, height = binary_mask.shape
 
         final_pixmap = QPixmap(width, height)
         final_pixmap.fill(Qt.GlobalColor.transparent)
@@ -203,7 +208,7 @@ class PixmapGen:
                 if rounded_y < 0 or rounded_y >= height_grid:
                     break
 
-                if obstacle.binary_mask[rounded_x, rounded_y]:
+                if binary_mask[rounded_x, rounded_y]:
                     break
 
                 vx = velocity_x[rounded_x, rounded_y]

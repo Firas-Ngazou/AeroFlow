@@ -57,6 +57,7 @@ class ProjectPage(QWidget):
         self._simulation_engine.progressUpdated.connect(self._on_sim_progressed)
         self._simulation_engine.statusMessageUpdated.connect(self._analysis_tab.set_sim_info_label)
         self._simulation_engine.iterationCompleted.connect(self._sim_controller.add_sim_data)
+        self._simulation_engine.maxSoftStepUpdated.connect(self._sim_controller.set_max_soft_steps)
         self.runSimulation.connect(self._simulation_engine.run)
 
         self._sim_thread.start()

@@ -13,6 +13,7 @@ class SimulationEngine(QObject):
     progressUpdated = Signal(int)
     statusMessageUpdated = Signal(str)
     iterationCompleted = Signal(list)
+    maxSoftStepUpdated = Signal(int)
 
     def __init__(self, parent: QObject | None = None):
         super().__init__(parent)
@@ -45,7 +46,7 @@ class SimulationEngine(QObject):
         self._resolution_x = self._obstacle.binary_mask.shape[0]
         self._resolution_y = self._obstacle.binary_mask.shape[1]
 
-        self._max_step = self._evaluate_max_step()
+        self._max_step = self._evaluate_max_soft_step()
 
         boltzmann_velocity = self._get_boltzmann_v(initial_velocity)
         self._initialize(boltzmann_velocity)
@@ -75,7 +76,7 @@ class SimulationEngine(QObject):
             self.__apply_collision()
             self.__end_current_frame()
 
-    def _evaluate_max_step(self):
+    def _evaluate_max_soft_step(self):
         width = self._resolution_x
         height = self._resolution_y
 
@@ -89,6 +90,7 @@ class SimulationEngine(QObject):
         safe_allocation = self._allocation * 0.8
 
         estimation = int(safe_allocation / (mb_densities + mb_velocity))
+        self.maxSoftStepUpdated.emit(estimation)
         return estimation
 
     def calculate_drag_coef(self):
@@ -106,7 +108,6 @@ class SimulationEngine(QObject):
         self._grid.distributions = new_f
 
     def __apply_collision(self):
-
         # on trouve les valeurs de f_eq pour chaque distribution
         f_eq = self._get_f_eq()
 
@@ -142,7 +143,14 @@ class SimulationEngine(QObject):
         self.progressUpdated.emit(progress)
         self.__update_status_message()
 
-        data = [copy.copy(self._grid), copy.copy(self._obstacle), self._current_step]
+        macro_velocity_x = self._grid.macro_velocity_x
+        macro_velocity_y = self._grid.macro_velocity_y
+        macro_density = self._grid.macro_density
+        binary_mask = self._obstacle.binary_mask
+
+        stacked_data = np.stack((macro_velocity_x, macro_velocity_y, macro_density, binary_mask), axis=-1)
+
+        data = [stacked_data, self._current_step]
         self.iterationCompleted.emit(data)
 
     def __update_status_message(self):

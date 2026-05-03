@@ -19,11 +19,14 @@ class VectorObstacle:
     def _update_binary_mask(self):
         if self._default_grid is None: return
 
-        target_width = int(self._reduction_factor*self._initial_res[0])
-        target_height = int(self._reduction_factor*self._initial_res[1])
+        eligible_factors = [1.0, 0.5, 0.25, 0.2, 0.125]
+        new_factor = min(eligible_factors, key=lambda x: abs(x - self._reduction_factor))
+
+        target_width = int(new_factor*self._initial_res[0])
+        target_height = int(new_factor*self._initial_res[1])
 
         # Calculate the actual factor
-        factor = int(1/self._reduction_factor)
+        factor = int(1/new_factor)
 
         # Clean the grid to only keep the relevant part (removes the + 1 added under _update_default_grid)
         clean_height = target_height*factor
