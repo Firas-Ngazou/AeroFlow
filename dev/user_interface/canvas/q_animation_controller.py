@@ -124,6 +124,8 @@ class QSimController(QWidget):
         step = self._slider.value()
         if self._control_button.isChecked(): self._slider.setValue(step + 1)
 
+        if str(step) not in self._sim_data: return
+
         grid = self._sim_data[str(step)][0]
         obstacle = self._sim_data[str(step)][1]
 
@@ -169,3 +171,12 @@ class QSimController(QWidget):
     @image_type.setter
     def image_type(self, image_type: SimImageType):
         self._image_type = image_type
+
+    def reset(self):
+        self._slider.setValue(1)
+        self._update_label(0)
+        self._control_button.setChecked(False)
+        self._control_button.setIcon(self._play_icon)
+        self._timer.stop()
+        self._sim_data = {}
+        self._current_step = 0

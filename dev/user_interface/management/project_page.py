@@ -159,6 +159,9 @@ class ProjectPage(QWidget):
 
     @Slot()
     def _on_play_pressed(self):
+        if not self._sim_thread.isRunning():
+            self._sim_thread.start()
+
         vertices = self._editor.get_vertices()
         self._simulation_engine.vertices = vertices
 
@@ -170,7 +173,14 @@ class ProjectPage(QWidget):
     @Slot()
     def _on_stop_pressed(self):
         self._sim_controller.hide()
+
         self._sim_thread.requestInterruption()
+        self._sim_thread.quit()
+        self._sim_thread.wait()
+
+        self._sim_controller.reset()
+        self._simulation_engine.reset()
+        self._editor.display_pixmap()
 
     @Slot(int)
     def _on_sim_progressed(self, progress: int):

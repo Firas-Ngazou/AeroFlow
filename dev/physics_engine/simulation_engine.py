@@ -36,11 +36,7 @@ class SimulationEngine(QObject):
 
         self._constants = D2Q9Constants()
 
-        self._background: QPixmap | None = None
-
     def run(self, data: list[float | int]):
-        self._max_step = self._evaluate_max_step()
-
         initial_velocity = data[0]
         initial_res = data[1]
 
@@ -48,6 +44,8 @@ class SimulationEngine(QObject):
 
         self._resolution_x = self._obstacle.binary_mask.shape[0]
         self._resolution_y = self._obstacle.binary_mask.shape[1]
+
+        self._max_step = self._evaluate_max_step()
 
         boltzmann_velocity = self._get_boltzmann_v(initial_velocity)
         self._initialize(boltzmann_velocity)
@@ -81,10 +79,17 @@ class SimulationEngine(QObject):
         width = self._resolution_x
         height = self._resolution_y
 
-        # 16-bits
-        size_bytes = (width * height * 2) + height + 100
-        size = size_bytes / 1024 / 1024
-        return math.ceil(self._allocation / size)
+        bytes_per_float32 = 4
+        densities_bytes = width * height * 9 * bytes_per_float32 * 2
+        mb_densities = densities_bytes / (1024 * 1024)
+
+        velocity_bytes = width * height * 3 * bytes_per_float32
+        mb_velocity = velocity_bytes / (1024 * 1024)
+
+        safe_allocation = self._allocation * 0.8
+
+        estimation = int(safe_allocation / (mb_densities + mb_velocity))
+        return estimation
 
     def calculate_drag_coef(self):
         ...
@@ -150,6 +155,16 @@ class SimulationEngine(QObject):
 
         self.statusMessageUpdated.emit(f"Temps restant: {formatted_time}")
 
+    def reset(self):
+        self._grid = None
+        self._current_step = 0
+        self._last_times = np.array([])
+        self._frame_start_time = datetime.now()
+        self._frame_end_time = datetime.now()
+        self._estimate_time = 0
+        self.progressUpdated.emit(0)
+        self.statusMessageUpdated.emit("Temps restant: 00:00:00")
+
     def set_reduction_factor(self, factor: float):
         self._obstacle.reduction_factor = factor
 
@@ -162,17 +177,23 @@ class SimulationEngine(QObject):
         self._obstacle.vertices = vertices
 
     @property
-    def background(self):
-        return self._background
-
-    @background.setter
-    def background(self, background: QPixmap):
-        self._background = background
-
-    @property
     def allocation(self):
         return self._allocation
 
     @allocation.setter
     def allocation(self, allocation: int):
         self._allocation = allocation
+
+    @property
+    def resolution_x(self):
+        return self._resolution_x
+    @resolution_x.setter
+    def resolution_x(self, resolution_x: int):
+        self._resolution_x = resolution_x
+
+    @property
+    def resolution_y(self):
+        return self._resolution_y
+    @resolution_y.setter
+    def resolution_y(self, resolution_y: int):
+        self._resolution_y = resolution_y

@@ -1568,7 +1568,7 @@ class QEditor(QWidget):
             self._shapes.append(new_shape)
         self.update()
 
-    def display_pixmap(self, pixmap: QPixmap):
+    def display_pixmap(self, pixmap: QPixmap | None = None):
         self._to_display = pixmap
         self.update()
 
