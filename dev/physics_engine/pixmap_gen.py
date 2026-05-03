@@ -4,13 +4,14 @@ import numpy as np
 from PySide6.QtCore import QSize
 from PySide6.QtGui import QImage, QPixmap, QPainter, qRgba, Qt, QPen, QColor
 
+from dev.physics_engine import vector_obstacle
 from dev.physics_engine.lattice_grid import LatticeGrid
 from dev.physics_engine.vector_obstacle import VectorObstacle
 
 
 class PixmapGen:
     @staticmethod
-    def generate_heatmap(grid: LatticeGrid, obstacle: VectorObstacle, width: int, height: int) -> QPixmap:
+    def generate_heatmap(grid: LatticeGrid, obstacle: VectorObstacle) -> QPixmap:
         speeds = np.sqrt(grid.macro_velocity_x ** 2 + grid.macro_velocity_y ** 2)
 
         unaffected = speeds.shape[1] // 2
@@ -50,6 +51,8 @@ class PixmapGen:
 
         temp_image.setColorTable(color_table)
         heatmap_pixmap = QPixmap.fromImage(temp_image.copy())
+
+        width, height = obstacle.binary_mask.shape
 
         final_pixmap = QPixmap(width, height)
         final_pixmap.fill(Qt.GlobalColor.transparent)
@@ -107,12 +110,13 @@ class PixmapGen:
         return final_pixmap
 
     @staticmethod
-    def generate_curl(grid: LatticeGrid, obstacle: VectorObstacle, width: int, height: int) -> QPixmap:
+    def generate_curl(grid: LatticeGrid, obstacle: VectorObstacle) -> QPixmap:
         ux = grid.macro_velocity_x
         uy = grid.macro_velocity_y
 
         # curl = d(uy)/dx - d(ux)/dy
-        curls = (np.roll(uy, -1, axis=0) - np.roll(uy, 1, axis=0) - np.roll(ux, -1, axis=1) + np.roll(ux, 1, axis=1))
+        curls = (np.roll(uy, -1, axis=0) - np.roll(uy, 1, axis=0) -
+                 np.roll(ux, -1, axis=1) + np.roll(ux, 1, axis=1))
 
         if obstacle.binary_mask is not None:
             curls[obstacle.binary_mask] = 0
@@ -154,14 +158,16 @@ class PixmapGen:
         return final_pixmap
 
     @staticmethod
-    def generate_stream(grid: LatticeGrid, obstacle: VectorObstacle, width: int, height: int) -> QPixmap:
+    def generate_stream(grid: LatticeGrid, obstacle: VectorObstacle) -> QPixmap:
         velocity_x = grid.macro_velocity_x
         velocity_y = grid.macro_velocity_y
 
         width_grid = velocity_x.shape[0]
         height_grid = velocity_y.shape[1]
 
-        final_pixmap = QPixmap(QSize(width, height))
+        width, height = obstacle.binary_mask.shape
+
+        final_pixmap = QPixmap(width, height)
         final_pixmap.fill(Qt.GlobalColor.transparent)
 
         painter = QPainter(final_pixmap)
@@ -177,7 +183,6 @@ class PixmapGen:
         scale_x = width / width_grid
         scale_y = height / height_grid
 
-        # for start_x in range(0, width_grid, spacing_x):
         for start_y in range(spacing_y // 2, height_grid, spacing_y):
             x = 0.0
             y = float(start_y)

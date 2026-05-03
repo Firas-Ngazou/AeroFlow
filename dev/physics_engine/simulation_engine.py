@@ -1,8 +1,9 @@
+import copy
 import math
 from datetime import time, datetime
 
 import numpy as np
-from PySide6.QtCore import QObject, Signal, Qt
+from PySide6.QtCore import QObject, Signal, Qt, QThread
 from PySide6.QtGui import QPixmap, QImage, qRgba, QPainter, QPen, QColor
 
 from dev.physics_engine.lattice_grid import LatticeGrid, D2Q9Constants
@@ -39,7 +40,6 @@ class SimulationEngine(QObject):
 
     def run(self, data: list[float | int]):
         self._max_step = self._evaluate_max_step()
-        # self._max_step = 1
 
         initial_velocity = data[0]
         initial_res = data[1]
@@ -68,6 +68,8 @@ class SimulationEngine(QObject):
 
     def _execute_time_step(self):
         for _ in range(self._max_step):
+            if QThread.currentThread().isInterruptionRequested():
+                break
             self._frame_start_time = datetime.now()
             self.__apply_streaming()
             self.__apply_boundaries()
@@ -135,7 +137,7 @@ class SimulationEngine(QObject):
         self.progressUpdated.emit(progress)
         self.__update_status_message()
 
-        data = [self._grid, self._obstacle, self._current_step]
+        data = [copy.copy(self._grid), copy.copy(self._obstacle), self._current_step]
         self.iterationCompleted.emit(data)
 
     def __update_status_message(self):

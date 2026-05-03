@@ -24,6 +24,7 @@ class QToolBar(QWidget):
     qualityChanged = Signal(float)
     windSpeedChanged = Signal(float)
     playPressed = Signal()
+    stopPressed = Signal()
 
     def __init__(self, state_manager: QStateManager, parent: QWidget | None = None):
         super().__init__(parent)
@@ -62,16 +63,6 @@ class QToolBar(QWidget):
         optimize_icon = QIcon(":/res/optimize_icon_black.png")
         optimize_button = QToolPB(optimize_icon, checkable=False)
 
-        # pause button
-        self._pause_icon = QIcon(":/res/pause_icon_black.png")
-        self._pause_button = QPushButton()
-        self._pause_button.setCheckable(True)
-        self._pause_button.setVisible(False)
-        self._pause_button.setProperty("class", "pause_pb")
-        self._pause_button.setIcon(self._pause_icon)
-        self._pause_button.setIconSize(QSize(21, 21))
-        self._pause_button.setFixedSize(44, 44)
-
         # settings
         settings_icon = QIcon(":/res/settings_icon_black.png")
         self._settings_button = QToolPB(settings_icon)
@@ -87,7 +78,6 @@ class QToolBar(QWidget):
         root_layout = QVBoxLayout(self)
         root_layout.setSpacing(5)
         root_layout.addWidget(self._settings, alignment=Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignBottom)
-        root_layout.addWidget(self._pause_button, alignment=Qt.AlignmentFlag.AlignHCenter)
         root_layout.addWidget(primary_frame, alignment=Qt.AlignmentFlag.AlignHCenter)
         self.setLayout(root_layout)
 
@@ -97,7 +87,6 @@ class QToolBar(QWidget):
         self._settings_button.clicked.connect(self._on_settings_button_pressed)
 
         self._play_button.clicked.connect(self._on_anim_button_pressed)
-        self._pause_button.clicked.connect(self._on_anim_button_pressed)
 
         self._settings.constraintChanged.connect(self.constraintChanged.emit)
         self._settings.iterationsChanged.connect(self.iterationsChanged.emit)
@@ -147,10 +136,6 @@ class QToolBar(QWidget):
                 self._pen_button.setDisabled(True)
                 self._state_manager.set_cursor_state(QStateManager.CursorState.LOCKED)
 
-                self._pause_button.setChecked(False)
-                self._pause_button.setVisible(True)
-
-                self._pause_button.setIcon(self._pause_icon)
                 self._play_button.setIcon(self._stop_icon)
                 self.playPressed.emit()
             else:
@@ -158,14 +143,9 @@ class QToolBar(QWidget):
                 self._settings_button.setChecked(False)
                 self._pen_button.setDisabled(False)
 
-                self._pause_button.setVisible(False)
                 self._play_button.setIcon(self._play_icon)
                 self._state_manager.set_cursor_state(QStateManager.CursorState.DEFAULT)
-        elif sender == self._pause_button:
-            if self._pause_button.isChecked():
-                self._pause_button.setIcon(self._play_icon)
-            else:
-                self._pause_button.setIcon(self._pause_icon)
+                self.stopPressed.emit()
 
     @Slot(QStateManager.CursorState)
     def update_cursor_state(self, state: QStateManager.CursorState):

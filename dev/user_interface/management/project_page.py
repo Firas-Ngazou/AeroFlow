@@ -7,6 +7,7 @@ from PySide6.QtWidgets import QVBoxLayout, QWidget, QHBoxLayout, QFrame, QLabel
 
 from dev.physics_engine.simulation_engine import SimulationEngine
 from dev.user_interface.analysis.q_analysis_tabs import QAnalysisWidget
+from dev.user_interface.canvas.q_animation_controller import QSimController
 from dev.user_interface.floating.q_floating_content import QFloatingWarning
 from dev.physics_engine.vector_obstacle import VectorObstacle
 from dev.user_interface.canvas.q_state_manager import QStateManager
@@ -37,6 +38,7 @@ class ProjectPage(QWidget):
         self._allocation = 5000
 
         self._editor: QEditor
+        self._sim_controller: QSimController
         self._state_manager = QStateManager(self)
         self._window = parent
 
@@ -54,7 +56,7 @@ class ProjectPage(QWidget):
 
         self._simulation_engine.progressUpdated.connect(self._on_sim_progressed)
         self._simulation_engine.statusMessageUpdated.connect(self._analysis_tab.set_sim_info_label)
-        self._simulation_engine.iterationCompleted.connect(self._editor.add_sim_data)
+        self._simulation_engine.iterationCompleted.connect(self._sim_controller.add_sim_data)
         self.runSimulation.connect(self._simulation_engine.run)
 
         self._sim_thread.start()
@@ -77,6 +79,9 @@ class ProjectPage(QWidget):
         self._editor = QEditor(self._state_manager)
         self._editor.switch_cursor(QStateManager.CursorState.DEFAULT)
 
+        self._sim_controller = QSimController()
+        self._sim_controller.hide()
+
         self._tool_bar = QToolBar(self._state_manager)
 
         self._lower_layout = QHBoxLayout()
@@ -84,6 +89,7 @@ class ProjectPage(QWidget):
         self._secondary_layout = QVBoxLayout(self._editor)
         self._secondary_layout.setContentsMargins(0, 0, 0, 0)
         self._secondary_layout.addStretch()
+        self._secondary_layout.addWidget(self._sim_controller, alignment=Qt.AlignmentFlag.AlignHCenter)
         self._secondary_layout.addLayout(self._lower_layout)
 
     def __initialize_title_bar(self):
@@ -128,7 +134,10 @@ class ProjectPage(QWidget):
         self._tool_bar.thresholdChanged.connect(self.thresholdChanged.emit)
         self._tool_bar.qualityChanged.connect(self.qualityChanged.emit)
         self._tool_bar.windSpeedChanged.connect(self.windSpeedChanged.emit)
-        self._tool_bar.playPressed.connect(self._start_simulation)
+        self._tool_bar.playPressed.connect(self._on_play_pressed)
+        self._tool_bar.stopPressed.connect(self._on_stop_pressed)
+
+        self._sim_controller.showPixmapRequested.connect(self._editor.display_pixmap)
 
         self._editor.vectorDrawingChanged.connect(self.vectorDrawingChanged.emit)
 
@@ -149,25 +158,24 @@ class ProjectPage(QWidget):
         self._save_shortcut.activated.connect(self._on_save_project)
 
     @Slot()
-    def _start_simulation(self):
+    def _on_play_pressed(self):
         vertices = self._editor.get_vertices()
-        pixmap = self._editor.get_pixmap(self._editor.width(), self._editor.height())
-
         self._simulation_engine.vertices = vertices
-        self._simulation_engine.background = pixmap
 
         data = [self.wind_speed, [self._editor.width(), self._editor.height()]]
 
+        self._sim_controller.show()
         self.runSimulation.emit(data)
+
+    @Slot()
+    def _on_stop_pressed(self):
+        self._sim_controller.hide()
+        self._sim_thread.requestInterruption()
 
     @Slot(int)
     def _on_sim_progressed(self, progress: int):
-        print(f"Simulation progress: {progress}%")
+        # print(f"Simulation progress: {progress}%")
         self._analysis_tab.simulation_progress = progress
-
-    @Slot(str)
-    def on_heat_mp4_ready(self, path: str):
-        self._editor.show_mp4(path)
 
     def resizeEvent(self, event, /):
         """
