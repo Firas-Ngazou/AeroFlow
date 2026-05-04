@@ -32,9 +32,15 @@ class ProjectPage(QWidget):
     def __init__(self, parent: FramelessWindow):
         super().__init__(parent)
 
+        self._minimum_window_width = 600
+        self._minimum_window_height = 250
+        self._maximum_window_width = 19200
+        self._maximum_window_height = 10800
+
         self._initial_res = 1080
         self.resize(int((16/9)*self._initial_res), self._initial_res)
-        self.setMinimumWidth(450)
+        self.setMinimumWidth(self._minimum_window_width)
+        self.setMinimumHeight(self._minimum_window_height)
         self._allocation = 5000
 
         self._editor: QEditor
@@ -150,7 +156,7 @@ class ProjectPage(QWidget):
 
         self._title_bar.analysisPressed.connect(lambda y: self._on_analysis_pressed(y))
 
-        self.qualityChanged.connect(self._simulation_engine.set_reduction_factor)
+        self.qualityChanged.connect(self._sim_controller.set_reduction_factor)
 
         # Project saving
         self._save_shortcut = QShortcut(QKeySequence("Ctrl+S"), self)
@@ -171,6 +177,10 @@ class ProjectPage(QWidget):
         self._sim_controller.show()
         self.runSimulation.emit(data)
 
+        width = self.window().width()
+        height = self.window().height()
+        self.window().setFixedSize(width, height)
+
     @Slot()
     def _on_stop_pressed(self):
         self._sim_controller.hide()
@@ -182,6 +192,11 @@ class ProjectPage(QWidget):
         self._sim_controller.reset()
         self._simulation_engine.reset()
         self._editor.display_pixmap()
+
+        self.window().setMinimumWidth(self._minimum_window_width)
+        self.window().setMinimumHeight(self._minimum_window_height)
+        self.window().setMaximumWidth(self._maximum_window_width)
+        self.window().setMaximumHeight(self._maximum_window_height)
 
     @Slot(int)
     def _on_sim_progressed(self, progress: int):
@@ -197,6 +212,8 @@ class ProjectPage(QWidget):
         :return: None
         """
         self._save_warning.setGeometry(0, 0, self.width(), self.height())
+        self._sim_controller.canvas_height = self._editor.height()
+        self._sim_controller.canvas_width = self._editor.width()
 
     @Slot()
     def _on_save_project(self):

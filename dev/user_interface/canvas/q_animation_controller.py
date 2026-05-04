@@ -31,6 +31,9 @@ class QSimController(QWidget):
         self.setFixedSize(300, 40)
         self._timer = QTimer(self)
         self._fps = 30
+        self._canvas_height = 1080
+        self._canvas_width = 1920
+        self._reduction_factor = 1.0
 
         # Data
         self._max_soft_steps = 120
@@ -175,15 +178,18 @@ class QSimController(QWidget):
 
         stacked_data = self._sim_data[step][0]
 
+        w = int(self._canvas_width * self._reduction_factor)
+        h = int(self._canvas_height * self._reduction_factor)
+
         match self._image_type:
             case SimImageType.VELOCITY_HEAT:
-                pixmap = PixmapGen.generate_heatmap(stacked_data)
+                pixmap = PixmapGen.generate_heatmap(stacked_data, h, w)
             case SimImageType.DENSITY_HEAT:
-                pixmap = PixmapGen.generate_density(stacked_data)
+                pixmap = PixmapGen.generate_density(stacked_data, h, w)
             case SimImageType.CURL:
-                pixmap = PixmapGen.generate_curl(stacked_data)
+                pixmap = PixmapGen.generate_curl(stacked_data, h, w)
             case SimImageType.STREAM:
-                pixmap = PixmapGen.generate_stream(stacked_data)
+                pixmap = PixmapGen.generate_stream(stacked_data, h, w)
             case SimImageType.VELOCITY_HEAT_STREAM:
                 raise NotImplementedError("Velocity heat stream pixmap not implemented yet")
             case SimImageType.DENSITY_HEAT_STREAM:
@@ -268,6 +274,24 @@ class QSimController(QWidget):
     @max_hard_steps.setter
     def max_hard_steps(self, max_hard_steps: int):
         self._max_hard_steps = max_hard_steps
+
+    @property
+    def canvas_height(self) -> int:
+        return self._canvas_height
+    @canvas_height.setter
+    def canvas_height(self, canvas_height: int):
+        self._canvas_height = canvas_height
+
+    @property
+    def canvas_width(self) -> int:
+        return self._canvas_width
+    @canvas_width.setter
+    def canvas_width(self, canvas_width: int):
+        self._canvas_width = canvas_width
+
+    @Slot(float)
+    def set_reduction_factor(self, value: float):
+        self._reduction_factor = value
 
     @Slot(int)
     def set_max_soft_steps(self, max_soft_steps: int):

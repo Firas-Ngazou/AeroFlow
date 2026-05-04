@@ -943,6 +943,7 @@ class QEditor(QWidget):
                                                                       Qt.TransformationMode.SmoothTransformation)
         self._pen_cursor = QCursor(pen_pixmap, hotX=0, hotY=0)
 
+        # Custom pixmap drawing
         self._to_display: QPixmap | None = None
 
     #region Painting Events
@@ -952,12 +953,16 @@ class QEditor(QWidget):
         if self._cached_grid is not None:
             painter.drawPixmap(0, 0, self._cached_grid)
 
-        if self._to_display is not None:
-            # painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
-            painter.drawPixmap(self.rect(), self._to_display)
-
         self._draw_shapes(painter)
         self._draw_selection_rects(painter)
+
+        if self._to_display is not None:
+            resized = self._to_display.scaled(self.width(), self.height())
+            to_disp_painter = QPainter(resized)
+            to_disp_painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_Clear)
+            self._draw_shapes(to_disp_painter)
+            to_disp_painter.end()
+            painter.drawPixmap(0, 0, resized)
 
         painter.end()
 
