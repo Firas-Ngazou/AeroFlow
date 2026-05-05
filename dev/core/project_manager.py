@@ -49,8 +49,6 @@ class ProjectManager(QObject):
     :ivar _window: The main application window that contains the project.
     :type _window: FramelessWindow
     """
-    heatmapMp4Ready = Signal(str)
-    streamMp4Ready = Signal(str)
 
     def __init__(self, window: FramelessWindow, parent: QObject | None = None):
         super().__init__(parent)
@@ -110,13 +108,8 @@ class ProjectManager(QObject):
         self._current_project.vectorDrawingChanged.connect(self._on_vector_drawing_changed)
         self._current_project.saveWarningYesPressed.connect(self._project_title_bar.window().close)
         self._current_project.saveWarningNoPressed.connect(lambda: self._current_project.set_warning_visible(False))
-        self._current_project.heatmapFrameFinished.connect(self._on_heatmap_frame_finished)
-        self._current_project.streamFrameFinished.connect(self._on_stream_frame_finished)
-        self._current_project.heatmapFinished.connect(self._on_heatmap_finished)
 
         self._project_title_bar.openFileRequested.connect(self.open_project)
-
-        self.heatmapMp4Ready.connect(self._current_project.on_heat_mp4_ready)
 
     def __ini_connections(self):
         """
@@ -355,7 +348,6 @@ class ProjectManager(QObject):
             category. The value can be of type float or int.
         :return: None
         """
-        print(f"Saving {category} {parameter} to {value:.2f}")
         self._ini_config[category][parameter] = str(f"{value}")
         with open(self._ini_path, 'w') as configfile:
             self._ini_config.write(configfile)
@@ -376,8 +368,6 @@ class ProjectManager(QObject):
         :type value: str
         :return: None
         """
-        print(f"Saving {category} {parameter} to {value}")
-
         paths = self._ini_config[category].values()
         if value in paths: return
         self._ini_config[category][parameter] = value
@@ -442,7 +432,6 @@ class ProjectManager(QObject):
 
     @Slot(list)
     def _on_stream_frame_finished(self, data: list):
-        print("Done simulating frame.")
         ...
 
     def _save_png(self, type: str, frame: QPixmap, current_frame: int):
@@ -466,7 +455,6 @@ class ProjectManager(QObject):
         fps = 30
 
         self._mp4_from_png_dir("heatmap", name, fps)
-        self.heatmapMp4Ready.emit(path)
 
     def _mp4_from_png_dir(self, type: str, name: str, fps: int):
         if type == "heatmap":

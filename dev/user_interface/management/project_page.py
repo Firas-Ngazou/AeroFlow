@@ -7,6 +7,7 @@ from PySide6.QtWidgets import QVBoxLayout, QWidget, QHBoxLayout, QFrame, QLabel
 
 from dev.physics_engine.simulation_engine import SimulationEngine
 from dev.user_interface.analysis.q_analysis_tabs import QAnalysisWidget
+from dev.user_interface.canvas.q_animation_controller import QSimController
 from dev.user_interface.canvas.q_settings_tab import QSettingsSideBar
 from dev.user_interface.floating.q_floating_content import QFloatingWarning
 from dev.physics_engine.vector_obstacle import VectorObstacle
@@ -28,19 +29,23 @@ class ProjectPage(QWidget):
     saveWarningNoPressed = Signal()
 
     runSimulation = Signal(list)
-    heatmapFrameFinished = Signal(list)
-    streamFrameFinished = Signal(QPixmap)
-    heatmapFinished = Signal()
 
     def __init__(self, parent: FramelessWindow):
         super().__init__(parent)
 
+        self._minimum_window_width = 600
+        self._minimum_window_height = 250
+        self._maximum_window_width = 19200
+        self._maximum_window_height = 10800
+
         self._initial_res = 1080
         self.resize(int((16/9)*self._initial_res), self._initial_res)
-        self.setMinimumWidth(450)
+        self.setMinimumWidth(self._minimum_window_width)
+        self.setMinimumHeight(self._minimum_window_height)
         self._allocation = 5000
 
         self._editor: QEditor
+        self._sim_controller: QSimController
         self._state_manager = QStateManager(self)
         self._window = parent
 
@@ -57,10 +62,9 @@ class ProjectPage(QWidget):
         self.__initialize_connections()
 
         self._simulation_engine.progressUpdated.connect(self._on_sim_progressed)
-        self._simulation_engine.heatmapFrameFinished.connect(self.heatmapFrameFinished.emit)
-        self._simulation_engine.streamFrameFinished.connect(self.streamFrameFinished.emit)
         self._simulation_engine.statusMessageUpdated.connect(self._analysis_tab.set_sim_info_label)
-        self._simulation_engine.heatmapFinished.connect(self.heatmapFinished.emit)
+        self._simulation_engine.iterationCompleted.connect(self._sim_controller.add_sim_data)
+        self._simulation_engine.maxSoftStepUpdated.connect(self._sim_controller.set_max_soft_steps)
         self.runSimulation.connect(self._simulation_engine.run)
 
         self._sim_thread.start()
@@ -83,6 +87,9 @@ class ProjectPage(QWidget):
         self._editor = QEditor(self._state_manager)
         self._editor.switch_cursor(QStateManager.CursorState.DEFAULT)
 
+        self._sim_controller = QSimController()
+        self._sim_controller.hide()
+
         self._tool_bar = QToolBar(self._state_manager)
         self._settings_side_bar = QSettingsSideBar()
 
@@ -93,6 +100,7 @@ class ProjectPage(QWidget):
         self._secondary_layout.addWidget(self._settings_side_bar,
                                          alignment=Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignRight)
         self._secondary_layout.addStretch()
+        self._secondary_layout.addWidget(self._sim_controller, alignment=Qt.AlignmentFlag.AlignHCenter)
         self._secondary_layout.addLayout(self._lower_layout)
 
     def __initialize_title_bar(self):
@@ -134,7 +142,10 @@ class ProjectPage(QWidget):
         self._tool_bar.thresholdChanged.connect(self.thresholdChanged.emit)
         self._tool_bar.qualityChanged.connect(self.qualityChanged.emit)
         self._tool_bar.windSpeedChanged.connect(self.windSpeedChanged.emit)
-        self._tool_bar.playPressed.connect(self._start_simulation)
+        self._tool_bar.playPressed.connect(self._on_play_pressed)
+        self._tool_bar.stopPressed.connect(self._on_stop_pressed)
+
+        self._sim_controller.showPixmapRequested.connect(self._editor.display_pixmap)
 
         self._editor.vectorDrawingChanged.connect(self.vectorDrawingChanged.emit)
 
@@ -146,7 +157,7 @@ class ProjectPage(QWidget):
 
         self._title_bar.analysisPressed.connect(lambda y: self._on_analysis_pressed(y))
 
-        self.qualityChanged.connect(self._simulation_engine.set_reduction_factor)
+        self.qualityChanged.connect(self._sim_controller.set_reduction_factor)
 
         # Project saving
         self._save_shortcut = QShortcut(QKeySequence("Ctrl+S"), self)
@@ -155,25 +166,43 @@ class ProjectPage(QWidget):
         self._save_shortcut.activated.connect(self._on_save_project)
 
     @Slot()
-    def _start_simulation(self):
-        vertices = self._editor.get_vertices()
-        pixmap = self._editor.get_pixmap(self._editor.width(), self._editor.height())
+    def _on_play_pressed(self):
+        if not self._sim_thread.isRunning():
+            self._sim_thread.start()
 
+        vertices = self._editor.get_vertices()
         self._simulation_engine.vertices = vertices
-        self._simulation_engine.background = pixmap
 
         data = [self.wind_speed, [self._editor.width(), self._editor.height()]]
 
+        self._sim_controller.show()
         self.runSimulation.emit(data)
+
+        width = self.window().width()
+        height = self.window().height()
+        self.window().setFixedSize(width, height)
+
+    @Slot()
+    def _on_stop_pressed(self):
+        self._sim_controller.hide()
+
+        self._sim_thread.requestInterruption()
+        self._sim_thread.quit()
+        self._sim_thread.wait()
+
+        self._sim_controller.reset()
+        self._simulation_engine.reset()
+        self._editor.display_pixmap()
+
+        self.window().setMinimumWidth(self._minimum_window_width)
+        self.window().setMinimumHeight(self._minimum_window_height)
+        self.window().setMaximumWidth(self._maximum_window_width)
+        self.window().setMaximumHeight(self._maximum_window_height)
 
     @Slot(int)
     def _on_sim_progressed(self, progress: int):
-        print(f"Simulation progress: {progress}%")
+        # print(f"Simulation progress: {progress}%")
         self._analysis_tab.simulation_progress = progress
-
-    @Slot(str)
-    def on_heat_mp4_ready(self, path: str):
-        self._editor.show_mp4(path)
 
     def resizeEvent(self, event, /):
         """
@@ -184,6 +213,8 @@ class ProjectPage(QWidget):
         :return: None
         """
         self._save_warning.setGeometry(0, 0, self.width(), self.height())
+        self._sim_controller.canvas_height = self._editor.height()
+        self._sim_controller.canvas_width = self._editor.width()
 
     @Slot()
     def _on_save_project(self):

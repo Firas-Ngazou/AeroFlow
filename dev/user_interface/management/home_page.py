@@ -276,9 +276,3 @@ class HomePage(QWidget):
     @allocation_value.setter
     def allocation_value(self, value: QWidget):
         self._allocation_window.value = value
-
-if __name__ == "__main__":
-    app = QApplication(sys.argv)
-    window = HomePage()
-    window.show()
-    sys.exit(app.exec())

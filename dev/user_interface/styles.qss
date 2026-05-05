@@ -60,6 +60,19 @@ QPushButton[class="tool_pb"]:checked{
     background-color: #A6A6A6;
 }
 
+QPushButton[class="controller_pb"]{
+    background-color: #F5F5F5;
+    color: #1D1D1D;
+    padding-left: 15px;
+    padding-right: 15px;
+    border-radius: 12px;
+}
+QPushButton[class="controller_pb"]:hover{
+    background-color: #e0e0e0;
+}
+QPushButton[class="controller_pb"]:pressed{
+    background-color: #c0c0c0;
+}
 QPushButton[class="open_pb"]{
     background-color: #F5F5F5;
     color: #1D1D1D;
@@ -190,6 +203,12 @@ QFrame[class="primary_frame"]{
     border-radius: 26px;
 }
 
+QFrame[class="controller_frame"]{
+    background-color: #222;
+    border: 1px solid #F5F5F5;
+    border-radius: 16px;
+}
+
 QFrame[class="open_frame"]{
     background-color: #222;
     border: 1px solid #F5F5F5;
@@ -253,6 +272,33 @@ QSlider[class="settings_slider"]::sub-page:horizontal{
     border-radius: 5px;
 }
 QSlider[class="settings_slider"]::add-page:horizontal{
+    background-color: #1D1D1D;
+    border: 1px solid #F5F5F5;
+    height: 4px;
+    border-radius: 5px;
+}
+
+QSlider[class="controller_slider"]::groove:horizontal{
+    border: 1px solid #F5F5F5;
+    height: 4px;
+    background-color: #1D1D1D;
+    margin: 2px 0;
+    border-radius: 5px;
+}
+QSlider[class="controller_slider"]::handle:horizontal{
+    background-color: #F5F5F5;
+    width: 9px;
+    height: 18px;
+    margin: -7px 0;
+    border-radius: 3px;
+}
+QSlider[class="controller_slider"]::sub-page:horizontal{
+    background-color: #F5F5F5;
+    border-color: transparent;
+    height: 4px;
+    border-radius: 5px;
+}
+QSlider[class="controller_slider"]::add-page:horizontal{
     background-color: #1D1D1D;
     border: 1px solid #F5F5F5;
     height: 4px;

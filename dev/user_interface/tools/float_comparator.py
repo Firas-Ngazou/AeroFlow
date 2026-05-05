@@ -116,6 +116,6 @@ def run_doctests():
     return results
 
 
-if __name__ == "__main__":
-    # When the script is executed directly, run the embedded tests.
-    run_doctests()
+# if __name__ == "__main__":
+#     # When the script is executed directly, run the embedded tests.
+#     run_doctests()
