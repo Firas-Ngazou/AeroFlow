@@ -204,14 +204,17 @@ class PixmapGen:
                 vy = velocity_y[rounded_x, rounded_y]
                 speed = math.sqrt(vx ** 2 + vy ** 2)
 
+                if speed == 0:
+                    break
+
                 screen_x = int(scale_x * x)
                 screen_y = int(scale_y * y)
 
                 if last_x is not None and last_y is not None:
                     painter.drawLine(last_x, last_y, screen_x, screen_y)
 
-                last_x = rounded_x
-                last_y = rounded_y
+                last_x = screen_x
+                last_y = screen_y
 
                 x += (vx / speed) * step_size
                 y += (vy / speed) * step_size

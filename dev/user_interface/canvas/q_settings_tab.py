@@ -264,10 +264,3 @@ class QSettingsTab(QWidget):
 def load_styles(q_app: QApplication) -> None:
     with open("../styles.qss", "r") as file:
         q_app.setStyleSheet(file.read())
-
-if __name__ == "__main__":
-    app = QApplication(sys.argv)
-    load_styles(app)
-    window = QSettingsTab()
-    window.show()
-    sys.exit(app.exec())

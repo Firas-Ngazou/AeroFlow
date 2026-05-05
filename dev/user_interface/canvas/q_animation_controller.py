@@ -39,7 +39,7 @@ class QSimController(QWidget):
         self._max_soft_steps = 120
         self._max_hard_steps = 1000
         self._sim_data = {}
-        self._image_type = SimImageType.VELOCITY_HEAT
+        self._image_type = SimImageType.STREAM
 
         # Layout
         self._primary_frame = QFrame()

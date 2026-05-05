@@ -194,9 +194,3 @@ class QToolBar(QWidget):
     @wind_speed.setter
     def wind_speed(self, wind_speed: float):
         self._settings.wind_speed = wind_speed
-
-if __name__ == "__main__":
-    app = QApplication(sys.argv)
-    window = QToolBar()
-    window.show()
-    sys.exit(app.exec())

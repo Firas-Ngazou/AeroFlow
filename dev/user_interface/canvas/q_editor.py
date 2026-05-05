@@ -1576,9 +1576,3 @@ class QEditor(QWidget):
     def display_pixmap(self, pixmap: QPixmap | None = None):
         self._to_display = pixmap
         self.update()
-
-if __name__ == '__main__':
-    app = QApplication(sys.argv)
-    demo = QEditor(QStateManager())
-    demo.show()
-    sys.exit(app.exec())

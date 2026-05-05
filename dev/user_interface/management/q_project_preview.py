@@ -128,10 +128,3 @@ class QProjectPreview(QWidget):
 
         self._header.setText(f"{header}")
         self._description.setText(f"{description}")
-
-if __name__ == "__main__":
-    app = QApplication([])
-    window = QMainWindow()
-    project_preview = QProjectPreview(parent=window)
-    window.show()
-    app.exec()

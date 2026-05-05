@@ -249,9 +249,3 @@ class QCustomWindowFrame(FramelessWindow):
     @property
     def title_bar(self):
         return self._title_bar
-
-if __name__ == "__main__":
-    app = QApplication(sys.argv)
-    window = QCustomWindowFrame()
-    window.show()
-    app.exec()

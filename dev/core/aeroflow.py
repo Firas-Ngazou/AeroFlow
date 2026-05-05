@@ -1,19 +1,21 @@
 import os
 import sys
 
+from PySide6.QtWidgets import QApplication
+
+app = QApplication.instance()
+if not app:
+    app = QApplication(sys.argv)
+
 from PySide6.QtCore import Slot
-
-from dev.user_interface import ressources_rc
-
-from qframelesswindow import TitleBar
-
 from PySide6.QtGui import QFontDatabase, QPalette, QColor, QIcon
 from PySide6.QtWidgets import QWidget, QApplication, QHBoxLayout, QStackedWidget
 
+from dev.user_interface import ressources_rc
+from qframelesswindow import TitleBar
 from dev.user_interface.management.q_custom_window_frame import FramelessWindow, QCustomTitleBar
 from dev.user_interface.management.project_page import ProjectPage
 from dev.user_interface.management.home_page import HomePage
-
 from dev.core.project_manager import ProjectManager
 
 
@@ -239,7 +241,6 @@ class ThemeManager:
             print("'styles.qss' file was not found.")
 
 if __name__ == "__main__":
-    app = QApplication(sys.argv)
     ThemeManager(app)
     aeroflow = AeroFlow()
     sys.exit(app.exec())
