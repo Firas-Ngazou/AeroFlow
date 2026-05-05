@@ -137,11 +137,11 @@ class ProjectPage(QWidget):
 
         :return: None
         """
-        self._tool_bar.constraintChanged.connect(self.constraintChanged.emit)
-        self._tool_bar.iterationsChanged.connect(self.iterationsChanged.emit)
-        self._tool_bar.thresholdChanged.connect(self.thresholdChanged.emit)
-        self._tool_bar.qualityChanged.connect(self.qualityChanged.emit)
-        self._tool_bar.windSpeedChanged.connect(self.windSpeedChanged.emit)
+        self._settings_side_bar.constraintChanged.connect(self.constraintChanged.emit)
+        self._settings_side_bar.iterationsChanged.connect(self.iterationsChanged.emit)
+        self._settings_side_bar.thresholdChanged.connect(self.thresholdChanged.emit)
+        self._settings_side_bar.qualityChanged.connect(self.qualityChanged.emit)
+        self._settings_side_bar.windSpeedChanged.connect(self.windSpeedChanged.emit)
         self._tool_bar.playPressed.connect(self._on_play_pressed)
         self._tool_bar.stopPressed.connect(self._on_stop_pressed)
 
@@ -170,6 +170,7 @@ class ProjectPage(QWidget):
         if not self._sim_thread.isRunning():
             self._sim_thread.start()
 
+        self._title_bar.click_analysis()
         vertices = self._editor.get_vertices()
         self._simulation_engine.vertices = vertices
 
@@ -213,6 +214,8 @@ class ProjectPage(QWidget):
         :return: None
         """
         self._save_warning.setGeometry(0, 0, self.width(), self.height())
+        self._save_warning_window.move(QPoint(self.width()//2 - self._save_warning_window.width()//2,
+                                              self.height()//2 - self._save_warning_window.height()//2))
         self._sim_controller.canvas_height = self._editor.height()
         self._sim_controller.canvas_width = self._editor.width()
 
@@ -310,7 +313,7 @@ class ProjectPage(QWidget):
         :return: The constraint method as a string.
         :rtype: str
         """
-        return self._tool_bar.constraint_method
+        return self._settings_side_bar.constraint_method
     @constraint_method.setter
     def constraint_method(self, constraint: str):
         """
@@ -319,7 +322,7 @@ class ProjectPage(QWidget):
         :param constraint: The constraint method to be set.
         :type constraint: str
         """
-        self._tool_bar.constraint_method = constraint
+        self._settings_side_bar.constraint_method = constraint
 
     @property
     def threshold(self) -> int:
@@ -334,7 +337,7 @@ class ProjectPage(QWidget):
         :return: The integer value of the threshold.
         :rtype: int
         """
-        return self._tool_bar.threshold
+        return self._settings_side_bar.threshold
     @threshold.setter
     def threshold(self, threshold: int):
         """
@@ -343,7 +346,7 @@ class ProjectPage(QWidget):
         :param threshold: The new threshold value to be set for the tool bar.
         :type threshold: int
         """
-        self._tool_bar.threshold = threshold
+        self._settings_side_bar.threshold = threshold
 
     @property
     def iterations(self) -> int:
@@ -353,7 +356,7 @@ class ProjectPage(QWidget):
         :return: The number of iterations.
         :rtype: int
         """
-        return self._tool_bar.iterations
+        return self._settings_side_bar.iterations
     @iterations.setter
     def iterations(self, iterations: int):
         """
@@ -366,7 +369,7 @@ class ProjectPage(QWidget):
         :param iterations: The number of iterations to set.
         :type iterations: int
         """
-        self._tool_bar.iterations = iterations
+        self._settings_side_bar.iterations = iterations
 
     @property
     def quality(self) -> float:
@@ -376,7 +379,7 @@ class ProjectPage(QWidget):
         :return: The quality value of type float.
         :rtype: float
         """
-        return self._tool_bar.quality
+        return self._settings_side_bar.quality
     @quality.setter
     def quality(self, quality: float):
         """
@@ -385,7 +388,7 @@ class ProjectPage(QWidget):
         :param quality: The value to set as the quality. Must be a float.
         :type quality: float
         """
-        self._tool_bar.quality = quality
+        self._settings_side_bar.quality = quality
 
     @property
     def wind_speed(self) -> float:
@@ -395,7 +398,7 @@ class ProjectPage(QWidget):
         :return: Wind speed value as a floating-point number.
         :rtype: float
         """
-        return self._tool_bar.wind_speed
+        return self._settings_side_bar.wind_speed
     @wind_speed.setter
     def wind_speed(self, wind_speed: float):
         """
@@ -404,7 +407,7 @@ class ProjectPage(QWidget):
         :param wind_speed: Wind speed value to be set.
         :type wind_speed: float
         """
-        self._tool_bar.wind_speed = wind_speed
+        self._settings_side_bar.wind_speed = wind_speed
 
     @property
     def allocation(self):

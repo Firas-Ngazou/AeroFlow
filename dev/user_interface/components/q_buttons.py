@@ -118,6 +118,9 @@ class QSpecialSettingPB(QWidget):
 
         self._button.pressed.connect(lambda: self.pressed.emit(not self._button.isChecked()))
 
+    def click(self):
+        self._button.click()
+
     @property
     def is_checked(self) -> bool:
         return self._button.isChecked()

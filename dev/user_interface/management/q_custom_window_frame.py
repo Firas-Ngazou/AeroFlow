@@ -169,7 +169,6 @@ class QCustomTitleBar(TitleBar):
         self._view_menu = QViewMenu(self)
         self._file_settings_pb = QTitleBarSettingsPB("Fichier", self._file_menu)
         self._edit_settings_pb = QTitleBarSettingsPB("Édition", self._edit_menu)
-        self._view_settings_pb = QTitleBarSettingsPB("Afficher", self._view_menu)
 
         # File name
         self._file_name = QLabel()
@@ -196,13 +195,13 @@ class QCustomTitleBar(TitleBar):
         self.hBoxLayout.insertSpacing(8, 10)
         self.hBoxLayout.insertWidget(9, self._edit_settings_pb, 0, alignment=Qt.AlignmentFlag.AlignLeft)
         self.hBoxLayout.insertSpacing(10, 10)
-        self.hBoxLayout.insertWidget(11, self._view_settings_pb, 0, alignment=Qt.AlignmentFlag.AlignLeft)
-        self.hBoxLayout.insertWidget(12, QVSeperator(), 0, alignment=Qt.AlignmentFlag.AlignLeft)
-        self.hBoxLayout.insertSpacing(13, 10)
-        self.hBoxLayout.insertWidget(14, self._analysis_button, 0, alignment=Qt.AlignmentFlag.AlignCenter)
-        self.hBoxLayout.insertSpacing(15, 10)
-        self.hBoxLayout.insertWidget(16, self._history_group, 0, alignment=Qt.AlignmentFlag.AlignHCenter)
-        self.hBoxLayout.insertSpacing(17, 10)
+        # self.hBoxLayout.insertWidget(11, self._view_settings_pb, 0, alignment=Qt.AlignmentFlag.AlignLeft)
+        self.hBoxLayout.insertWidget(11, QVSeperator(), 0, alignment=Qt.AlignmentFlag.AlignLeft)
+        self.hBoxLayout.insertSpacing(12, 10)
+        self.hBoxLayout.insertWidget(13, self._analysis_button, 0, alignment=Qt.AlignmentFlag.AlignCenter)
+        self.hBoxLayout.insertSpacing(14, 10)
+        # self.hBoxLayout.insertWidget(15, self._history_group, 0, alignment=Qt.AlignmentFlag.AlignHCenter)
+        # self.hBoxLayout.insertSpacing(16, 10)
 
         # Connections
         self._file_menu.newFileRequested.connect(self.newFileRequested.emit)
@@ -214,8 +213,11 @@ class QCustomTitleBar(TitleBar):
         self._edit_menu.redoRequested.connect(self.redoRequested.emit)
         self._edit_menu.selectAllRequested.connect(self.selectAllRequested.emit)
         self._edit_menu.deleteRequested.connect(self.deleteRequested.emit)
-        self._view_menu.simulationChanged.connect(self.simulationChanged.emit)
+        # self._view_menu.simulationChanged.connect(self.simulationChanged.emit)
         self._analysis_button.pressed.connect(lambda y: self.analysisPressed.emit(y))
+
+    def click_analysis(self):
+        self._analysis_button.click()
 
     @property
     def icon(self):

@@ -95,29 +95,29 @@ class QAnalysisTab(QWidget):
         """
         super().__init__(parent)
 
-        self._progress_bar = QProgressBar()
-        self._info_label = QLabel("     Durée estimée : 00:00:00")
-        self._info_label.setFont(QFont("JetBrains Mono", 7))
+        # self._progress_bar = QProgressBar()
+        # self._info_label = QLabel("     Durée estimée : 00:00:00")
+        # self._info_label.setFont(QFont("JetBrains Mono", 7))
 
         self._primary_layout = QVBoxLayout(self)
-        self._primary_layout.addWidget(self._progress_bar, alignment=Qt.AlignmentFlag.AlignTop)
-        self._primary_layout.addWidget(self._info_label, alignment=Qt.AlignmentFlag.AlignTop)
+        # self._primary_layout.addWidget(self._progress_bar, alignment=Qt.AlignmentFlag.AlignTop)
+        # self._primary_layout.addWidget(self._info_label, alignment=Qt.AlignmentFlag.AlignTop)
 
-    @property
-    def progress(self):
-        return self._progress_bar.fill_percentage
-
-    @progress.setter
-    def progress(self, value: int):
-        self._progress_bar.fill_percentage = value
-
-    @property
-    def info_label_text(self):
-        return self._info_label.text()
-
-    @info_label_text.setter
-    def info_label_text(self, value: str):
-        self._info_label.setText(value)
+    # @property
+    # def progress(self):
+    #     return self._progress_bar.fill_percentage
+    #
+    # @progress.setter
+    # def progress(self, value: int):
+    #     self._progress_bar.fill_percentage = value
+    #
+    # @property
+    # def info_label_text(self):
+    #     return self._info_label.text()
+    #
+    # @info_label_text.setter
+    # def info_label_text(self, value: str):
+    #     self._info_label.setText(value)
 
 class QOptimizationAnalysis(QAnalysisTab):
     """
@@ -208,6 +208,12 @@ class QAnalysisWidget(QFloatingWidget):
 
         self.setMinimumWidth(600)
         self.setMinimumHeight(200)
+
+        # Progress bar
+        self._progress_bar = QProgressBar()
+        self._info_label = QLabel("  Durée estimée : 00:00:00")
+        self._info_label.setFont(QFont("JetBrains Mono", 9))
+
         self.saved_position = initial_position
 
         self._tabs = QTabWidget()
@@ -222,24 +228,26 @@ class QAnalysisWidget(QFloatingWidget):
 
         self._tabs.setFont(QFont("JetBrains Mono", 12))
 
+        self._v_box_layout.addWidget(self._progress_bar, alignment=Qt.AlignmentFlag.AlignTop)
+        self._v_box_layout.addWidget(self._info_label, alignment=Qt.AlignmentFlag.AlignTop)
         self._v_box_layout.addWidget(self._tabs)
 
     @property
     def simulation_progress(self):
-        return self._results_tab.progress
+        return self._progress_bar.fill_percentage
 
     @simulation_progress.setter
     def simulation_progress(self, value: int):
-        self._results_tab.progress = value
+        self._progress_bar.fill_percentage = value
 
     @property
     def simulation_info_label(self):
-        return self._results_tab.info_label_text
+        return self._info_label.text()
 
     @simulation_info_label.setter
     def simulation_info_label(self, value: str):
-        self._results_tab.info_label_text = value
+        self._info_label.setText(value)
 
     @Slot(str)
     def set_sim_info_label(self, value: str):
-        self._results_tab.info_label_text = value
+        self.simulation_info_label = value

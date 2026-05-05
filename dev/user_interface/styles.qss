@@ -200,7 +200,7 @@ QLineEdit[class="file_name"]{
 QFrame[class="primary_frame"]{
     background-color: #222;
     border: 1px solid #F5F5F5;
-    border-radius: 26px;
+    border-radius: 5px;
 }
 
 QFrame[class="controller_frame"]{

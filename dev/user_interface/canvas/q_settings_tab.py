@@ -3,8 +3,7 @@ import sys
 from PySide6.QtCore import Qt, Slot, Signal, QPropertyAnimation, QEasingCurve
 from PySide6.QtGui import QFont, QIcon
 from PySide6.QtWidgets import QWidget, QFrame, QHBoxLayout, QApplication, QPushButton, QVBoxLayout, QDoubleSpinBox, \
-    QLabel, QComboBox
-from numpy.core import _dtype
+    QLabel, QComboBox, QScrollArea, QGridLayout
 
 from dev.user_interface.components.q_buttons import QSettingsTabPB
 from dev.user_interface.groups.q_slider_groups import QSliderGroup, QRealSliderGroup
@@ -24,8 +23,8 @@ class QSettingsGeneralTab(QWidget):
         self._quality.single_step = 0.01
         self._quality.default_value = 1.0
 
-        high_res_warning = QLabel("   ATTENTION : Une trop haute valeur peut résulter \n"
-                                  "   en une perte de performance importante.")
+        high_res_warning = QLabel(" ATTENTION : Une trop haute valeur peut résulter \n"
+                                  " en une perte de performance importante.")
         high_res_warning.setFont(QFont("JetBrains Mono", 8))
 
         # Wind speed
@@ -36,8 +35,8 @@ class QSettingsGeneralTab(QWidget):
         # Layouts
         root_layout = QVBoxLayout(self)
         root_layout.addWidget(self._quality)
-        root_layout.addWidget(high_res_warning, alignment=Qt.AlignmentFlag.AlignTop)
-        root_layout.addSpacing(20)
+        root_layout.addWidget(high_res_warning)
+        root_layout.addSpacing(30)
         root_layout.addWidget(self._wind_speed)
         root_layout.setContentsMargins(0, 0, 0, 0)
         root_layout.addStretch()
@@ -172,10 +171,9 @@ class QSettingsSideBar(QWidget):
         self._primary_layout.addLayout(self._secondary_layout)
 
         self._collapsed_width = 25
-        self._expanded_width = 395
+        self._expanded_width = 400
 
         self._full_frame.setMaximumWidth(self._collapsed_width)
-        self._full_frame.setMinimumWidth(self._collapsed_width)
 
         self._is_collapsed = True
 
@@ -185,9 +183,10 @@ class QSettingsSideBar(QWidget):
         self._side_button = QPushButton()
         self._side_button.setIcon(self._open_icon)
         self._side_button.setProperty("class", "sidebar_pb")
-        self._side_button.setFixedSize(25, self._height - 30)
+        self._side_button.setFixedSize(25, self._height - 200)
         self._side_button_layout.setContentsMargins(2, 0, 0, 0)
-        self._side_button_layout.addWidget(self._side_button, alignment=Qt.AlignmentFlag.AlignLeft)
+        self._side_button_layout.addWidget(self._side_button,
+                                           alignment=Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
         self._side_button_layout.addWidget(self._primary_frame)
 
         # General tab
@@ -229,6 +228,11 @@ class QSettingsSideBar(QWidget):
         self._animation.finished.connect(self._on_animation_finished)
 
         self.is_collapsed = True
+
+    def resizeEvent(self, event):
+        self._height = self.window().height() - 200
+        self._side_button.setFixedHeight(self._height)
+        self._full_frame.setFixedHeight(self._height)
 
     @property
     def constraint_method(self) -> str:

@@ -149,6 +149,7 @@ class HomePage(QWidget):
 
         screen_center = QPoint(int(self.width()/2 - width/2), int(self.height()/2 - height/2))
         self._allocation_window.saved_position = screen_center
+        self._allocation_window.move(screen_center)
 
         self._allocation_window.raise_()
 

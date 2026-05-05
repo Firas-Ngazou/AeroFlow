@@ -1,17 +1,24 @@
 import os
 import sys
+from dev.user_interface import ressources_rc
 
-from PySide6.QtWidgets import QApplication
+from PySide6.QtWidgets import QApplication, QSplashScreen
+from PySide6.QtGui import Qt, QPixmap
 
 app = QApplication.instance()
 if not app:
     app = QApplication(sys.argv)
 
+splash_pixmap = QPixmap(":/res/splash_v0_2_0.png")
+splash_screen = QSplashScreen(pixmap=splash_pixmap)
+splash_screen.show()
+
+app.processEvents()
+
 from PySide6.QtCore import Slot
 from PySide6.QtGui import QFontDatabase, QPalette, QColor, QIcon
 from PySide6.QtWidgets import QWidget, QApplication, QHBoxLayout, QStackedWidget
 
-from dev.user_interface import ressources_rc
 from qframelesswindow import TitleBar
 from dev.user_interface.management.q_custom_window_frame import FramelessWindow, QCustomTitleBar
 from dev.user_interface.management.project_page import ProjectPage
@@ -37,7 +44,7 @@ class AeroFlow:
     :ivar _primary_layout: The primary layout that organizes the application UI.
     :type _primary_layout: QHBoxLayout
     """
-    def __init__(self):
+    def __init__(self, splash_screen: QSplashScreen | None = None):
         self._window = FramelessWindow()
         self._window.resize(1920, 1080)
 
@@ -77,6 +84,9 @@ class AeroFlow:
         self.__show_home_page()
         self._window.move(800, 200)
         self._window.show()
+
+        if splash_screen:
+            splash_screen.finish(self._window)
 
     def __show_home_page(self):
         """
@@ -242,5 +252,5 @@ class ThemeManager:
 
 if __name__ == "__main__":
     ThemeManager(app)
-    aeroflow = AeroFlow()
+    aeroflow = AeroFlow(splash_screen)
     sys.exit(app.exec())

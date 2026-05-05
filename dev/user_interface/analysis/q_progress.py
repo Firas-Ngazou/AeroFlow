@@ -120,7 +120,7 @@ class QProgressBar(QWidget):
         """
         super().__init__(parent)
 
-        self._bar_length = 450
+        self._bar_length = 440
         self._fill_percentage = 0
         self._min_filling = 6 # Under that, filling's edges will be squared
 
@@ -136,10 +136,10 @@ class QProgressBar(QWidget):
         background_frame.setFixedHeight(30)
         background_frame.setProperty("class", "light_analysis_frame")
 
-        bar_frame = QFrame()
-        bar_frame.setFixedWidth(self._bar_length)
-        bar_frame.setFixedHeight(30)
-        bar_frame.setProperty("class", "dark_analysis_frame")
+        self._bar_frame = QFrame()
+        self._bar_frame.setFixedWidth(self._bar_length)
+        self._bar_frame.setFixedHeight(30)
+        self._bar_frame.setProperty("class", "dark_analysis_frame")
 
         # The filling
         self._fill_frame = QFrame()
@@ -147,7 +147,7 @@ class QProgressBar(QWidget):
         self._fill_frame.setFixedHeight(24)
         self._fill_frame.setStyleSheet(self._idle_qss)
 
-        bar_layout = QHBoxLayout(bar_frame)
+        bar_layout = QHBoxLayout(self._bar_frame)
         bar_layout.addWidget(self._fill_frame, alignment=Qt.AlignmentFlag.AlignLeft)
         bar_layout.setContentsMargins(2, 2, 2, 2)
 
@@ -162,7 +162,7 @@ class QProgressBar(QWidget):
         self._primary_layout.addWidget(status_label)
         self._primary_layout.addSpacing(10)
         self._primary_layout.addWidget(self._progress_point)
-        self._primary_layout.addWidget(bar_frame)
+        self._primary_layout.addWidget(self._bar_frame)
         self._primary_layout.setContentsMargins(0, 0, 0, 0)
 
         root_layout = QVBoxLayout(self)

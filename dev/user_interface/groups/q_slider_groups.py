@@ -60,7 +60,7 @@ class QAbstractSliderGroup(QWidget):
 
         # Title
         self._title = QLabel(text)
-        self._title.setFont(QFont("JetBrains Mono", 11))
+        self._title.setFont(QFont("JetBrains Mono", 10))
 
         # Reset button
         self._reset_button = QResetPB()
