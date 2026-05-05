@@ -37,6 +37,11 @@ class SimulationEngine(QObject):
 
         self._constants = D2Q9Constants()
 
+        self._current_drag_force: float = 0.0
+        self._current_lift_force: float = 0.0
+        self._u_ref: float = 0.0
+        self._rho_ref: float = 1.0
+
     def run(self, data: list[float | int]):
         initial_velocity = data[0]
         initial_res = data[1]
@@ -60,6 +65,9 @@ class SimulationEngine(QObject):
         self._grid = LatticeGrid(self._resolution_x, self._resolution_y)
         self._grid.macro_velocity_x[:, :] = initial_velocity
         self._grid.macro_density[:, :] = 1.0
+
+        self._u_ref = initial_velocity
+        self._rho_ref = 1.0
 
         f_eq = self._get_f_eq()
 
@@ -94,10 +102,33 @@ class SimulationEngine(QObject):
         return estimation
 
     def calculate_drag_coef(self):
-        ...
+        # C_D = F_D / ((1/2) * rho_ref * U^2 * D)
+        d = self._coef_initial_checks()
+        if d == 0:
+            return 0.0
+
+        coef = self._current_drag_force/(0.5 * self._rho_ref * (self._u_ref ** 2) * d)
+        return coef
 
     def calculate_lift_coef(self):
-        ...
+        # C_L = F_L / ((1/2) * rho_ref * U^2 * D)
+        d = self._coef_initial_checks()
+        if d == 0:
+            return 0.0
+
+        coef = self._current_lift_force/(0.5 * self._rho_ref * (self._u_ref ** 2) * d)
+        return coef
+
+    def _coef_initial_checks(self):
+        mask_y = np.where(self._obstacle.binary_mask)[1]
+        if len(mask_y) > 0:
+            d = int(np.max(mask_y)) - int(np.min(mask_y) + 1)
+        else:
+            return 0.0
+        if self._u_ref == 0:
+            return 0.0
+
+        return d
 
     def __apply_streaming(self):
         new_f = np.zeros_like(self._grid.distributions)
@@ -117,6 +148,18 @@ class SimulationEngine(QObject):
 
     def __apply_boundaries(self):
         temp_distributions = np.copy(self._grid.distributions)
+
+        momentum_x_before = 0.0
+        momentum_y_before = 0.0
+
+        for i in range(9):
+            f_in = temp_distributions[self._obstacle.binary_mask, i]
+            momentum_x_before += np.sum(f_in*self._constants.E_X[i])
+            momentum_y_before += np.sum(f_in*self._constants.E_Y[i])
+
+        self._current_drag_force = 2 * momentum_x_before
+        self._current_lift_force = 2 * momentum_y_before
+
         for i in range(9):
             opposite = self._constants.OPPOSITES[i]
             # on bouge les particules dans le coter opposee
