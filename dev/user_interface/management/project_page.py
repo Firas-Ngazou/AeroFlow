@@ -65,6 +65,8 @@ class ProjectPage(QWidget):
         self._simulation_engine.statusMessageUpdated.connect(self._analysis_tab.set_sim_info_label)
         self._simulation_engine.iterationCompleted.connect(self._sim_controller.add_sim_data)
         self._simulation_engine.maxSoftStepUpdated.connect(self._sim_controller.set_max_soft_steps)
+        self._simulation_engine.dragCoefUpdated.connect(lambda y: self._analysis_tab.set_drag_coef_value(f"{y:.2f}"))
+        self._simulation_engine.liftCoefUpdated.connect(lambda y: self._analysis_tab.set_lift_coef_value(f"{y:.2f}"))
         self.runSimulation.connect(self._simulation_engine.run)
 
         self._sim_thread.start()
@@ -170,7 +172,9 @@ class ProjectPage(QWidget):
         if not self._sim_thread.isRunning():
             self._sim_thread.start()
 
-        self._title_bar.click_analysis()
+        if not self._title_bar.is_analysis_checked:
+            self._title_bar.click_analysis()
+
         vertices = self._editor.get_vertices()
         self._simulation_engine.vertices = vertices
 

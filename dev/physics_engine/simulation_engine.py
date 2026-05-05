@@ -14,6 +14,8 @@ class SimulationEngine(QObject):
     statusMessageUpdated = Signal(str)
     iterationCompleted = Signal(list)
     maxSoftStepUpdated = Signal(int)
+    dragCoefUpdated = Signal(float)
+    liftCoefUpdated = Signal(float)
 
     def __init__(self, parent: QObject | None = None):
         super().__init__(parent)
@@ -70,8 +72,14 @@ class SimulationEngine(QObject):
         self._rho_ref = 1.0
 
         f_eq = self._get_f_eq()
-
         self._grid.distributions = f_eq
+
+        for i in range(9):
+            self._grid.distributions[self._obstacle.binary_mask, i] = 0.0
+
+        self._grid.macro_velocity_x[self._obstacle.binary_mask] = 0.0
+        self._grid.macro_velocity_y[self._obstacle.binary_mask] = 0.0
+        self._grid.macro_density[self._obstacle.binary_mask] = 0.0
 
     def _execute_time_step(self):
         for _ in range(self._max_step):
@@ -101,34 +109,34 @@ class SimulationEngine(QObject):
         self.maxSoftStepUpdated.emit(estimation)
         return estimation
 
-    def calculate_drag_coef(self):
+    def _calculate_drag_coef(self):
         # C_D = F_D / ((1/2) * rho_ref * U^2 * D)
-        d = self._coef_initial_checks()
-        if d == 0:
+        area = self._coef_initial_checks()
+        if area == 0:
             return 0.0
 
-        coef = self._current_drag_force/(0.5 * self._rho_ref * (self._u_ref ** 2) * d)
+        coef = self._current_drag_force/(0.5 * self._rho_ref * (self._u_ref ** 2) * area)
         return coef
 
-    def calculate_lift_coef(self):
+    def _calculate_lift_coef(self):
         # C_L = F_L / ((1/2) * rho_ref * U^2 * D)
-        d = self._coef_initial_checks()
-        if d == 0:
+        area = self._coef_initial_checks()
+        if area == 0:
             return 0.0
 
-        coef = self._current_lift_force/(0.5 * self._rho_ref * (self._u_ref ** 2) * d)
+        coef = self._current_lift_force/(0.5 * self._rho_ref * (self._u_ref ** 2) * area)
         return coef
 
     def _coef_initial_checks(self):
         mask_y = np.where(self._obstacle.binary_mask)[1]
         if len(mask_y) > 0:
-            d = int(np.max(mask_y)) - int(np.min(mask_y) + 1)
+            area = int(np.max(mask_y)) - int(np.min(mask_y) + 1)
         else:
             return 0.0
         if self._u_ref == 0:
             return 0.0
 
-        return d
+        return area
 
     def __apply_streaming(self):
         new_f = np.zeros_like(self._grid.distributions)
@@ -143,7 +151,12 @@ class SimulationEngine(QObject):
         f_eq = self._get_f_eq()
 
         # application du facteur de relaxation
-        self._grid.distributions += (1/self._tau)*(f_eq - self._grid.distributions)
+        relaxation = (1/self._tau)*(f_eq - self._grid.distributions)
+
+        for i in range(9):
+            relaxation[self._obstacle.binary_mask, i] = 0.0
+
+        self._grid.distributions += relaxation
 
 
     def __apply_boundaries(self):
@@ -193,8 +206,13 @@ class SimulationEngine(QObject):
 
         stacked_data = np.stack((macro_velocity_x, macro_velocity_y, macro_density, binary_mask), axis=-1)
 
+        drag_coef = self._calculate_drag_coef()
+        lift_coef = self._calculate_lift_coef()
         data = [stacked_data, self._current_step]
+
         self.iterationCompleted.emit(data)
+        self.dragCoefUpdated.emit(drag_coef)
+        self.liftCoefUpdated.emit(lift_coef)
 
     def __update_status_message(self):
         self._frame_end_time = datetime.now()
@@ -215,6 +233,8 @@ class SimulationEngine(QObject):
         self._estimate_time = 0
         self.progressUpdated.emit(0)
         self.statusMessageUpdated.emit("Temps restant: 00:00:00")
+        self.dragCoefUpdated.emit(0.0)
+        self.liftCoefUpdated.emit(0.0)
 
     def set_reduction_factor(self, factor: float):
         self._obstacle.reduction_factor = factor

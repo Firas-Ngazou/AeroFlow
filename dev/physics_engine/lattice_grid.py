@@ -27,8 +27,12 @@ class LatticeGrid:
 
     def update_macroscopic(self):
         self._macro_density = np.sum(self._distributions, axis=2)
-        self._macro_velocity_x = np.sum(self._distributions*self._constants.E_X, axis=2)/self.macro_density
-        self._macro_velocity_y = np.sum(self._distributions*self._constants.E_Y, axis=2)/self.macro_density
+        safe_density = np.where(self._macro_density == 0, 1.0, self._macro_density)
+        self._macro_velocity_x = np.sum(self._distributions*self._constants.E_X, axis=2)/safe_density
+        self._macro_velocity_y = np.sum(self._distributions*self._constants.E_Y, axis=2)/safe_density
+
+        self.macro_velocity_x[self._macro_density == 0] = 0.0
+        self.macro_velocity_y[self._macro_density == 0] = 0.0
 
     @property
     def distributions(self):

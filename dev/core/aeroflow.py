@@ -3,7 +3,7 @@ import sys
 from dev.user_interface import ressources_rc
 
 from PySide6.QtWidgets import QApplication, QSplashScreen
-from PySide6.QtGui import Qt, QPixmap
+from PySide6.QtGui import QPixmap
 
 app = QApplication.instance()
 if not app:

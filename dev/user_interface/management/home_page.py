@@ -68,7 +68,7 @@ class HomePage(QWidget):
         self._allocation.setStyleSheet("""#home_page_allocation {background-color: rgba(245, 245, 245, 30);}""")
         self._allocation_window = QFloatingSlider("Allocation de mémoire vive", self._allocation)
         self._allocation_window.minimum = 1500
-        self._allocation_window.maximum = 14000
+        self._allocation_window.maximum = 30000
         self._allocation_window.default_value = 2000
         self._allocation.hide()
 

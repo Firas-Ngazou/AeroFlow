@@ -71,6 +71,14 @@ class QResultField(QWidget):
         root_layout.addWidget(primary_field_frame)
         root_layout.setContentsMargins(0, 0, 0, 0)
 
+    @property
+    def result_value(self):
+        return self._result_value.text()
+
+    @result_value.setter
+    def result_value(self, value: str):
+        self._result_value.setText(value)
+
 class QAnalysisTab(QWidget):
     """
     Provides a tab widget for analysis with a progress bar and informational label.
@@ -184,6 +192,22 @@ class QResultAnalysis(QAnalysisTab):
         self._primary_layout.addLayout(self._secondary_layout)
         self._primary_layout.addStretch()
 
+    @property
+    def drag_coef_field_value(self):
+        return self._drag_coef_field.result_value
+
+    @drag_coef_field_value.setter
+    def drag_coef_field_value(self, value: str):
+        self._drag_coef_field.result_value = value
+
+    @property
+    def lift_coef_field_value(self):
+        return self._lift_coef_field.result_value
+
+    @lift_coef_field_value.setter
+    def lift_coef_field_value(self, value: str):
+        self._lift_coef_field.result_value = value
+
 class QAnalysisWidget(QFloatingWidget):
     """
     Provides a specialized widget for analysis purposes, particularly optimization and results analysis.
@@ -251,3 +275,27 @@ class QAnalysisWidget(QFloatingWidget):
     @Slot(str)
     def set_sim_info_label(self, value: str):
         self.simulation_info_label = value
+
+    @property
+    def drag_coef_value(self):
+        return self._results_tab.drag_coef_field_value
+
+    @drag_coef_value.setter
+    def drag_coef_value(self, value: str):
+        self._results_tab.drag_coef_field_value = value
+
+    @Slot(str)
+    def set_drag_coef_value(self, value: str):
+        self.drag_coef_value = value
+
+    @property
+    def lift_coef_value(self):
+        return self._results_tab.lift_coef_field_value
+
+    @lift_coef_value.setter
+    def lift_coef_value(self, value: str):
+        self._results_tab.lift_coef_field_value = value
+
+    @Slot(str)
+    def set_lift_coef_value(self, value: str):
+        self.lift_coef_value = value
