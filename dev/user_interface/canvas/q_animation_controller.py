@@ -1,3 +1,4 @@
+from datetime import datetime
 from enum import Enum
 import h5py
 import threading
@@ -28,7 +29,7 @@ class QSimController(QWidget):
         super().__init__(parent)
 
         # Setup
-        self.setFixedSize(300, 40)
+        self.setFixedSize(380, 40)
         self._timer = QTimer(self)
         self._fps = 30
         self._canvas_height = 1080
@@ -39,7 +40,7 @@ class QSimController(QWidget):
         self._max_soft_steps = 120
         self._max_hard_steps = 1000
         self._sim_data = {}
-        self._image_type = SimImageType.STREAM
+        self._image_type = SimImageType.VELOCITY_HEAT
 
         # Layout
         self._primary_frame = QFrame()
@@ -64,19 +65,26 @@ class QSimController(QWidget):
         self._slider.setMaximum(self._max_hard_steps)
         self._slider.setMinimum(1)
 
-        # Label
+        # Time label
         self._label = QLabel()
         font = QFont("JetBrains Mono", 10)
         self._label.setFont(font)
-        self._label.setProperty("class", "controller_label")
         self._label.setFixedSize(50, 16)
         self._label.setText("00:00")
         self._label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        # FPS label
+        self._fps_label = QLabel()
+        self._fps_label.setFont(font)
+        self._fps_label.setFixedSize(60, 16)
+        self._fps_label.setText("30 FPS")
+        self._fps_label.setAlignment(Qt.AlignmentFlag.AlignRight)
 
         self._primary_layout.addWidget(self._control_button, alignment=Qt.AlignmentFlag.AlignLeft)
         self._primary_layout.addWidget(self._slider, alignment=Qt.AlignmentFlag.AlignHCenter)
         self._primary_layout.addStretch()
         self._primary_layout.addWidget(self._label, alignment=Qt.AlignmentFlag.AlignRight)
+        self._primary_layout.addWidget(self._fps_label, alignment=Qt.AlignmentFlag.AlignRight)
         self._primary_layout.setSpacing(10)
 
         root_layout = QVBoxLayout(self)
@@ -171,6 +179,7 @@ class QSimController(QWidget):
 
     @Slot()
     def _send_sim_pixmap(self):
+        signal_start = datetime.now()
         step = self._slider.value()
         if step not in self._sim_data: return
 
@@ -202,6 +211,11 @@ class QSimController(QWidget):
                 raise ValueError("Unknown image type")
 
         self.showPixmapRequested.emit(pixmap)
+
+        if not self._slider.value() == self._slider.maximum() and self._control_button.isChecked():
+            signal_end = datetime.now()
+            delta_time_s = (signal_end - signal_start).total_seconds()
+            self._fps_label.setText(f"{(1/delta_time_s):.0f} FPS")
 
     def _initiate_cache(self, width: int, height: int):
         with self._lock:
