@@ -12,8 +12,6 @@ QPushButton[class="reset_pb"]:pressed{
     background-color: #AEE7FFFF;
 }
 
-
-
 QPushButton[class="settings_tab_pb"]{
     background-color: #F5F5F5;
     color: #1D1D1D;
@@ -31,7 +29,19 @@ QPushButton[class="settings_tab_pb"]:checked{
     background-color: #A6A6A6;
 }
 
-
+QPushButton[class="sidebar_pb"]{
+    background-color: #F5F5F5;
+    color: #1D1D1D;
+    padding-left: 15px;
+    padding-right: 15px;
+    border-radius: 12px;
+}
+QPushButton[class="sidebar_pb"]:hover{
+    background-color: #e0e0e0;
+}
+QPushButton[class="sidebar_pb"]:pressed{
+    background-color: #c0c0c0;
+}
 
 QPushButton[class="tool_pb"]{
     background-color: #F5F5F5;
@@ -50,7 +60,35 @@ QPushButton[class="tool_pb"]:checked{
     background-color: #A6A6A6;
 }
 
-
+QPushButton[class="controller_pb"]{
+    background-color: #F5F5F5;
+    color: #1D1D1D;
+    padding-left: 15px;
+    padding-right: 15px;
+    border-radius: 12px;
+}
+QPushButton[class="controller_pb"]:hover{
+    background-color: #e0e0e0;
+}
+QPushButton[class="controller_pb"]:pressed{
+    background-color: #c0c0c0;
+}
+QPushButton[class="open_pb"]{
+    background-color: #F5F5F5;
+    color: #1D1D1D;
+    padding-left: 10px;
+    padding-right: 10px;
+    border-radius: 15px;
+}
+QPushButton[class="open_pb"]:hover{
+    background-color: #e0e0e0;
+}
+QPushButton[class="open_pb"]:pressed{
+    background-color: #c0c0c0;
+}
+QPushButton[class="open_pb"]:checked{
+    background-color: #A6A6A6;
+}
 
 QPushButton[class="title_bar_pb"]{
     background-color: #F5F5F5;
@@ -69,8 +107,6 @@ QPushButton[class="title_bar_pb"]:checked{
     background-color: #A6A6A6;
 }
 
-
-
 QPushButton[class="play_pb"]{
     background-color: #92B28A;
     color: #1D1D1D;
@@ -87,8 +123,6 @@ QPushButton[class="play_pb"]:pressed{
 QPushButton[class="play_pb"]:checked{
     background-color: #BA7475;
 }
-
-
 
 QPushButton[class="pause_pb"]{
     background-color: #FFCACB;
@@ -107,8 +141,6 @@ QPushButton[class="pause_pb"]:checked{
     background-color: #92B28A;
 }
 
-
-
 QPushButton[class="apply_pb"]{
     background-color: #F5F5F5;
     color: #1D1D1D;
@@ -122,7 +154,6 @@ QPushButton[class="apply_pb"]:hover{
 QPushButton[class="apply_pb"]:pressed{
     background-color: #c0c0c0;
 }
-
 
 QPushButton[class="cancel_pb"]{
     background-color: transparent;
@@ -138,8 +169,6 @@ QPushButton[class="cancel_pb"]:hover{
 QPushButton[class="cancel_pb"]:pressed{
     background-color: #4a4a4a;
 }
-
-
 
 QPushButton[class="titlebar_settings_pb"]{
     background-color: transparent;
@@ -171,7 +200,19 @@ QLineEdit[class="file_name"]{
 QFrame[class="primary_frame"]{
     background-color: #222;
     border: 1px solid #F5F5F5;
-    border-radius: 26px;
+    border-radius: 5px;
+}
+
+QFrame[class="controller_frame"]{
+    background-color: #222;
+    border: 1px solid #F5F5F5;
+    border-radius: 16px;
+}
+
+QFrame[class="open_frame"]{
+    background-color: #222;
+    border: 1px solid #F5F5F5;
+    border-radius: 25px;
 }
 
 QFrame[class="constraint_frame"]{
@@ -195,7 +236,6 @@ QFrame[class="light_analysis_frame"]{
 QFrame[class="dark_text"]{
     color: #1D1D1D;
 }
-
 
 QFrame[class="dark_analysis_frame"]{
     background-color: #1D1D1D;
@@ -232,6 +272,33 @@ QSlider[class="settings_slider"]::sub-page:horizontal{
     border-radius: 5px;
 }
 QSlider[class="settings_slider"]::add-page:horizontal{
+    background-color: #1D1D1D;
+    border: 1px solid #F5F5F5;
+    height: 4px;
+    border-radius: 5px;
+}
+
+QSlider[class="controller_slider"]::groove:horizontal{
+    border: 1px solid #F5F5F5;
+    height: 4px;
+    background-color: #1D1D1D;
+    margin: 2px 0;
+    border-radius: 5px;
+}
+QSlider[class="controller_slider"]::handle:horizontal{
+    background-color: #F5F5F5;
+    width: 9px;
+    height: 18px;
+    margin: -7px 0;
+    border-radius: 3px;
+}
+QSlider[class="controller_slider"]::sub-page:horizontal{
+    background-color: #F5F5F5;
+    border-color: transparent;
+    height: 4px;
+    border-radius: 5px;
+}
+QSlider[class="controller_slider"]::add-page:horizontal{
     background-color: #1D1D1D;
     border: 1px solid #F5F5F5;
     height: 4px;

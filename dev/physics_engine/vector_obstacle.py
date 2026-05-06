@@ -1,12 +1,15 @@
 import numpy as np
+from scipy.ndimage import binary_erosion
 
 class VectorObstacle:
-    def __init__(self, initial_res: int):
+    def __init__(self, initial_res=None):
+        if initial_res is None:
+            initial_res = [1920, 1080]
         self._vertices: np.ndarray = np.array([])
 
         self._default_grid: np.ndarray | None = None
         self._initial_res = initial_res
-        self._reduction_factor = 1.0
+        self._reduction_factor = 0.2
 
         self._binary_mask: np.ndarray | None = None
         self._calculated_area: float = 0
@@ -17,25 +20,36 @@ class VectorObstacle:
     def _update_binary_mask(self):
         if self._default_grid is None: return
 
-        # Get the target size with respect to a 16:9 ratio
-        target_width = int(self._reduction_factor*(16/9)*self._initial_res)
-        target_height = int(self._reduction_factor*self._initial_res)
+        eligible_factors = [1.0, 0.5, 0.25, 0.2, 0.125]
+        new_factor = min(eligible_factors, key=lambda x: abs(x - self._reduction_factor))
+
+        target_width = int(new_factor*self._initial_res[0])
+        target_height = int(new_factor*self._initial_res[1])
 
         # Calculate the actual factor
-        factor = int(1/self._reduction_factor)
+        factor = int(1/new_factor)
 
         # Clean the grid to only keep the relevant part (removes the + 1 added under _update_default_grid)
         clean_height = target_height*factor
         clean_width = target_width*factor
-        clean_grid = self._default_grid[:clean_height, :clean_width]
+        clean_grid = self._default_grid[:clean_width, :clean_height]
 
         # Downsampling
-        self._binary_mask = clean_grid.reshape(target_height, factor, target_width, factor).any(axis=(1, 3))
+        downsampled = clean_grid.reshape(target_width, factor, target_height, factor).any(axis=(1, 3))
+        trim_amount = 3
+        self._binary_mask = binary_erosion(downsampled, iterations=trim_amount)
 
     def _update_default_grid(self):
-        self._default_grid = np.zeros((self._initial_res + 1, (int((16/9)*self._initial_res)) + 1), dtype=bool)
+        width = self._initial_res[0]
+        height = self._initial_res[1]
+
+        self._default_grid = np.zeros((width, height), dtype=bool)
         if self._vertices.size > 0:
-            self._default_grid[self._vertices[:, 0], self._vertices[:, 1]] = True
+            x_coords = self._vertices[:, 0]
+            y_coords = self._vertices[:, 1]
+
+            valid = (x_coords >= 0) & (x_coords < width) & (y_coords >= 0) & (y_coords < height)
+            self._default_grid[x_coords[valid], y_coords[valid]] = True
 
         self._update_binary_mask()
 
@@ -46,9 +60,6 @@ class VectorObstacle:
     def vertices(self, new_vertices: np.ndarray):
         self._vertices = new_vertices
         self._update_default_grid()
-
-    def set_vertices(self, vertices: np.ndarray):
-        self.vertices = vertices
 
     @property
     def binary_mask(self) -> np.ndarray:
@@ -66,5 +77,11 @@ class VectorObstacle:
         self._reduction_factor = new_factor
         self._update_binary_mask()
 
-    def set_reduction_factor(self, factor: float):
-        self.reduction_factor = factor
+    @property
+    def initial_res(self) -> list[int]:
+        return self._initial_res
+
+    @initial_res.setter
+    def initial_res(self, new_res: list[int] | tuple[int, int]):
+        self._initial_res = new_res
+        self._update_default_grid()

@@ -363,10 +363,6 @@ def main() -> None:
     test_widget.show()
     sys.exit(app.exec())
 
-
-if __name__ == "__main__":
-    main()
-
 # Notes:
 # - [1] The `# type: ignore[no-redef]` comments are used to suppress mypy
 #       warnings about method redefinition when overriding properties. This

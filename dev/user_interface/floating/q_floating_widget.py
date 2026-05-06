@@ -51,12 +51,6 @@ class QFloatingWidget(QFrame):
             self._old_pos = None
             self._saved_position = self.pos()
 
-    def showEvent(self, event):
-        self.delayed_correct_position()
-
-    def delayed_correct_position(self):
-        QTimer.singleShot(3, self._correct_position)
-
     def _correct_position(self):
         self.move(self._saved_position)
 
@@ -66,4 +60,3 @@ class QFloatingWidget(QFrame):
     @saved_position.setter
     def saved_position(self, new_pos: QPoint):
         self._saved_position = new_pos
-        self.delayed_correct_position()

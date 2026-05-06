@@ -178,10 +178,3 @@ class QFloatingSlider(QFloatingContent):
     @default_value.setter
     def default_value(self, value):
         self._slider_group.default_value = value
-
-if __name__ == "__main__":
-    app = QApplication(sys.argv)
-    window = QMainWindow()
-    main = QFloatingSlider("Allocation", window)
-    window.show()
-    sys.exit(app.exec())

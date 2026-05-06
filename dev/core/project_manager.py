@@ -1,10 +1,13 @@
+import glob
 import json
+import cv2
 import os
 from enum import Enum
 from pathlib import Path
 
-from PySide6.QtCore import Slot, QObject
-from PySide6.QtWidgets import QFileDialog
+from PySide6.QtCore import Slot, QObject, Signal
+from PySide6.QtGui import QPixmap
+from PySide6.QtWidgets import QFileDialog, QLabel
 
 from dev.user_interface.management.home_page import HomePage
 from dev.user_interface.management.project_page import ProjectPage
@@ -46,6 +49,7 @@ class ProjectManager(QObject):
     :ivar _window: The main application window that contains the project.
     :type _window: FramelessWindow
     """
+
     def __init__(self, window: FramelessWindow, parent: QObject | None = None):
         super().__init__(parent)
 
@@ -68,6 +72,9 @@ class ProjectManager(QObject):
         base_path = os.path.dirname(os.path.abspath(__file__))
         ini_path = os.path.join(base_path, "../../aeroflow.ini")
         json_template_path = os.path.join(base_path, "../template.json")
+
+        self._tmp_heatmap_path = os.path.join(base_path, "../../tmp_sim_data/tmp_heatmaps/")
+        self._tmp_stream_path = os.path.join(base_path, "../../tmp_sim_data/tmp_streams/")
 
         # load paths
         if os.path.exists(ini_path):
@@ -341,7 +348,6 @@ class ProjectManager(QObject):
             category. The value can be of type float or int.
         :return: None
         """
-        print(f"Saving {category} {parameter} to {value:.2f}")
         self._ini_config[category][parameter] = str(f"{value}")
         with open(self._ini_path, 'w') as configfile:
             self._ini_config.write(configfile)
@@ -362,8 +368,6 @@ class ProjectManager(QObject):
         :type value: str
         :return: None
         """
-        print(f"Saving {category} {parameter} to {value}")
-
         paths = self._ini_config[category].values()
         if value in paths: return
         self._ini_config[category][parameter] = value
@@ -388,12 +392,14 @@ class ProjectManager(QObject):
         """
         self._ini_config.read(self._ini_path)
 
+        allocation = self._ini_config.getint("General", "Memory_allocation")
         quality = self._ini_config.getfloat("Simulation", "Quality")
         wind_speed = self._ini_config.getfloat("Simulation", "Wind_speed")
         constraint_method = self._ini_config.get("Optimization", "Constraint_method")
         iterations = self._ini_config.getint("Optimization", "Iterations")
         threshold = self._ini_config.getint("Optimization", "Constraint_threshold")
 
+        self._current_project.allocation = allocation
         self._current_project.quality = quality
         self._current_project.wind_speed = wind_speed
         self._current_project.constraint_method = constraint_method
@@ -417,6 +423,65 @@ class ProjectManager(QObject):
                 print(f"Project path {path} does not exist.")
                 continue
             self._home_page.add_project(path)
+
+    @Slot(list)
+    def _on_heatmap_frame_finished(self, data: list):
+        frame = data[0]
+        current_frame = data[1]
+        self._save_png("heatmap", frame, current_frame)
+
+    @Slot(list)
+    def _on_stream_frame_finished(self, data: list):
+        ...
+
+    def _save_png(self, type: str, frame: QPixmap, current_frame: int):
+        formatted_name = self._project_title_bar.file_name().split(".")[0]
+
+        if type == "heatmap":
+            save_path = os.path.join(self._tmp_heatmap_path, f"tmp_heatmap_{current_frame}_{formatted_name}.png")
+
+        elif type == "stream":
+            save_path = os.path.join(self._tmp_stream_path, f"tmp_stream_{current_frame}_{formatted_name}.png")
+
+        else:
+            raise ValueError(f"Invalid type: {type}")
+
+        frame.save(save_path, "PNG")
+
+    @Slot()
+    def _on_heatmap_finished(self):
+        name = "tmp_heatmap.mp4"
+        path = os.path.join(self._tmp_heatmap_path, name)
+        fps = 30
+
+        self._mp4_from_png_dir("heatmap", name, fps)
+
+    def _mp4_from_png_dir(self, type: str, name: str, fps: int):
+        if type == "heatmap":
+            dir_path = self._tmp_heatmap_path
+            images = [file for file in os.listdir(dir_path) if file.endswith(".png")]
+            images.sort(key=lambda x: int(x.split("_")[2]))
+
+            frame = cv2.imread(os.path.join(dir_path, images[0]))
+            height = frame.shape[0]
+            width = frame.shape[1]
+
+            writer = cv2.VideoWriter.fourcc(*"mp4v")
+            output_path = os.path.join(dir_path, name)
+            video = cv2.VideoWriter(output_path, writer, fps, (width, height))
+
+            for image in images:
+                path = os.path.join(dir_path, image)
+                data = cv2.imread(path)
+
+                if data is not None:
+                    video.write(data)
+
+            video.release()
+
+            for image in images:
+                file_path = os.path.join(dir_path, image)
+                os.remove(file_path)
 
     @property
     def home_page(self) -> HomePage | None:

@@ -1,9 +1,9 @@
 import sys
 
-from PySide6.QtCore import Qt, Slot, Signal
-from PySide6.QtGui import QFont
+from PySide6.QtCore import Qt, Slot, Signal, QPropertyAnimation, QEasingCurve
+from PySide6.QtGui import QFont, QIcon
 from PySide6.QtWidgets import QWidget, QFrame, QHBoxLayout, QApplication, QPushButton, QVBoxLayout, QDoubleSpinBox, \
-    QLabel, QComboBox
+    QLabel, QComboBox, QScrollArea, QGridLayout
 
 from dev.user_interface.components.q_buttons import QSettingsTabPB
 from dev.user_interface.groups.q_slider_groups import QSliderGroup, QRealSliderGroup
@@ -23,8 +23,8 @@ class QSettingsGeneralTab(QWidget):
         self._quality.single_step = 0.01
         self._quality.default_value = 1.0
 
-        high_res_warning = QLabel("   ATTENTION : Une trop haute valeur peut résulter \n"
-                                  "   en une perte de performance importante.")
+        high_res_warning = QLabel(" ATTENTION : Une trop haute valeur peut résulter \n"
+                                  " en une perte de performance importante.")
         high_res_warning.setFont(QFont("JetBrains Mono", 8))
 
         # Wind speed
@@ -35,8 +35,8 @@ class QSettingsGeneralTab(QWidget):
         # Layouts
         root_layout = QVBoxLayout(self)
         root_layout.addWidget(self._quality)
-        root_layout.addWidget(high_res_warning, alignment=Qt.AlignmentFlag.AlignTop)
-        root_layout.addSpacing(20)
+        root_layout.addWidget(high_res_warning)
+        root_layout.addSpacing(30)
         root_layout.addWidget(self._wind_speed)
         root_layout.setContentsMargins(0, 0, 0, 0)
         root_layout.addStretch()
@@ -141,7 +141,7 @@ class QSettingsOptimizationTab(QWidget):
     def iterations(self, iterations: int):
         self._iterations_setting.set_value(iterations)
 
-class QSettingsTab(QWidget):
+class QSettingsSideBar(QWidget):
     constraintChanged = Signal(str)
     iterationsChanged = Signal(int)
     thresholdChanged = Signal(int)
@@ -153,34 +153,61 @@ class QSettingsTab(QWidget):
 
         # Setup
         self._current_tab = 0
-        primary_frame = QFrame()
-        primary_frame.setProperty("class", "primary_frame")
-        primary_frame.setFixedSize(395, 280)
-        primary_layout = QVBoxLayout(primary_frame)
-        primary_layout.setContentsMargins(10, 10, 10, 5)
-        secondary_layout = QHBoxLayout()
-        secondary_layout.setContentsMargins(10, 5, 10, 5)
-        primary_layout.addLayout(secondary_layout)
+
+        self._height = 900
+        self._primary_frame = QFrame()
+        self._primary_frame.setProperty("class", "primary_frame")
+
+        self._full_frame = QFrame()
+        self._full_frame.setFixedHeight(self._height)
+
+        self._side_button_layout = QHBoxLayout(self._full_frame)
+
+        self._primary_layout = QVBoxLayout(self._primary_frame)
+        self._primary_layout.setContentsMargins(10, 10, 10, 5)
+
+        self._secondary_layout = QHBoxLayout()
+        self._secondary_layout.setContentsMargins(10, 5, 10, 5)
+        self._primary_layout.addLayout(self._secondary_layout)
+
+        self._collapsed_width = 25
+        self._expanded_width = 400
+
+        self._full_frame.setMaximumWidth(self._collapsed_width)
+
+        self._is_collapsed = True
+
+        # Side button
+        self._open_icon = QIcon(":/res/left_arrow_icon_black.png")
+        self._close_icon = QIcon(":/res/right_arrow_icon_black.png")
+        self._side_button = QPushButton()
+        self._side_button.setIcon(self._open_icon)
+        self._side_button.setProperty("class", "sidebar_pb")
+        self._side_button.setFixedSize(25, self._height - 200)
+        self._side_button_layout.setContentsMargins(2, 0, 0, 0)
+        self._side_button_layout.addWidget(self._side_button,
+                                           alignment=Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
+        self._side_button_layout.addWidget(self._primary_frame)
 
         # General tab
         self._general_button = QSettingsTabPB("GÉNÉRAL")
         self._general_button.setChecked(True)
-        secondary_layout.addWidget(self._general_button, alignment=Qt.AlignmentFlag.AlignTop |
+        self._secondary_layout.addWidget(self._general_button, alignment=Qt.AlignmentFlag.AlignTop |
                                                                    Qt.AlignmentFlag.AlignLeft)
         self._general_tab = QSettingsGeneralTab()
-        primary_layout.addWidget(self._general_tab)
+        self._primary_layout.addWidget(self._general_tab)
 
         # Optimization tab
         self._optimization_button = QSettingsTabPB("OPTIMIZATION")
-        secondary_layout.addWidget(self._optimization_button, alignment=Qt.AlignmentFlag.AlignTop |
+        self._secondary_layout.addWidget(self._optimization_button, alignment=Qt.AlignmentFlag.AlignTop |
                                                                         Qt.AlignmentFlag.AlignRight)
         self._optimization_tab = QSettingsOptimizationTab()
-        primary_layout.addWidget(self._optimization_tab)
+        self._primary_layout.addWidget(self._optimization_tab)
         self._optimization_tab.hide()
 
         root_layout = QVBoxLayout(self)
         root_layout.setContentsMargins(0, 0, 0, 0)
-        root_layout.addWidget(primary_frame)
+        root_layout.addWidget(self._full_frame)
 
         # Connections
         self._general_button.clicked.connect(self._on_tab_changed)
@@ -191,6 +218,21 @@ class QSettingsTab(QWidget):
         self._optimization_tab.constraintChanged.connect(self.constraintChanged.emit)
         self._optimization_tab.iterationsChanged.connect(self.iterationsChanged.emit)
         self._optimization_tab.thresholdChanged.connect(self.thresholdChanged.emit)
+
+        self._side_button.pressed.connect(self._on_side_button_pressed)
+
+        # Animation
+        self._animation = QPropertyAnimation(self._full_frame, b"maximumWidth")
+        self._animation.setDuration(400)
+        self._animation.setEasingCurve(QEasingCurve.Type.InOutQuad)
+        self._animation.finished.connect(self._on_animation_finished)
+
+        self.is_collapsed = True
+
+    def resizeEvent(self, event):
+        self._height = self.window().height() - 200
+        self._side_button.setFixedHeight(self._height)
+        self._full_frame.setFixedHeight(self._height)
 
     @property
     def constraint_method(self) -> str:
@@ -260,14 +302,33 @@ class QSettingsTab(QWidget):
             self._general_tab.hide()
             self._optimization_tab.show()
 
+    @Slot()
+    def _on_side_button_pressed(self):
+        if self.is_collapsed:
+            self.is_collapsed = False
+        else:
+            self.is_collapsed = True
 
-def load_styles(q_app: QApplication) -> None:
-    with open("../styles.qss", "r") as file:
-        q_app.setStyleSheet(file.read())
+    @property
+    def is_collapsed(self) -> bool:
+        return self._is_collapsed
 
-if __name__ == "__main__":
-    app = QApplication(sys.argv)
-    load_styles(app)
-    window = QSettingsTab()
-    window.show()
-    sys.exit(app.exec())
+    @is_collapsed.setter
+    def is_collapsed(self, value: bool):
+        self._is_collapsed = value
+        self._primary_frame.show()
+        if self._is_collapsed:
+            self._side_button.setIcon(self._open_icon)
+            self._animation.setStartValue(self._expanded_width)
+            self._animation.setEndValue(self._collapsed_width)
+        else:
+            self._side_button.setIcon(self._close_icon)
+            self._animation.setStartValue(self._collapsed_width)
+            self._animation.setEndValue(self._expanded_width)
+
+        self._animation.start()
+
+    @Slot()
+    def _on_animation_finished(self):
+        if self._is_collapsed:
+            self._primary_frame.hide()

@@ -68,7 +68,7 @@ class HomePage(QWidget):
         self._allocation.setStyleSheet("""#home_page_allocation {background-color: rgba(245, 245, 245, 30);}""")
         self._allocation_window = QFloatingSlider("Allocation de mémoire vive", self._allocation)
         self._allocation_window.minimum = 1500
-        self._allocation_window.maximum = 14000
+        self._allocation_window.maximum = 30000
         self._allocation_window.default_value = 2000
         self._allocation.hide()
 
@@ -149,6 +149,7 @@ class HomePage(QWidget):
 
         screen_center = QPoint(int(self.width()/2 - width/2), int(self.height()/2 - height/2))
         self._allocation_window.saved_position = screen_center
+        self._allocation_window.move(screen_center)
 
         self._allocation_window.raise_()
 
@@ -276,9 +277,3 @@ class HomePage(QWidget):
     @allocation_value.setter
     def allocation_value(self, value: QWidget):
         self._allocation_window.value = value
-
-if __name__ == "__main__":
-    app = QApplication(sys.argv)
-    window = HomePage()
-    window.show()
-    sys.exit(app.exec())

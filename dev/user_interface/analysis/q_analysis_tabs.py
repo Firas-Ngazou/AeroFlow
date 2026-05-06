@@ -1,4 +1,4 @@
-from PySide6.QtCore import Qt, QPoint
+from PySide6.QtCore import Qt, QPoint, Slot
 from PySide6.QtGui import QFont
 from PySide6.QtWidgets import QWidget, QFrame, QHBoxLayout, QVBoxLayout, QLabel, QTabWidget
 
@@ -71,6 +71,14 @@ class QResultField(QWidget):
         root_layout.addWidget(primary_field_frame)
         root_layout.setContentsMargins(0, 0, 0, 0)
 
+    @property
+    def result_value(self):
+        return self._result_value.text()
+
+    @result_value.setter
+    def result_value(self, value: str):
+        self._result_value.setText(value)
+
 class QAnalysisTab(QWidget):
     """
     Provides a tab widget for analysis with a progress bar and informational label.
@@ -95,13 +103,29 @@ class QAnalysisTab(QWidget):
         """
         super().__init__(parent)
 
-        self._progress_bar = QProgressBar()
-        self._info_label = QLabel("     Durée estimée : 00:00:00")
-        self._info_label.setFont(QFont("JetBrains Mono", 7))
+        # self._progress_bar = QProgressBar()
+        # self._info_label = QLabel("     Durée estimée : 00:00:00")
+        # self._info_label.setFont(QFont("JetBrains Mono", 7))
 
         self._primary_layout = QVBoxLayout(self)
-        self._primary_layout.addWidget(self._progress_bar, alignment=Qt.AlignmentFlag.AlignTop)
-        self._primary_layout.addWidget(self._info_label, alignment=Qt.AlignmentFlag.AlignTop)
+        # self._primary_layout.addWidget(self._progress_bar, alignment=Qt.AlignmentFlag.AlignTop)
+        # self._primary_layout.addWidget(self._info_label, alignment=Qt.AlignmentFlag.AlignTop)
+
+    # @property
+    # def progress(self):
+    #     return self._progress_bar.fill_percentage
+    #
+    # @progress.setter
+    # def progress(self, value: int):
+    #     self._progress_bar.fill_percentage = value
+    #
+    # @property
+    # def info_label_text(self):
+    #     return self._info_label.text()
+    #
+    # @info_label_text.setter
+    # def info_label_text(self, value: str):
+    #     self._info_label.setText(value)
 
 class QOptimizationAnalysis(QAnalysisTab):
     """
@@ -168,6 +192,22 @@ class QResultAnalysis(QAnalysisTab):
         self._primary_layout.addLayout(self._secondary_layout)
         self._primary_layout.addStretch()
 
+    @property
+    def drag_coef_field_value(self):
+        return self._drag_coef_field.result_value
+
+    @drag_coef_field_value.setter
+    def drag_coef_field_value(self, value: str):
+        self._drag_coef_field.result_value = value
+
+    @property
+    def lift_coef_field_value(self):
+        return self._lift_coef_field.result_value
+
+    @lift_coef_field_value.setter
+    def lift_coef_field_value(self, value: str):
+        self._lift_coef_field.result_value = value
+
 class QAnalysisWidget(QFloatingWidget):
     """
     Provides a specialized widget for analysis purposes, particularly optimization and results analysis.
@@ -191,6 +231,13 @@ class QAnalysisWidget(QFloatingWidget):
         super().__init__(parent)
 
         self.setMinimumWidth(600)
+        self.setMinimumHeight(200)
+
+        # Progress bar
+        self._progress_bar = QProgressBar()
+        self._info_label = QLabel("  Durée estimée : 00:00:00")
+        self._info_label.setFont(QFont("JetBrains Mono", 9))
+
         self.saved_position = initial_position
 
         self._tabs = QTabWidget()
@@ -205,6 +252,50 @@ class QAnalysisWidget(QFloatingWidget):
 
         self._tabs.setFont(QFont("JetBrains Mono", 12))
 
+        self._v_box_layout.addWidget(self._progress_bar, alignment=Qt.AlignmentFlag.AlignTop)
+        self._v_box_layout.addWidget(self._info_label, alignment=Qt.AlignmentFlag.AlignTop)
         self._v_box_layout.addWidget(self._tabs)
 
-        self._tabs.currentChanged.connect(self.delayed_correct_position)
+    @property
+    def simulation_progress(self):
+        return self._progress_bar.fill_percentage
+
+    @simulation_progress.setter
+    def simulation_progress(self, value: int):
+        self._progress_bar.fill_percentage = value
+
+    @property
+    def simulation_info_label(self):
+        return self._info_label.text()
+
+    @simulation_info_label.setter
+    def simulation_info_label(self, value: str):
+        self._info_label.setText(value)
+
+    @Slot(str)
+    def set_sim_info_label(self, value: str):
+        self.simulation_info_label = value
+
+    @property
+    def drag_coef_value(self):
+        return self._results_tab.drag_coef_field_value
+
+    @drag_coef_value.setter
+    def drag_coef_value(self, value: str):
+        self._results_tab.drag_coef_field_value = value
+
+    @Slot(str)
+    def set_drag_coef_value(self, value: str):
+        self.drag_coef_value = value
+
+    @property
+    def lift_coef_value(self):
+        return self._results_tab.lift_coef_field_value
+
+    @lift_coef_value.setter
+    def lift_coef_value(self, value: str):
+        self._results_tab.lift_coef_field_value = value
+
+    @Slot(str)
+    def set_lift_coef_value(self, value: str):
+        self.lift_coef_value = value
