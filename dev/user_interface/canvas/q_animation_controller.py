@@ -37,10 +37,10 @@ class QSimController(QWidget):
         self._reduction_factor = 1.0
 
         # Data
-        self._max_soft_steps = 120
-        self._max_hard_steps = 1000
+        self._max_soft_steps = 600
+        self._max_steps = 1000
         self._sim_data = {}
-        self._image_type = SimImageType.VELOCITY_HEAT
+        self._image_type = SimImageType.STREAM # Curl ???
 
         # Layout
         self._primary_frame = QFrame()
@@ -62,7 +62,6 @@ class QSimController(QWidget):
         self._slider.setOrientation(Qt.Orientation.Horizontal)
         self._slider.setProperty("class", "controller_slider")
         self._slider.setFixedSize(200, 26)
-        self._slider.setMaximum(self._max_hard_steps)
         self._slider.setMinimum(1)
 
         # Time label
@@ -79,6 +78,7 @@ class QSimController(QWidget):
         self._fps_label.setFixedSize(60, 16)
         self._fps_label.setText("30 FPS")
         self._fps_label.setAlignment(Qt.AlignmentFlag.AlignRight)
+        self._update_fps = False
 
         self._primary_layout.addWidget(self._control_button, alignment=Qt.AlignmentFlag.AlignLeft)
         self._primary_layout.addWidget(self._slider, alignment=Qt.AlignmentFlag.AlignHCenter)
@@ -159,10 +159,12 @@ class QSimController(QWidget):
             # Pause requested
             self._control_button.setIcon(self._play_icon)
             self._timer.stop()
+            self._update_fps = False
         else:
             # Play requested
             self._control_button.setIcon(self._pause_icon)
             self._timer.start(1000 // self._fps)
+            self._update_fps = True
 
     @Slot(list)
     def add_sim_data(self, data: list):
@@ -212,7 +214,7 @@ class QSimController(QWidget):
 
         self.showPixmapRequested.emit(pixmap)
 
-        if not self._slider.value() == self._slider.maximum() and self._control_button.isChecked():
+        if self._update_fps and not self._slider.value() == self._max_steps:
             signal_end = datetime.now()
             delta_time_s = (signal_end - signal_start).total_seconds()
             self._fps_label.setText(f"{(1/delta_time_s):.0f} FPS")
@@ -233,9 +235,9 @@ class QSimController(QWidget):
         left_hard = None
         right_hard = None
         if left_soft != 1:
-            left_hard = max(left_soft - self._max_hard_steps//2, 1)
+            left_hard = max(left_soft - (self._max_steps - self._max_soft_steps)//2, 1)
         if right_soft != self._slider.maximum():
-            right_hard = min(right_soft + self._max_hard_steps//2, self._slider.maximum())
+            right_hard = min(right_soft + (self._max_steps - self._max_soft_steps)//2, self._slider.maximum())
 
         if left_hard is not None:
             for step in range(left_hard, left_soft):
@@ -276,20 +278,6 @@ class QSimController(QWidget):
         self._image_type = image_type
 
     @property
-    def max_soft_steps(self) -> int:
-        return self._max_soft_steps
-    @max_soft_steps.setter
-    def max_soft_steps(self, max_soft_steps: int):
-        self._max_soft_steps = max_soft_steps
-
-    @property
-    def max_hard_steps(self) -> int:
-        return self._max_hard_steps
-    @max_hard_steps.setter
-    def max_hard_steps(self, max_hard_steps: int):
-        self._max_hard_steps = max_hard_steps
-
-    @property
     def canvas_height(self) -> int:
         return self._canvas_height
     @canvas_height.setter
@@ -307,13 +295,17 @@ class QSimController(QWidget):
     def set_reduction_factor(self, value: float):
         self._reduction_factor = value
 
-    @Slot(int)
-    def set_max_soft_steps(self, max_soft_steps: int):
-        self.max_soft_steps = max_soft_steps
+    @property
+    def max_steps(self):
+        return self._max_steps
+
+    @max_steps.setter
+    def max_steps(self, max_steps: int):
+        self._max_steps = max_steps
 
     @Slot(int)
-    def set_max_hard_steps(self, max_hard_steps: int):
-        self.max_hard_steps = max_hard_steps
+    def set_max_steps(self, max_steps: int):
+        self.max_steps = max_steps
 
     def reset(self):
         self._slider.setValue(1)

@@ -64,7 +64,7 @@ class ProjectPage(QWidget):
         self._simulation_engine.progressUpdated.connect(self._on_sim_progressed)
         self._simulation_engine.statusMessageUpdated.connect(self._analysis_tab.set_sim_info_label)
         self._simulation_engine.iterationCompleted.connect(self._sim_controller.add_sim_data)
-        self._simulation_engine.maxSoftStepUpdated.connect(self._sim_controller.set_max_soft_steps)
+        self._simulation_engine.maxStepUpdated.connect(self._sim_controller.set_max_steps)
         self._simulation_engine.dragCoefUpdated.connect(lambda y: self._analysis_tab.set_drag_coef_value(f"{y:.2f}"))
         self._simulation_engine.liftCoefUpdated.connect(lambda y: self._analysis_tab.set_lift_coef_value(f"{y:.2f}"))
         self.runSimulation.connect(self._simulation_engine.run)
@@ -196,7 +196,6 @@ class ProjectPage(QWidget):
         self._sim_thread.wait()
 
         self._sim_controller.reset()
-        self._simulation_engine.reset()
         self._editor.display_pixmap()
 
         self.window().setMinimumWidth(self._minimum_window_width)

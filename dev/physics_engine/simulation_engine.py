@@ -13,7 +13,7 @@ class SimulationEngine(QObject):
     progressUpdated = Signal(int)
     statusMessageUpdated = Signal(str)
     iterationCompleted = Signal(list)
-    maxSoftStepUpdated = Signal(int)
+    maxStepUpdated = Signal(int)
     dragCoefUpdated = Signal(float)
     liftCoefUpdated = Signal(float)
 
@@ -53,7 +53,7 @@ class SimulationEngine(QObject):
         self._resolution_x = self._obstacle.binary_mask.shape[0]
         self._resolution_y = self._obstacle.binary_mask.shape[1]
 
-        self._max_step = self._evaluate_max_soft_step()
+        self._max_step = self._evaluate_max_steps()
 
         boltzmann_velocity = self._get_boltzmann_v(initial_velocity)
         self._initialize(boltzmann_velocity)
@@ -84,6 +84,7 @@ class SimulationEngine(QObject):
     def _execute_time_step(self):
         for _ in range(self._max_step):
             if QThread.currentThread().isInterruptionRequested():
+                self.reset()
                 break
             self._frame_start_time = datetime.now()
             self.__apply_streaming()
@@ -92,21 +93,24 @@ class SimulationEngine(QObject):
             self.__apply_collision()
             self.__end_current_frame()
 
-    def _evaluate_max_soft_step(self):
+    def _evaluate_max_steps(self):
         width = self._resolution_x
         height = self._resolution_y
 
         bytes_per_float32 = 4
         densities_bytes = width * height * 9 * bytes_per_float32 * 2
-        mb_densities = densities_bytes / (1024 * 1024)
-
         velocity_bytes = width * height * 3 * bytes_per_float32
-        mb_velocity = velocity_bytes / (1024 * 1024)
+
+        mb_engine = (densities_bytes + velocity_bytes) / (1024**2)
+
+        step_bytes = width * height * 4 * bytes_per_float32
+        mb_per_step = step_bytes / (1024**2)
 
         safe_allocation = self._allocation * 0.8
+        available_memory = safe_allocation - mb_engine
 
-        estimation = int(safe_allocation / (mb_densities + mb_velocity))
-        self.maxSoftStepUpdated.emit(estimation)
+        estimation = int(available_memory / mb_per_step)
+        self.maxStepUpdated.emit(estimation)
         return estimation
 
     def _calculate_drag_coef(self):
@@ -145,6 +149,18 @@ class SimulationEngine(QObject):
                                      (self._constants.E_X[i], self._constants.E_Y[i]), axis=(0, 1))
 
         self._grid.distributions = new_f
+
+        self._grid.distributions[-1, :, :] = self._grid.distributions[-2, :, :]
+        self._grid.macro_velocity_x[0, :] = self._u_ref
+        self._grid.macro_velocity_y[0, :] = 0.0
+        self._grid.macro_density[0, :] = self._rho_ref
+
+        f_eq = self._get_f_eq()
+        for i in range(9):
+            self._grid.distributions[0, :, i] = f_eq[0, :, i]
+
+        self._grid.distributions[:, 0, :] = self._grid.distributions[:, 1, :]
+        self._grid.distributions[:, -1, :] = self._grid.distributions[:, -2, :]
 
     def __apply_collision(self):
         # on trouve les valeurs de f_eq pour chaque distribution
@@ -231,10 +247,10 @@ class SimulationEngine(QObject):
         self._frame_start_time = datetime.now()
         self._frame_end_time = datetime.now()
         self._estimate_time = 0
-        self.progressUpdated.emit(0)
-        self.statusMessageUpdated.emit("Temps restant: 00:00:00")
         self.dragCoefUpdated.emit(0.0)
         self.liftCoefUpdated.emit(0.0)
+        self.progressUpdated.emit(0)
+        self.statusMessageUpdated.emit("Temps restant: 00:00:00")
 
     def set_reduction_factor(self, factor: float):
         self._obstacle.reduction_factor = factor
