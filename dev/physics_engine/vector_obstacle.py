@@ -36,7 +36,7 @@ class VectorObstacle:
 
         # Downsampling
         downsampled = clean_grid.reshape(target_width, factor, target_height, factor).any(axis=(1, 3))
-        trim_amount = 3
+        trim_amount = 2
         self._binary_mask = binary_erosion(downsampled, iterations=trim_amount)
 
     def _update_default_grid(self):
@@ -62,7 +62,7 @@ class VectorObstacle:
         self._update_default_grid()
 
     @property
-    def binary_mask(self) -> np.ndarray:
+    def binary_mask(self):
         return self._binary_mask
 
     @property

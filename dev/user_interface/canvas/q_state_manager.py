@@ -1,6 +1,7 @@
 from enum import Enum
 
-from PySide6.QtCore import QObject, Signal
+from PySide6.QtCore import QObject, Signal, Slot
+
 
 class QStateManager(QObject):
 
@@ -24,7 +25,6 @@ class QStateManager(QObject):
         LOCKED = 2
 
     cursorStateChanged = Signal(CursorState)
-
 
     class ActionState(Enum):
         DEFAULT = 0
@@ -54,6 +54,7 @@ class QStateManager(QObject):
     def mouse_state(self, state: MouseState):
         self._mouse_state = state
 
+    @Slot(CursorState)
     def set_cursor_state(self, state: CursorState):
         self.cursor_state = state
 

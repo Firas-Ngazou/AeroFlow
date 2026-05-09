@@ -151,16 +151,24 @@ class SimulationEngine(QObject):
         self._grid.distributions = new_f
 
         self._grid.distributions[-1, :, :] = self._grid.distributions[-2, :, :]
+
         self._grid.macro_velocity_x[0, :] = self._u_ref
         self._grid.macro_velocity_y[0, :] = 0.0
         self._grid.macro_density[0, :] = self._rho_ref
 
+        self._grid.macro_velocity_x[:, 0] = self._u_ref
+        self._grid.macro_velocity_y[:, 0] = 0.0
+        self._grid.macro_density[:, 0] = self._rho_ref
+
+        self._grid.macro_velocity_x[:, -1] = self._u_ref
+        self._grid.macro_velocity_y[:, -1] = 0.0
+        self._grid.macro_density[:, -1] = self._rho_ref
+
         f_eq = self._get_f_eq()
         for i in range(9):
             self._grid.distributions[0, :, i] = f_eq[0, :, i]
-
-        self._grid.distributions[:, 0, :] = self._grid.distributions[:, 1, :]
-        self._grid.distributions[:, -1, :] = self._grid.distributions[:, -2, :]
+            self._grid.distributions[:, 0, i] = f_eq[:, 0, i]
+            self._grid.distributions[:, -1, i] = f_eq[:, -1, i]
 
     def __apply_collision(self):
         # on trouve les valeurs de f_eq pour chaque distribution

@@ -177,6 +177,7 @@ class ProjectPage(QWidget):
 
         vertices = self._editor.get_vertices()
         self._simulation_engine.vertices = vertices
+        self._state_manager.set_cursor_state(QStateManager.CursorState.LOCKED)
 
         data = [self.wind_speed, [self._editor.width(), self._editor.height()]]
 
@@ -190,6 +191,7 @@ class ProjectPage(QWidget):
     @Slot()
     def _on_stop_pressed(self):
         self._sim_controller.hide()
+        self._state_manager.set_cursor_state(QStateManager.CursorState.DEFAULT)
 
         self._sim_thread.requestInterruption()
         self._sim_thread.quit()

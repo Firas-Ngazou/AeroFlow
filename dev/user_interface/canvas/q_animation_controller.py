@@ -24,6 +24,7 @@ class SimImageType(Enum):
 
 class QSimController(QWidget):
     showPixmapRequested = Signal(QPixmap)
+    stepLoadedFromDisk = Signal(int, np.ndarray)
 
     def __init__(self, parent: QWidget | None = None):
         super().__init__(parent)
@@ -95,6 +96,7 @@ class QSimController(QWidget):
         self._control_button.pressed.connect(self._on_control_button_pressed)
         self._timer.timeout.connect(self._send_sim_pixmap)
         self._slider.valueChanged.connect(self._on_slider_value_changed)
+        self.stepLoadedFromDisk.connect(self._on_step_loaded_from_disk)
 
         # h5py
         self._h5py_file = None
@@ -116,8 +118,8 @@ class QSimController(QWidget):
             step, data = self._io_write_queue.get()
             with self._lock:
                 if self._dataset is not None:
-                    if self._dataset.shape[0] <= step:
-                        self._dataset.resize(step + 1, axis=0)
+                    # if self._dataset.shape[0] <= step:
+                        # self._dataset.resize(step + 1, axis=0)
                     self._dataset[step] = data
 
             self._io_write_queue.task_done()
@@ -135,7 +137,7 @@ class QSimController(QWidget):
                     continue
                 stacked_data = self._dataset[step]
 
-            self._sim_data[step] = [stacked_data]
+            self.stepLoadedFromDisk.emit(step, stacked_data)
             self._io_read_queue.task_done()
 
     @Slot(int)
@@ -221,11 +223,13 @@ class QSimController(QWidget):
 
     def _initiate_cache(self, width: int, height: int):
         with self._lock:
+            optimal_chunk = (1, width, height, 4)
+
             self._h5py_file = h5py.File("sim_cache.h5", "w")
-            self._dataset = self._h5py_file.create_dataset("sim_data", (0, width, height, 4),
+            self._dataset = self._h5py_file.create_dataset("sim_data", (self._max_steps + 1, width, height, 4),
                                                            maxshape=(None, width, height, 4),
                                                            dtype=np.float32,
-                                                           chunks=True)
+                                                           chunks=optimal_chunk, compression="lzf")
 
     def _update_sim_data(self):
         current_step = self._slider.value()
@@ -235,17 +239,20 @@ class QSimController(QWidget):
         left_hard = None
         right_hard = None
         if left_soft != 1:
-            left_hard = max(left_soft - (self._max_steps - self._max_soft_steps)//2, 1)
+            left_hard = 1 + current_step - left_soft
         if right_soft != self._slider.maximum():
-            right_hard = min(right_soft + (self._max_steps - self._max_soft_steps)//2, self._slider.maximum())
+            right_hard = self._slider.maximum() - (right_soft + current_step)
 
         if left_hard is not None:
-            for step in range(left_hard, left_soft):
+            for step in range(1, left_hard):
                 self._save_step_to_disk(step)
 
         if right_hard is not None:
-            for step in range(right_soft, right_hard + 1):
+            for step in range(right_soft, self._slider.maximum() + 1):
                 self._save_step_to_disk(step)
+
+        with self._io_read_queue.mutex:
+            self._io_read_queue.queue.clear()
 
         for step in range(left_soft, right_soft):
             self._make_soft(step)
@@ -262,6 +269,10 @@ class QSimController(QWidget):
         if step in self._sim_data: return
 
         self._io_read_queue.put(step)
+
+    @Slot(int, np.ndarray)
+    def _on_step_loaded_from_disk(self, step: int, stacked_data: np.ndarray):
+        self._sim_data[step] = [stacked_data]
 
     @property
     def fps(self) -> int:

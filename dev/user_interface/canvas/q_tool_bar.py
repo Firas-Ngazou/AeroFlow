@@ -18,11 +18,6 @@ class QToolPB(QPushButton):
         self.setProperty("class", "tool_pb")
 
 class QToolBar(QWidget):
-    constraintChanged = Signal(str)
-    iterationsChanged = Signal(int)
-    thresholdChanged = Signal(int)
-    qualityChanged = Signal(float)
-    windSpeedChanged = Signal(float)
     playPressed = Signal()
     stopPressed = Signal()
 
@@ -61,7 +56,7 @@ class QToolBar(QWidget):
 
         # optimize button
         optimize_icon = QIcon(":/res/optimize_icon_black.png")
-        optimize_button = QToolPB(optimize_icon, checkable=False)
+        self._optimize_button = QToolPB(optimize_icon, checkable=False)
 
         # settings
         settings_icon = QIcon(":/res/settings_icon_black.png")
@@ -72,7 +67,7 @@ class QToolBar(QWidget):
         primary_layout.addWidget(self._default_button)
         primary_layout.addWidget(self._pen_button)
         primary_layout.addWidget(self._play_button)
-        primary_layout.addWidget(optimize_button)
+        primary_layout.addWidget(self._optimize_button)
         primary_layout.addWidget(self._settings_button)
 
         root_layout = QVBoxLayout(self)
@@ -88,11 +83,21 @@ class QToolBar(QWidget):
 
         self._play_button.clicked.connect(self._on_anim_button_pressed)
 
-        self._settings.constraintChanged.connect(self.constraintChanged.emit)
-        self._settings.iterationsChanged.connect(self.iterationsChanged.emit)
-        self._settings.thresholdChanged.connect(self.thresholdChanged.emit)
-        self._settings.qualityChanged.connect(self.qualityChanged.emit)
-        self._settings.windSpeedChanged.connect(self.windSpeedChanged.emit)
+        self._state_manager.cursorStateChanged.connect(self._on_cursor_state_changed)
+
+    @Slot(QStateManager.CursorState)
+    def _on_cursor_state_changed(self, state: QStateManager.CursorState):
+        print(state)
+        if state == QStateManager.CursorState.LOCKED:
+            self._default_button.setEnabled(False)
+            self._pen_button.setEnabled(False)
+            self._settings_button.setEnabled(False)
+            self._optimize_button.setEnabled(False)
+        else:
+            self._default_button.setEnabled(True)
+            self._pen_button.setEnabled(True)
+            self._settings_button.setEnabled(True)
+            self._optimize_button.setEnabled(True)
 
     @Slot()
     def _on_cursor_button_pressed(self):
@@ -130,21 +135,13 @@ class QToolBar(QWidget):
         sender = self.sender()
         if sender == self._play_button:
             if self._play_button.isChecked():
-                self._settings_button.setDisabled(True)
                 self._settings.hide()
 
-                self._pen_button.setDisabled(True)
                 self._state_manager.set_cursor_state(QStateManager.CursorState.LOCKED)
-
                 self._play_button.setIcon(self._stop_icon)
                 self.playPressed.emit()
             else:
-                self._settings_button.setDisabled(False)
-                self._settings_button.setChecked(False)
-                self._pen_button.setDisabled(False)
-
                 self._play_button.setIcon(self._play_icon)
-                self._state_manager.set_cursor_state(QStateManager.CursorState.DEFAULT)
                 self.stopPressed.emit()
 
     @Slot(QStateManager.CursorState)
