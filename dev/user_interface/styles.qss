@@ -1,15 +1,15 @@
 QPushButton[class="reset_pb"]{
-    background-color: #8EE7FF;
+    background-color: #FF8E8E;
     color: #1D1D1D;
     padding-left: 15px;
     padding-right: 15px;
     border-radius: 12px;
 }
 QPushButton[class="reset_pb"]:hover{
-    background-color: #99DEFFFF;
+    background-color: #FF9999;
 }
 QPushButton[class="reset_pb"]:pressed{
-    background-color: #AEE7FFFF;
+    background-color: #FFAEAE;
 }
 
 QPushButton[class="settings_tab_pb"]{

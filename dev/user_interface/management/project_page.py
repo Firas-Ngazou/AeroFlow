@@ -616,3 +616,9 @@ class ProjectPage(QWidget):
     @streamline_count.setter
     def streamline_count(self, count: int):
         self._settings_side_bar.streamline_count = count
+
+    def on_page_quit(self):
+        if self._title_bar.is_analysis_checked:
+            self._title_bar.click_analysis()
+
+        self._title_bar.analysisPressed.disconnect()

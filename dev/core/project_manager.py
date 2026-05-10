@@ -106,7 +106,7 @@ class ProjectManager(QObject):
 
         self._current_project.vectorDrawingChanged.connect(lambda: self._set_modified(True))
         self._current_project.jsonSettingsChanged.connect(lambda: self._set_modified(True))
-        self._current_project.saveWarningYesPressed.connect(self._project_title_bar.window().close)
+        self._current_project.saveWarningYesPressed.connect(self._safe_close)
         self._current_project.saveWarningNoPressed.connect(lambda: self._current_project.set_warning_visible(False))
 
         self._project_title_bar.openFileRequested.connect(self.open_project)
@@ -142,6 +142,11 @@ class ProjectManager(QObject):
             lambda y: self.save_ini_number("Optimization", "Constraint_threshold", y)
         )
 
+    @Slot()
+    def _safe_close(self):
+        self._current_project.on_stop_pressed()
+        self._window.close()
+
     @Slot(bool)
     def _set_modified(self, modified: bool):
         """
@@ -169,6 +174,9 @@ class ProjectManager(QObject):
         :returns: A reference to the newly initialized project.
         :rtype: ProjectPage
         """
+        if self._current_project is not None:
+            self._current_project.on_page_quit()
+            self._current_project.on_stop_pressed()
         self._current_project = ProjectPage(self._window)
         self._project_title_bar = self._current_project.title_bar
         self._current_project.saveProject.connect(self.save_project)
@@ -190,10 +198,11 @@ class ProjectManager(QObject):
 
         :raises None: This method does not raise any exceptions.
         """
-        self._current_project.on_stop_pressed()
-        if self._project_state is ProjectState.SAVED: self._project_title_bar.window().close()
+        if self._project_state is ProjectState.SAVED:
+            self._safe_close()
         elif self._was_modified: self._current_project.set_warning_visible(True)
-        else: self._project_title_bar.window().close()
+        else:
+            self._safe_close()
 
     def save_project(self, data: dict):
         """
@@ -319,6 +328,8 @@ class ProjectManager(QObject):
         :type path: str
         :return: None
         """
+        if self._current_project is not None:
+            self._current_project.on_stop_pressed()
         if Path(path).exists():
             data = self._get_json_content(path)
 
