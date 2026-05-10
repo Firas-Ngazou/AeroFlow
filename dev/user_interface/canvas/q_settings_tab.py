@@ -1,12 +1,12 @@
-import sys
-
 from PySide6.QtCore import Qt, Slot, Signal, QPropertyAnimation, QEasingCurve
 from PySide6.QtGui import QFont, QIcon
-from PySide6.QtWidgets import QWidget, QFrame, QHBoxLayout, QApplication, QPushButton, QVBoxLayout, QDoubleSpinBox, \
-    QLabel, QComboBox, QScrollArea, QGridLayout
+from PySide6.QtWidgets import QWidget, QFrame, QHBoxLayout, QPushButton, QVBoxLayout, \
+    QLabel, QComboBox, QScrollArea
 
 from dev.user_interface.components.q_buttons import QSettingsTabPB
 from dev.user_interface.groups.q_slider_groups import QSliderGroup, QRealSliderGroup
+from dev.user_interface.groups.q_checkboxes import QDoubleCheckBox, QInfoCheckbox
+
 
 class QSettingsGeneralTab(QWidget):
     qualityChanged = Signal(float)
@@ -32,14 +32,70 @@ class QSettingsGeneralTab(QWidget):
         self._wind_speed.minimum = 1.0
         self._wind_speed.maximum = 100.0
 
+        # Viscosity
+        self._viscosity = QRealSliderGroup("VISCOSITÉ")
+        self._viscosity.minimum = 0.52
+        self._viscosity.maximum = 2.0
+        self._viscosity.single_step = 0.02
+        self._viscosity.default_value = 0.8
+
+        # Live-edit
+        self._live_edit = QInfoCheckbox("LIVE-EDIT",
+                                        """
+                                        <div style="text-align: left;">
+                                            <p>Lorsque sélectionné, cette option rend possible
+                                            l'édition en temps réel du dessin vectoriel.
+                                        
+                                            <p>Il ne sera pas possible de manipuler le controlleur vidéo, ni de 
+                                            sauvegarder la simulation pour pouvoir la visualiser plus rapidement la 
+                                            prochaine fois.
+                                        
+                                            <p>Les calculs sont effectués en temps réelle, ce qui pourrait expliquer 
+                                            unecertaine perte en performances.
+                                        <div>
+                                        """)
+
+        # Check boxes
+        self._heatmaps_cb = QDoubleCheckBox("HEATMAPS", "VÉLOCITÉ", "DENSITÉ")
+        self._other_cb = QDoubleCheckBox("AUTRE", "ÉCOULEMENT", "TOURBILLONS")
+
+        # Streamline count
+        self._streamline_count = QSliderGroup("ÉCOULEMENT")
+        self._streamline_count.minimum = 5
+        self._streamline_count.maximum = 200
+        self._streamline_count.single_step = 5
+        self._streamline_count.default_value = 20
+
         # Layouts
+        content_widget = QWidget()
+        content_widget.setFixedWidth(345)
+        content_layout = QVBoxLayout(content_widget)
+        content_layout.addWidget(self._quality)
+        content_layout.addWidget(high_res_warning)
+        content_layout.addSpacing(20)
+        content_layout.addWidget(self._wind_speed)
+        content_layout.addSpacing(10)
+        content_layout.addWidget(self._viscosity)
+        content_layout.addSpacing(10)
+        content_layout.addWidget(self._live_edit)
+        content_layout.addSpacing(10)
+        content_layout.addWidget(self._heatmaps_cb)
+        content_layout.addSpacing(10)
+        content_layout.addWidget(self._other_cb)
+        content_layout.addSpacing(10)
+        content_layout.addWidget(self._streamline_count)
+
+        content_layout.setContentsMargins(0, 0, 0, 0)
+        content_layout.addStretch()
+
+        scroll_area = QScrollArea()
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setFrameShape(QFrame.Shape.NoFrame)
+        scroll_area.setWidget(content_widget)
+
         root_layout = QVBoxLayout(self)
-        root_layout.addWidget(self._quality)
-        root_layout.addWidget(high_res_warning)
-        root_layout.addSpacing(30)
-        root_layout.addWidget(self._wind_speed)
         root_layout.setContentsMargins(0, 0, 0, 0)
-        root_layout.addStretch()
+        root_layout.addWidget(scroll_area)
 
         # Connections
         self._quality.realValueChanged.connect(self.qualityChanged.emit)

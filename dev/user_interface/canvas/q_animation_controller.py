@@ -39,6 +39,7 @@ class QSimController(QWidget):
 
         # Data
         self._max_soft_steps = 600
+        self._max_soft_ratio = 0.6
         self._max_steps = 1000
         self._sim_data = {}
         self._image_type = SimImageType.STREAM # Curl ???
@@ -313,6 +314,7 @@ class QSimController(QWidget):
     @max_steps.setter
     def max_steps(self, max_steps: int):
         self._max_steps = max_steps
+        self._max_soft_steps = int(max_steps * self._max_soft_ratio)
 
     @Slot(int)
     def set_max_steps(self, max_steps: int):

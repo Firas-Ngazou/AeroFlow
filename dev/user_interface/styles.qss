@@ -188,6 +188,20 @@ QPushButton[class="titlebar_settings_pb"]::menu-indicator{
     width: 0px;
 }
 
+QPushButton[class="info_pb"]{
+    background-color: transparent;
+    padding-left: 2px;
+    padding-right: 2px;
+    border-radius: 15px;
+    border: 2px solid #F5F5F5;
+}
+QPushButton[class="info_pb"]:hover{
+    background-color: #545454;
+}
+QPushButton[class="info_pb"]:pressed{
+    background-color: #4a4a4a;
+}
+
 
 
 QLineEdit[class="file_name"]{
@@ -458,4 +472,32 @@ QTabBar[class="analysis_tabs"]::tab:selected{
 }
 QTabBar[class="analysis_tabs"]::tab:!selected:hover{
     background-color: rgba(224, 224, 224, 50);
+}
+
+
+
+QCheckBox[class="checkbox"]{
+    background-color: #1D1D1D;
+    border: 1px solid #F5F5F5;
+    border-radius: 8px;
+}
+QCheckBox[class="checkbox"]::indicator{
+    background-color: transparent;
+    padding-left: 2px;
+    padding-right: 0px;
+    width: 26px;
+    height: 26px;
+    border-radius: 8px;
+}
+QCheckBox[class="checkbox"]::indicator:checked{
+    background-color: #F5F5F5;
+    border: 1px solid #1D1D1D;
+    border-radius: 8px;
+    width: 26px;
+    height: 26px;
+    padding-left: 0px;
+    padding-right: 0px;
+}
+QCheckBox[class="checkbox"]::indicator:pressed{
+    background-color: #c0c0c0;
 }
