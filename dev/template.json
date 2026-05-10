@@ -14,7 +14,17 @@
     "Cached_density" : "NAN"
   },
 
-  "Other" : {
-    "Project_number" : "0"
+  "Other": {
+    "Project_number": "0",
+    "Settings": {
+      "States": {
+        "Live_edit_state": "0",
+        "Velocity_state": "1",
+        "Density_state": "0",
+        "Streamlines_state": "1",
+        "Curl_state": "0"
+      },
+      "Streamline_count": "10"
+    }
   }
 }

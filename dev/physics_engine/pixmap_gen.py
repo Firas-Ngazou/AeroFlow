@@ -13,7 +13,8 @@ from PySide6.QtGui import QImage, QPixmap, QPainter, qRgba, Qt, QPen, QColor
 class PixmapGen:
     @staticmethod
     @njit(parallel=True, fastmath=True)
-    def _apply_heatmap_color_map(data: np.ndarray, base_index: int):
+    def _apply_heatmap_color_map(data: np.ndarray, base_index: int, transparent_ref: bool = True,
+                                 transparent_value: float = 0.0):
         w, h = data.shape
         rgba = np.empty((h, w, 4), dtype=np.uint8)
 
@@ -24,10 +25,11 @@ class PixmapGen:
                 r = int(255 * max(0, min(1, 1.5 - abs(1 - 4 * (f - 0.5)))))
                 g = int(255 * max(0, min(1, 1.5 - abs(1 - 4 * (f - 0.25)))))
                 b = int(255 * max(0, min(1, 1.5 - abs(1 - 4 * f))))
+                a = 0
 
-                if value == 0:
-                    a = 0
-                else:
+                if not transparent_ref and value != transparent_value:
+                    a = 255
+                elif transparent_ref:
                     difference = abs(value - base_index)
                     a = min(difference**2, 255)
 
@@ -39,7 +41,8 @@ class PixmapGen:
         return rgba
 
     @staticmethod
-    def generate_heatmap(data: np.ndarray, target_height: int = 1080, target_width: int = 1920) -> QPixmap:
+    def generate_heatmap(data: np.ndarray, target_height: int = 1080, target_width: int = 1920,
+                         transparent_ref: bool = True) -> QPixmap:
         macro_velocity_x, macro_velocity_y, macro_density, binary_mask = np.unstack(data, axis=-1)
         speeds = np.sqrt(macro_velocity_x**2 + macro_velocity_y**2)
 
@@ -60,7 +63,7 @@ class PixmapGen:
         base_index = int((base_speed / max_speed) * 255)
         normalized_speeds = np.clip((high_res_speeds / max_speed) * 255, 0, 255).astype(np.uint8)
 
-        rgba_data = PixmapGen._apply_heatmap_color_map(normalized_speeds, base_index)
+        rgba_data = PixmapGen._apply_heatmap_color_map(normalized_speeds, base_index, transparent_ref)
 
         im_height, im_width, _ = rgba_data.shape
         temp_image = QImage(rgba_data.data, im_width, im_height, im_width * 4, QImage.Format.Format_RGBA8888)
@@ -68,7 +71,8 @@ class PixmapGen:
         return heatmap_pixmap
 
     @staticmethod
-    def generate_density(data: np.ndarray, target_height: int = 1080, target_width: int = 1920) -> QPixmap:
+    def generate_density(data: np.ndarray, target_height: int = 1080, target_width: int = 1920,
+                         transparent_ref: bool = True) -> QPixmap:
         _, _, macro_density, binary_mask = np.unstack(data, axis=-1)
 
         high_res_density = cv2.resize(macro_density, (target_height, target_width),
@@ -90,22 +94,12 @@ class PixmapGen:
 
         normalized_densities = np.clip(((density_difference / max_difference) * 127) + 127,
                                        0, 255).astype(np.uint8)
-        image_data = np.ascontiguousarray(normalized_densities.T)
-        height, width = image_data.shape
 
-        temp_image = QImage(image_data.data, width, height, width, QImage.Format.Format_Indexed8)
-
-        color_table = []
         base_index = 127
-        for i in range(256):
-            difference = abs(i - base_index)
-            strength = difference / 127
-
-            gray = int(255 * strength)
-            alpha = int(np.clip(difference ** 2, 0, 255))
-            color_table.append(qRgba(gray, gray, gray, alpha))
-
-        temp_image.setColorTable(color_table)
+        rgba_data = PixmapGen._apply_heatmap_color_map(normalized_densities, base_index, transparent_ref,
+                                                       base_index)
+        im_height, im_width, _ = rgba_data.shape
+        temp_image = QImage(rgba_data.data, im_width, im_height, im_width * 4, QImage.Format.Format_RGBA8888)
         stream_pixmap = QPixmap.fromImage(temp_image.copy())
 
         return stream_pixmap
@@ -141,7 +135,7 @@ class PixmapGen:
         base_index = 127
         for i in range(256):
             difference = abs(i - base_index)
-            strength = difference / 127
+            strength = difference
 
             gray = int(255 * strength)
             alpha = int(np.clip(difference ** 2, 0, 255))
@@ -154,7 +148,7 @@ class PixmapGen:
         return curl_pixmap
 
     @staticmethod
-    def generate_stream(data: np.ndarray, target_height: int = 1080, target_width: int = 1920) -> QPixmap:
+    def generate_stream(data: np.ndarray, target_height: int = 1080, target_width: int = 1920, count: int = 10) -> QPixmap:
         velocity_x, velocity_y, macro_density, binary_mask = np.unstack(data, axis=-1)
 
         width_grid = velocity_x.shape[0]
@@ -170,7 +164,7 @@ class PixmapGen:
         pen.setWidth(2)
         painter.setPen(pen)
 
-        spacing_y = 30  # la distance entre les lignes
+        spacing_y = height_grid//count # la distance entre les lignes
         max_steps = 1920  # resolution max
         step_size = 3.0
 
@@ -222,3 +216,21 @@ class PixmapGen:
         painter.end()
 
         return final_pixmap
+
+    @staticmethod
+    def stacked_stream(heatmap: QPixmap, stream: QPixmap):
+        pixmap = heatmap.copy()
+        painter = QPainter(pixmap)
+        painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_DestinationIn)
+        painter.drawPixmap(0, 0, stream)
+        painter.end()
+        return pixmap
+
+    @staticmethod
+    def stacked_curl(heatmap: QPixmap, curl: QPixmap):
+        pixmap = heatmap.copy()
+        painter = QPainter(pixmap)
+        painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_DestinationIn)
+        painter.drawPixmap(0, 0, curl)
+        painter.end()
+        return pixmap

@@ -3,7 +3,7 @@ import math
 from datetime import time, datetime
 
 import numpy as np
-from PySide6.QtCore import QObject, Signal, Qt, QThread
+from PySide6.QtCore import QObject, Signal, Qt, QThread, Slot
 from PySide6.QtGui import QPixmap, QImage, qRgba, QPainter, QPen, QColor
 
 from dev.physics_engine.lattice_grid import LatticeGrid, D2Q9Constants
@@ -292,3 +292,12 @@ class SimulationEngine(QObject):
     @resolution_y.setter
     def resolution_y(self, resolution_y: int):
         self._resolution_y = resolution_y
+
+    @property
+    def viscosity(self):
+        return
+    @viscosity.setter
+    def viscosity(self, viscosity: float):
+        # viscosity = (1/3) * (tau - 0.5)
+        # tau = (viscosity * 3) + 0.5
+        self._tau = (viscosity * 3) + 0.5

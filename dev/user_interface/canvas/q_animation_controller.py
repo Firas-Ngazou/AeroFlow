@@ -6,7 +6,7 @@ import queue
 import numpy as np
 
 from PySide6.QtCore import Signal, Slot, QTimer
-from PySide6.QtGui import QPixmap, QIcon, Qt, QFont
+from PySide6.QtGui import QPixmap, QIcon, Qt, QFont, QPainter
 from PySide6.QtWidgets import QWidget, QFrame, QVBoxLayout, QPushButton, QSlider, QLabel, QHBoxLayout
 
 from dev.physics_engine.pixmap_gen import PixmapGen
@@ -21,6 +21,7 @@ class SimImageType(Enum):
     DENSITY_HEAT_STREAM = 5
     VELOCITY_HEAT_CURL = 6
     DENSITY_HEAT_CURL = 7
+    NONE = 8
 
 class QSimController(QWidget):
     showPixmapRequested = Signal(QPixmap)
@@ -36,6 +37,7 @@ class QSimController(QWidget):
         self._canvas_height = 1080
         self._canvas_width = 1920
         self._reduction_factor = 1.0
+        self._streamline_count = 10
 
         # Data
         self._max_soft_steps = 600
@@ -103,7 +105,7 @@ class QSimController(QWidget):
         self._h5py_file = None
         self._dataset = None
 
-        # I/O
+        # I/O threads
         self._lock = threading.Lock()
         self._io_write_queue = queue.Queue()
         self._io_read_queue = queue.Queue()
@@ -203,15 +205,26 @@ class QSimController(QWidget):
             case SimImageType.CURL:
                 pixmap = PixmapGen.generate_curl(stacked_data, h, w)
             case SimImageType.STREAM:
-                pixmap = PixmapGen.generate_stream(stacked_data, h, w)
+                pixmap = PixmapGen.generate_stream(stacked_data, h, w, self._streamline_count)
             case SimImageType.VELOCITY_HEAT_STREAM:
-                raise NotImplementedError("Velocity heat stream pixmap not implemented yet")
+                velocity_pixmap = PixmapGen.generate_heatmap(stacked_data, h, w, False)
+                stream_pixmap = PixmapGen.generate_stream(stacked_data, h, w, self._streamline_count)
+                pixmap = PixmapGen.stacked_stream(velocity_pixmap, stream_pixmap)
             case SimImageType.DENSITY_HEAT_STREAM:
-                raise NotImplementedError("Density heat stream pixmap not implemented yet")
+                density_pixmap = PixmapGen.generate_density(stacked_data, h, w, False)
+                stream_pixmap = PixmapGen.generate_stream(stacked_data, h, w, self._streamline_count)
+                pixmap = PixmapGen.stacked_stream(density_pixmap, stream_pixmap)
             case SimImageType.VELOCITY_HEAT_CURL:
-                raise NotImplementedError("Velocity heat curl pixmap not implemented yet")
+                velocity_pixmap = PixmapGen.generate_heatmap(stacked_data, h, w, False)
+                curl_pixmap = PixmapGen.generate_curl(stacked_data, h, w)
+                pixmap = PixmapGen.stacked_curl(velocity_pixmap, curl_pixmap)
             case SimImageType.DENSITY_HEAT_CURL:
-                raise NotImplementedError("Density heat curl pixmap not implemented yet")
+                density_pixmap = PixmapGen.generate_density(stacked_data, h, w, False)
+                curl_pixmap = PixmapGen.generate_curl(stacked_data, h, w)
+                pixmap = PixmapGen.stacked_curl(density_pixmap, curl_pixmap)
+            case SimImageType.NONE:
+                pixmap = QPixmap(w, h)
+                pixmap.fill(Qt.GlobalColor.transparent)
             case _:
                 raise ValueError("Unknown image type")
 
@@ -310,11 +323,17 @@ class QSimController(QWidget):
     @property
     def max_steps(self):
         return self._max_steps
-
     @max_steps.setter
     def max_steps(self, max_steps: int):
         self._max_steps = max_steps
         self._max_soft_steps = int(max_steps * self._max_soft_ratio)
+
+    @property
+    def streamline_count(self):
+        return self._streamline_count
+    @streamline_count.setter
+    def streamline_count(self, count: int):
+        self._streamline_count = count
 
     @Slot(int)
     def set_max_steps(self, max_steps: int):

@@ -5,8 +5,8 @@ from PySide6.QtWidgets import QWidget, QFrame, QHBoxLayout, QVBoxLayout, QLabel,
 
 
 class QDoubleCheckBox(QWidget):
-    leftRequested = Signal()
-    rightRequested = Signal()
+    leftStateChanged = Signal(int)
+    rightStateChanged = Signal(int)
 
     def __init__(self, section_name: str, left_name: str, right_name: str, parent: QWidget | None = None):
         super().__init__(parent)
@@ -60,18 +60,18 @@ class QDoubleCheckBox(QWidget):
         # Connections
         self._left_checkbox.clicked.connect(self._on_left_clicked)
         self._right_checkbox.clicked.connect(self._on_right_clicked)
+        self._left_checkbox.stateChanged.connect(self.leftStateChanged)
+        self._right_checkbox.stateChanged.connect(self.rightStateChanged)
 
     @Slot()
     def _on_left_clicked(self):
         if self._left_checkbox.isChecked():
             self._right_checkbox.setChecked(False)
-            self.leftRequested.emit()
 
     @Slot()
     def _on_right_clicked(self):
         if self._right_checkbox.isChecked():
             self._left_checkbox.setChecked(False)
-            self.rightRequested.emit()
 
     def check_left(self):
         if not self._left_checkbox.isChecked():
@@ -85,8 +85,34 @@ class QDoubleCheckBox(QWidget):
         if self._left_checkbox.isChecked(): self._left_checkbox.click()
         if self._right_checkbox.isChecked(): self._right_checkbox.click()
 
+    @property
+    def left_state(self) -> int:
+        if self._left_checkbox.isChecked():
+            return 1
+        else:
+            return 0
+    @left_state.setter
+    def left_state(self, state: int):
+        if state == 0:
+            self._left_checkbox.setChecked(False)
+        elif state == 1:
+            self._left_checkbox.setChecked(True)
+
+    @property
+    def right_state(self) -> int:
+        if self._right_checkbox.isChecked():
+            return 1
+        else:
+            return 0
+    @right_state.setter
+    def right_state(self, state: int):
+        if state == 0:
+            self._right_checkbox.setChecked(False)
+        elif state == 1:
+            self._right_checkbox.setChecked(True)
+
 class QInfoCheckbox(QWidget):
-    stateChanged = Slot(bool)
+    stateChanged = Signal(int)
 
     def __init__(self, name: str, info: str, parent: QWidget | None = None):
         super().__init__(parent)
@@ -136,3 +162,16 @@ class QInfoCheckbox(QWidget):
         message_box.setWindowTitle("Info")
         message_box.setWindowFlag(Qt.WindowType.FramelessWindowHint)
         message_box.exec()
+
+    @property
+    def state(self) -> int:
+        if self._checkbox.isChecked():
+            return 1
+        else:
+            return 0
+    @state.setter
+    def state(self, state: int):
+        if state == 0:
+            self._checkbox.setChecked(False)
+        elif state == 1:
+            self._checkbox.setChecked(True)

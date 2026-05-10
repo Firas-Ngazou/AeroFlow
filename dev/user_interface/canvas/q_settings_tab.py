@@ -6,11 +6,21 @@ from PySide6.QtWidgets import QWidget, QFrame, QHBoxLayout, QPushButton, QVBoxLa
 from dev.user_interface.components.q_buttons import QSettingsTabPB
 from dev.user_interface.groups.q_slider_groups import QSliderGroup, QRealSliderGroup
 from dev.user_interface.groups.q_checkboxes import QDoubleCheckBox, QInfoCheckbox
+from dev.user_interface.groups.q_save_clear import QSaveClear
 
 
 class QSettingsGeneralTab(QWidget):
     qualityChanged = Signal(float)
     windSpeedChanged = Signal(float)
+    viscosityChanged = Signal(float)
+    liveEditStateChanged = Signal(int)
+    velocityStateChanged = Signal(int)
+    densityStateChanged = Signal(int)
+    streamlinesStateChanged = Signal(int)
+    curlStateChanged = Signal(int)
+    streamlineCountChanged = Signal(int)
+    saveRequested = Signal()
+    clearRequested = Signal()
 
     def __init__(self, parent: QWidget | None = None):
         super().__init__(parent)
@@ -62,9 +72,12 @@ class QSettingsGeneralTab(QWidget):
         # Streamline count
         self._streamline_count = QSliderGroup("ÉCOULEMENT")
         self._streamline_count.minimum = 5
-        self._streamline_count.maximum = 200
+        self._streamline_count.maximum = 80
         self._streamline_count.single_step = 5
         self._streamline_count.default_value = 20
+
+        # Save/Clear buttons
+        self._save_clear = QSaveClear()
 
         # Layouts
         content_widget = QWidget()
@@ -84,6 +97,8 @@ class QSettingsGeneralTab(QWidget):
         content_layout.addWidget(self._other_cb)
         content_layout.addSpacing(10)
         content_layout.addWidget(self._streamline_count)
+        content_layout.addSpacing(10)
+        content_layout.addWidget(self._save_clear)
 
         content_layout.setContentsMargins(0, 0, 0, 0)
         content_layout.addStretch()
@@ -100,6 +115,15 @@ class QSettingsGeneralTab(QWidget):
         # Connections
         self._quality.realValueChanged.connect(self.qualityChanged.emit)
         self._wind_speed.realValueChanged.connect(self.windSpeedChanged.emit)
+        self._viscosity.realValueChanged.connect(self.viscosityChanged.emit)
+        self._live_edit.stateChanged.connect(self.liveEditStateChanged.emit)
+        self._heatmaps_cb.leftStateChanged.connect(self.velocityStateChanged.emit)
+        self._heatmaps_cb.rightStateChanged.connect(self.densityStateChanged.emit)
+        self._other_cb.leftStateChanged.connect(self.streamlinesStateChanged.emit)
+        self._other_cb.rightStateChanged.connect(self.curlStateChanged.emit)
+        self._streamline_count.valueChanged.connect(self.streamlineCountChanged.emit)
+        self._save_clear.saveRequested.connect(self.saveRequested.emit)
+        self._save_clear.clearRequested.connect(self.clearRequested.emit)
 
     @property
     def quality(self) -> float:
@@ -114,6 +138,83 @@ class QSettingsGeneralTab(QWidget):
     @wind_speed.setter
     def wind_speed(self, value: float):
         self._wind_speed.value = value
+
+    @property
+    def viscosity(self) -> float:
+        return self._viscosity.value
+    @viscosity.setter
+    def viscosity(self, value: float):
+        self._viscosity.value = value
+
+    @property
+    def live_edit_state(self) -> int:
+        return self._live_edit.state
+    @live_edit_state.setter
+    def live_edit_state(self, state: int):
+        self._live_edit.state = state
+
+    @property
+    def velocity_state(self) -> int:
+        return self._heatmaps_cb.left_state
+    @velocity_state.setter
+    def velocity_state(self, state: int):
+        self._heatmaps_cb.left_state = state
+
+    @property
+    def density_state(self) -> int:
+        return self._heatmaps_cb.right_state
+    @density_state.setter
+    def density_state(self, state: int):
+        self._heatmaps_cb.right_state = state
+
+    @property
+    def streamlines_state(self) -> int:
+        return self._other_cb.left_state
+    @streamlines_state.setter
+    def streamlines_state(self, state: int):
+        self._other_cb.left_state = state
+
+    @property
+    def curl_state(self) -> int:
+        return self._other_cb.right_state
+    @curl_state.setter
+    def curl_state(self, state: int):
+        self._other_cb.right_state = state
+
+    @property
+    def streamline_count(self) -> int:
+        return self._streamline_count.value
+    @streamline_count.setter
+    def streamline_count(self, value: int):
+        self._streamline_count.value = value
+
+    @property
+    def save_disabled(self) -> bool:
+        return self._save_clear.save_disabled
+    @save_disabled.setter
+    def save_disabled(self, state: bool):
+        self._save_clear.save_disabled = state
+
+    @property
+    def clear_disabled(self) -> bool:
+        return self._save_clear.clear_disabled
+    @clear_disabled.setter
+    def clear_disabled(self, state: bool):
+        self._save_clear.clear_disabled = state
+
+    @property
+    def save_info(self) -> str:
+        return self._save_clear.save_info
+    @save_info.setter
+    def save_info(self, info: str):
+        self._save_clear.save_info = info
+
+    @property
+    def clear_info(self) -> str:
+        return self._save_clear.clear_info
+    @clear_info.setter
+    def clear_info(self, info: str):
+        self._save_clear.clear_info = info
 
 class QSettingsOptimizationTab(QWidget):
     constraintChanged = Signal(str)
@@ -201,8 +302,18 @@ class QSettingsSideBar(QWidget):
     constraintChanged = Signal(str)
     iterationsChanged = Signal(int)
     thresholdChanged = Signal(int)
+
     qualityChanged = Signal(float)
     windSpeedChanged = Signal(float)
+    viscosityChanged = Signal(float)
+    liveEditStateChanged = Signal(int)
+    velocityStateChanged = Signal(int)
+    densityStateChanged = Signal(int)
+    streamlinesStateChanged = Signal(int)
+    curlStateChanged = Signal(int)
+    streamlineCountChanged = Signal(int)
+    saveRequested = Signal()
+    clearRequested = Signal()
 
     def __init__(self, parent: QWidget | None = None):
         super().__init__(parent)
@@ -271,6 +382,16 @@ class QSettingsSideBar(QWidget):
 
         self._general_tab.qualityChanged.connect(self.qualityChanged.emit)
         self._general_tab.windSpeedChanged.connect(self.windSpeedChanged.emit)
+        self._general_tab.viscosityChanged.connect(self.viscosityChanged.emit)
+        self._general_tab.liveEditStateChanged.connect(self.liveEditStateChanged.emit)
+        self._general_tab.velocityStateChanged.connect(self.velocityStateChanged.emit)
+        self._general_tab.densityStateChanged.connect(self.densityStateChanged.emit)
+        self._general_tab.streamlinesStateChanged.connect(self.streamlinesStateChanged.emit)
+        self._general_tab.curlStateChanged.connect(self.curlStateChanged.emit)
+        self._general_tab.streamlineCountChanged.connect(self.streamlineCountChanged.emit)
+        self._general_tab.saveRequested.connect(self.saveRequested.emit)
+        self._general_tab.clearRequested.connect(self.clearRequested.emit)
+
         self._optimization_tab.constraintChanged.connect(self.constraintChanged.emit)
         self._optimization_tab.iterationsChanged.connect(self.iterationsChanged.emit)
         self._optimization_tab.thresholdChanged.connect(self.thresholdChanged.emit)
@@ -324,6 +445,75 @@ class QSettingsSideBar(QWidget):
     @wind_speed.setter
     def wind_speed(self, wind_speed: float):
         self._general_tab.wind_speed = wind_speed
+
+    @property
+    def viscosity(self) -> float:
+        return self._general_tab.viscosity
+    @viscosity.setter
+    def viscosity(self, viscosity: float):
+        self._general_tab.viscosity = viscosity
+
+    @property
+    def live_edit_state(self) -> int:
+        return self._general_tab.live_edit_state
+    @live_edit_state.setter
+    def live_edit_state(self, state: int):
+        self._general_tab.live_edit_state = state
+
+    @property
+    def velocity_state(self) -> int:
+        return self._general_tab.velocity_state
+    @velocity_state.setter
+    def velocity_state(self, state: int):
+        self._general_tab.velocity_state = state
+
+    @property
+    def density_state(self) -> int:
+        return self._general_tab.density_state
+    @density_state.setter
+    def density_state(self, state: int):
+        self._general_tab.density_state = state
+
+    @property
+    def streamlines_state(self) -> int:
+        return self._general_tab.streamlines_state
+    @streamlines_state.setter
+    def streamlines_state(self, state: int):
+        self._general_tab.streamlines_state = state
+
+    @property
+    def curl_state(self) -> int:
+        return self._general_tab.curl_state
+    @curl_state.setter
+    def curl_state(self, state: int):
+        self._general_tab.curl_state = state
+
+    @property
+    def streamline_count(self) -> int:
+        return self._general_tab.streamline_count
+    @streamline_count.setter
+    def streamline_count(self, count: int):
+        self._general_tab.streamline_count = count
+
+    @property
+    def save_disabled(self) -> bool:
+        return self._general_tab.save_disabled
+    @save_disabled.setter
+    def save_disabled(self, state: bool):
+        self._general_tab.save_disabled = state
+
+    @property
+    def clear_disabled(self) -> bool:
+        return self._general_tab.clear_disabled
+    @clear_disabled.setter
+    def clear_disabled(self, state: bool):
+        self._general_tab.clear_disabled = state
+
+    def update_save_info(self, info: str = " - "):
+        self._general_tab.save_info = info
+
+    def update_clear_info(self, info: str = " - "):
+        self._general_tab.clear_info = info
 
     @Slot()
     def _on_tab_changed(self):

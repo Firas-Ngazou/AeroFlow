@@ -7,7 +7,7 @@ from PySide6.QtWidgets import QVBoxLayout, QWidget, QHBoxLayout, QFrame, QLabel
 
 from dev.physics_engine.simulation_engine import SimulationEngine
 from dev.user_interface.analysis.q_analysis_tabs import QAnalysisWidget
-from dev.user_interface.canvas.q_animation_controller import QSimController
+from dev.user_interface.canvas.q_animation_controller import QSimController, SimImageType
 from dev.user_interface.canvas.q_settings_tab import QSettingsSideBar
 from dev.user_interface.floating.q_floating_content import QFloatingWarning
 from dev.physics_engine.vector_obstacle import VectorObstacle
@@ -22,8 +22,19 @@ class ProjectPage(QWidget):
     constraintChanged = Signal(str)
     iterationsChanged = Signal(int)
     thresholdChanged = Signal(int)
+
     qualityChanged = Signal(float)
     windSpeedChanged = Signal(float)
+    viscosityChanged = Signal(float)
+    liveEditStateChanged = Signal(int)
+    velocityStateChanged = Signal(int)
+    densityStateChanged = Signal(int)
+    streamlinesStateChanged = Signal(int)
+    curlStateChanged = Signal(int)
+    streamlineCountChanged = Signal(int)
+
+    jsonSettingsChanged = Signal()
+
     vectorDrawingChanged = Signal()
     saveWarningYesPressed = Signal()
     saveWarningNoPressed = Signal()
@@ -142,8 +153,19 @@ class ProjectPage(QWidget):
         self._settings_side_bar.constraintChanged.connect(self.constraintChanged.emit)
         self._settings_side_bar.iterationsChanged.connect(self.iterationsChanged.emit)
         self._settings_side_bar.thresholdChanged.connect(self.thresholdChanged.emit)
+
         self._settings_side_bar.qualityChanged.connect(self.qualityChanged.emit)
         self._settings_side_bar.windSpeedChanged.connect(self.windSpeedChanged.emit)
+        self._settings_side_bar.viscosityChanged.connect(self._on_viscosity_changed)
+        self._settings_side_bar.velocityStateChanged.connect(self._on_velocity_state_changed)
+        self._settings_side_bar.liveEditStateChanged.connect(self._on_live_edit_state_changed)
+        self._settings_side_bar.densityStateChanged.connect(self._on_density_state_changed)
+        self._settings_side_bar.streamlinesStateChanged.connect(self._on_streamlines_state_changed)
+        self._settings_side_bar.curlStateChanged.connect(self._on_curl_state_changed)
+        self._settings_side_bar.streamlineCountChanged.connect(self._on_streamline_count_changed)
+        self._settings_side_bar.saveRequested.connect(self._on_save_sim_requested)
+        self._settings_side_bar.clearRequested.connect(self._on_clear_sim_requested)
+
         self._tool_bar.playPressed.connect(self._on_play_pressed)
         self._tool_bar.stopPressed.connect(self._on_stop_pressed)
 
@@ -166,6 +188,79 @@ class ProjectPage(QWidget):
         self._save_shortcut.setContext(Qt.ShortcutContext.WindowShortcut)
 
         self._save_shortcut.activated.connect(self._on_save_project)
+
+    @Slot(float)
+    def _on_viscosity_changed(self, value: float):
+        self.viscosityChanged.emit(value)
+        self._simulation_engine.viscosity = value
+
+    @Slot(int)
+    def _on_live_edit_state_changed(self, state: int):
+        self.liveEditStateChanged.emit(state)
+        self.jsonSettingsChanged.emit()
+
+    @Slot(int)
+    def _on_velocity_state_changed(self, state: int):
+        self.velocityStateChanged.emit(state)
+        self.jsonSettingsChanged.emit()
+        self._update_image_type()
+
+    @Slot(int)
+    def _on_density_state_changed(self, state: int):
+        self.densityStateChanged.emit(state)
+        self.jsonSettingsChanged.emit()
+        self._update_image_type()
+
+    @Slot(int)
+    def _on_streamlines_state_changed(self, state: int):
+        self.streamlinesStateChanged.emit(state)
+        self.jsonSettingsChanged.emit()
+        self._update_image_type()
+
+    @Slot(int)
+    def _on_curl_state_changed(self, state: int):
+        self.curlStateChanged.emit(state)
+        self.jsonSettingsChanged.emit()
+        self._update_image_type()
+
+    @Slot(int)
+    def _on_streamline_count_changed(self, count: int):
+        self.streamlineCountChanged.emit(count)
+        self.jsonSettingsChanged.emit()
+        self._sim_controller.streamline_count = count
+
+    @Slot()
+    def _on_save_sim_requested(self):
+        self._settings_side_bar.save_disabled = True
+        self._settings_side_bar.update_save_info("100MB")
+        self._settings_side_bar.clear_disabled = False
+        self._settings_side_bar.update_clear_info()
+
+    @Slot()
+    def _on_clear_sim_requested(self):
+        self._settings_side_bar.save_disabled = False
+        self._settings_side_bar.update_save_info()
+        self._settings_side_bar.clear_disabled = True
+        self._settings_side_bar.update_clear_info("100MB")
+
+    def _update_image_type(self):
+        velocity = self._settings_side_bar.velocity_state == 1
+        density = self._settings_side_bar.density_state == 1
+        stream = self._settings_side_bar.streamlines_state == 1
+        curl = self._settings_side_bar.curl_state == 1
+
+        if velocity:
+            if stream: self._sim_controller.image_type = SimImageType.VELOCITY_HEAT_STREAM
+            elif curl: self._sim_controller.image_type = SimImageType.VELOCITY_HEAT_CURL
+            else: self._sim_controller.image_type = SimImageType.VELOCITY_HEAT
+            return
+        elif density:
+            if stream: self._sim_controller.image_type = SimImageType.DENSITY_HEAT_STREAM
+            elif curl: self._sim_controller.image_type = SimImageType.DENSITY_HEAT_CURL
+            else: self._sim_controller.image_type = SimImageType.DENSITY_HEAT
+        elif stream: self._sim_controller.image_type = SimImageType.STREAM
+        elif curl: self._sim_controller.image_type = SimImageType.CURL
+        else: self._sim_controller.image_type = SimImageType.NONE
 
     @Slot()
     def _on_play_pressed(self):
@@ -241,6 +336,12 @@ class ProjectPage(QWidget):
         project_description = str(today_date)
 
         saved_data["Project_description"] = project_description
+        saved_data["Live_edit_state"] = self._settings_side_bar.live_edit_state
+        saved_data["Velocity_state"] = self._settings_side_bar.velocity_state
+        saved_data["Density_state"] = self._settings_side_bar.density_state
+        saved_data["Streamlines_state"] = self._settings_side_bar.streamlines_state
+        saved_data["Curl_state"] = self._settings_side_bar.curl_state
+        saved_data["Streamline_count"] = self._settings_side_bar.streamline_count
 
         self.saveProject.emit(saved_data)
 
@@ -415,6 +516,10 @@ class ProjectPage(QWidget):
         self._settings_side_bar.wind_speed = wind_speed
 
     @property
+    def viscosity(self) -> float:
+        return self._settings_side_bar.viscosity
+
+    @property
     def allocation(self):
         return self._allocation
 
@@ -426,3 +531,59 @@ class ProjectPage(QWidget):
     @Slot(int)
     def set_allocation(self, allocation: int):
         self.allocation = allocation
+
+    @property
+    def viscosity(self) -> float:
+        return self._settings_side_bar.viscosity
+    @viscosity.setter
+    def viscosity(self, viscosity: float):
+        self._settings_side_bar.viscosity = viscosity
+
+    #region States properties
+    @property
+    def live_edit_state(self) -> int:
+        return self._settings_side_bar.live_edit_state
+    @live_edit_state.setter
+    def live_edit_state(self, state: int):
+        self._settings_side_bar.live_edit_state = state
+        self._update_image_type()
+
+    @property
+    def velocity_state(self) -> int:
+        return self._settings_side_bar.velocity_state
+    @velocity_state.setter
+    def velocity_state(self, state: int):
+        self._settings_side_bar.velocity_state = state
+        self._update_image_type()
+
+    @property
+    def density_state(self) -> int:
+        return self._settings_side_bar.density_state
+    @density_state.setter
+    def density_state(self, state: int):
+        self._settings_side_bar.density_state = state
+        self._update_image_type()
+
+    @property
+    def streamlines_state(self) -> int:
+        return self._settings_side_bar.streamlines_state
+    @streamlines_state.setter
+    def streamlines_state(self, state: int):
+        self._settings_side_bar.streamlines_state = state
+        self._update_image_type()
+
+    @property
+    def curl_state(self) -> int:
+        return self._settings_side_bar.curl_state
+    @curl_state.setter
+    def curl_state(self, state: int):
+        self._settings_side_bar.curl_state = state
+        self._update_image_type()
+    #endregion
+
+    @property
+    def streamline_count(self) -> int:
+        return self._settings_side_bar.streamline_count
+    @streamline_count.setter
+    def streamline_count(self, count: int):
+        self._settings_side_bar.streamline_count = count
