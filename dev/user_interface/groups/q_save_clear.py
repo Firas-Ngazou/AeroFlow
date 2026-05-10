@@ -34,8 +34,8 @@ class QSaveClear(QWidget):
         self._layout.setContentsMargins(0, 0, 0, 0)
 
         # Connections
-        self._save_button.pressed.connect(self.saveRequested.emit)
-        self._clear_button.pressed.connect(self.clearRequested.emit)
+        self._save_button.clicked.connect(self.saveRequested.emit)
+        self._clear_button.clicked.connect(self.clearRequested.emit)
 
     @property
     def clear_disabled(self):

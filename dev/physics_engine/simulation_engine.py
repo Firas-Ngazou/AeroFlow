@@ -16,6 +16,7 @@ class SimulationEngine(QObject):
     maxStepUpdated = Signal(int)
     dragCoefUpdated = Signal(float)
     liftCoefUpdated = Signal(float)
+    finished = Signal()
 
     def __init__(self, parent: QObject | None = None):
         super().__init__(parent)
@@ -92,6 +93,8 @@ class SimulationEngine(QObject):
             self._grid.update_macroscopic()
             self.__apply_collision()
             self.__end_current_frame()
+
+        self.finished.emit()
 
     def _evaluate_max_steps(self):
         width = self._resolution_x

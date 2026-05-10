@@ -1,3 +1,4 @@
+import os
 from datetime import datetime
 from enum import Enum
 import h5py
@@ -38,13 +39,14 @@ class QSimController(QWidget):
         self._canvas_width = 1920
         self._reduction_factor = 1.0
         self._streamline_count = 10
+        self._save_requested = False
 
         # Data
         self._max_soft_steps = 600
         self._max_soft_ratio = 0.6
         self._max_steps = 1000
         self._sim_data = {}
-        self._image_type = SimImageType.STREAM # Curl ???
+        self._image_type = SimImageType.VELOCITY_HEAT_STREAM # Curl ???
 
         # Layout
         self._primary_frame = QFrame()
@@ -104,6 +106,7 @@ class QSimController(QWidget):
         # h5py
         self._h5py_file = None
         self._dataset = None
+        self._h5_path = "sim_data.h5"
 
         # I/O threads
         self._lock = threading.Lock()
@@ -239,7 +242,7 @@ class QSimController(QWidget):
         with self._lock:
             optimal_chunk = (1, width, height, 4)
 
-            self._h5py_file = h5py.File("sim_cache.h5", "w")
+            self._h5py_file = h5py.File(self._h5_path, "w")
             self._dataset = self._h5py_file.create_dataset("sim_data", (self._max_steps + 1, width, height, 4),
                                                            maxshape=(None, width, height, 4),
                                                            dtype=np.float32,
@@ -340,6 +343,7 @@ class QSimController(QWidget):
         self.max_steps = max_steps
 
     def reset(self):
+        if not self.h5_exists: return
         self._slider.setValue(1)
         self._update_label(0)
         self._control_button.setChecked(False)
@@ -352,9 +356,37 @@ class QSimController(QWidget):
         with self._io_read_queue.mutex:
             self._io_read_queue.queue.clear()
 
+        if self._save_requested: return
         with self._lock:
             if self._h5py_file is not None:
                 self._h5py_file.close()
 
             self._h5py_file = None
             self._dataset = None
+
+        os.remove(self._h5_path)
+
+    def request_save(self):
+        if self._h5py_file is None: return
+        self.save_requested = True
+
+    def request_clear(self):
+        self.save_requested = False
+        self.reset()
+
+    @property
+    def save_requested(self) -> bool:
+        return self._save_requested
+    @save_requested.setter
+    def save_requested(self, value: bool):
+        self._save_requested = value
+
+    @property
+    def h5_size(self) -> int:
+        if self._h5py_file is None: return 0
+        size = os.path.getsize(self._h5_path)
+        return size
+
+    @property
+    def h5_exists(self) -> bool:
+        return os.path.exists(self._h5_path)

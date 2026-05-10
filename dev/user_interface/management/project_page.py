@@ -78,6 +78,7 @@ class ProjectPage(QWidget):
         self._simulation_engine.maxStepUpdated.connect(self._sim_controller.set_max_steps)
         self._simulation_engine.dragCoefUpdated.connect(lambda y: self._analysis_tab.set_drag_coef_value(f"{y:.2f}"))
         self._simulation_engine.liftCoefUpdated.connect(lambda y: self._analysis_tab.set_lift_coef_value(f"{y:.2f}"))
+        # self._simulation_engine.finished.connect(self._on_sim_finished)
         self.runSimulation.connect(self._simulation_engine.run)
 
         self._sim_thread.start()
@@ -105,6 +106,10 @@ class ProjectPage(QWidget):
 
         self._tool_bar = QToolBar(self._state_manager)
         self._settings_side_bar = QSettingsSideBar()
+
+        # if self._sim_controller.h5_exists:
+        #     self._settings_side_bar.clear_disabled = False
+        #     self._settings_side_bar.update_clear_info(f"{self._sim_controller.h5_size/1000000000:.1f}GB")
 
         self._lower_layout = QHBoxLayout()
         self._lower_layout.addWidget(self._tool_bar, alignment=Qt.AlignmentFlag.AlignHCenter)
@@ -163,15 +168,15 @@ class ProjectPage(QWidget):
         self._settings_side_bar.streamlinesStateChanged.connect(self._on_streamlines_state_changed)
         self._settings_side_bar.curlStateChanged.connect(self._on_curl_state_changed)
         self._settings_side_bar.streamlineCountChanged.connect(self._on_streamline_count_changed)
-        self._settings_side_bar.saveRequested.connect(self._on_save_sim_requested)
-        self._settings_side_bar.clearRequested.connect(self._on_clear_sim_requested)
+        # self._settings_side_bar.saveRequested.connect(self._on_save_sim_requested)
+        # self._settings_side_bar.clearRequested.connect(self._on_clear_sim_requested)
 
         self._tool_bar.playPressed.connect(self._on_play_pressed)
-        self._tool_bar.stopPressed.connect(self._on_stop_pressed)
+        self._tool_bar.stopPressed.connect(self.on_stop_pressed)
 
         self._sim_controller.showPixmapRequested.connect(self._editor.display_pixmap)
 
-        self._editor.vectorDrawingChanged.connect(self.vectorDrawingChanged.emit)
+        self._editor.vectorDrawingChanged.connect(self._on_vector_drawing_changed)
 
         self._state_manager.cursorStateChanged.connect(self._editor.switch_cursor)
         self._state_manager.cursorStateChanged.connect(self._tool_bar.update_cursor_state)
@@ -188,6 +193,22 @@ class ProjectPage(QWidget):
         self._save_shortcut.setContext(Qt.ShortcutContext.WindowShortcut)
 
         self._save_shortcut.activated.connect(self._on_save_project)
+
+    @Slot()
+    def _on_vector_drawing_changed(self):
+        # self._force_reset_sim()
+        self.vectorDrawingChanged.emit()
+
+    # def _force_reset_sim(self):
+    #     self._sim_controller.save_requested = False
+    #     self._sim_controller.request_clear()
+    #     self._settings_side_bar.save_disabled = True
+    #     self._settings_side_bar.clear_disabled = True
+
+    # @Slot()
+    # def _on_sim_finished(self):
+    #     self._settings_side_bar.save_disabled = False
+    #     self._settings_side_bar.update_save_info(f"{self._sim_controller.h5_size/1000000000:.1f}GB")
 
     @Slot(float)
     def _on_viscosity_changed(self, value: float):
@@ -229,19 +250,21 @@ class ProjectPage(QWidget):
         self.jsonSettingsChanged.emit()
         self._sim_controller.streamline_count = count
 
-    @Slot()
-    def _on_save_sim_requested(self):
-        self._settings_side_bar.save_disabled = True
-        self._settings_side_bar.update_save_info("100MB")
-        self._settings_side_bar.clear_disabled = False
-        self._settings_side_bar.update_clear_info()
+    # @Slot()
+    # def _on_save_sim_requested(self):
+    #     self._settings_side_bar.save_disabled = True
+    #     self._sim_controller.request_save()
+    #     self._settings_side_bar.update_save_info()
+    #     self._settings_side_bar.clear_disabled = False
+    #     self._settings_side_bar.update_clear_info(f"{self._sim_controller.h5_size/1000000000:.1f}GB")
 
     @Slot()
-    def _on_clear_sim_requested(self):
-        self._settings_side_bar.save_disabled = False
-        self._settings_side_bar.update_save_info()
-        self._settings_side_bar.clear_disabled = True
-        self._settings_side_bar.update_clear_info("100MB")
+    # def _on_clear_sim_requested(self):
+    #     self._settings_side_bar.save_disabled = True
+    #     self._sim_controller.request_clear()
+    #     self._settings_side_bar.update_save_info()
+    #     self._settings_side_bar.clear_disabled = True
+    #     self._settings_side_bar.update_clear_info()
 
     def _update_image_type(self):
         velocity = self._settings_side_bar.velocity_state == 1
@@ -284,13 +307,14 @@ class ProjectPage(QWidget):
         self.window().setFixedSize(width, height)
 
     @Slot()
-    def _on_stop_pressed(self):
+    def on_stop_pressed(self):
         self._sim_controller.hide()
         self._state_manager.set_cursor_state(QStateManager.CursorState.DEFAULT)
 
-        self._sim_thread.requestInterruption()
-        self._sim_thread.quit()
-        self._sim_thread.wait()
+        if self._sim_thread.isRunning():
+            self._sim_thread.requestInterruption()
+            self._sim_thread.quit()
+            self._sim_thread.wait()
 
         self._sim_controller.reset()
         self._editor.display_pixmap()
@@ -299,6 +323,11 @@ class ProjectPage(QWidget):
         self.window().setMinimumHeight(self._minimum_window_height)
         self.window().setMaximumWidth(self._maximum_window_width)
         self.window().setMaximumHeight(self._maximum_window_height)
+
+        self._settings_side_bar.update_save_info()
+        self._settings_side_bar.update_clear_info()
+        self._settings_side_bar.save_disabled = True
+        self._settings_side_bar.clear_disabled = True
 
     @Slot(int)
     def _on_sim_progressed(self, progress: int):

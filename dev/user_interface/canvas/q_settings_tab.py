@@ -77,7 +77,7 @@ class QSettingsGeneralTab(QWidget):
         self._streamline_count.default_value = 20
 
         # Save/Clear buttons
-        self._save_clear = QSaveClear()
+        # self._save_clear = QSaveClear()
 
         # Layouts
         content_widget = QWidget()
@@ -98,7 +98,7 @@ class QSettingsGeneralTab(QWidget):
         content_layout.addSpacing(10)
         content_layout.addWidget(self._streamline_count)
         content_layout.addSpacing(10)
-        content_layout.addWidget(self._save_clear)
+        # content_layout.addWidget(self._save_clear)
 
         content_layout.setContentsMargins(0, 0, 0, 0)
         content_layout.addStretch()
@@ -122,8 +122,8 @@ class QSettingsGeneralTab(QWidget):
         self._other_cb.leftStateChanged.connect(self.streamlinesStateChanged.emit)
         self._other_cb.rightStateChanged.connect(self.curlStateChanged.emit)
         self._streamline_count.valueChanged.connect(self.streamlineCountChanged.emit)
-        self._save_clear.saveRequested.connect(self.saveRequested.emit)
-        self._save_clear.clearRequested.connect(self.clearRequested.emit)
+        # self._save_clear.saveRequested.connect(self.saveRequested.emit)
+        # self._save_clear.clearRequested.connect(self.clearRequested.emit)
 
     @property
     def quality(self) -> float:
@@ -188,33 +188,33 @@ class QSettingsGeneralTab(QWidget):
     def streamline_count(self, value: int):
         self._streamline_count.value = value
 
-    @property
-    def save_disabled(self) -> bool:
-        return self._save_clear.save_disabled
-    @save_disabled.setter
-    def save_disabled(self, state: bool):
-        self._save_clear.save_disabled = state
+    # @property
+    # def save_disabled(self) -> bool:
+    #     return self._save_clear.save_disabled
+    # @save_disabled.setter
+    # def save_disabled(self, state: bool):
+    #     self._save_clear.save_disabled = state
 
-    @property
-    def clear_disabled(self) -> bool:
-        return self._save_clear.clear_disabled
-    @clear_disabled.setter
-    def clear_disabled(self, state: bool):
-        self._save_clear.clear_disabled = state
+    # @property
+    # def clear_disabled(self) -> bool:
+    #     return self._save_clear.clear_disabled
+    # @clear_disabled.setter
+    # def clear_disabled(self, state: bool):
+    #     self._save_clear.clear_disabled = state
 
-    @property
-    def save_info(self) -> str:
-        return self._save_clear.save_info
-    @save_info.setter
-    def save_info(self, info: str):
-        self._save_clear.save_info = info
+    # @property
+    # def save_info(self) -> str:
+    #     return self._save_clear.save_info
+    # @save_info.setter
+    # def save_info(self, info: str):
+    #     self._save_clear.save_info = info
 
-    @property
-    def clear_info(self) -> str:
-        return self._save_clear.clear_info
-    @clear_info.setter
-    def clear_info(self, info: str):
-        self._save_clear.clear_info = info
+    # @property
+    # def clear_info(self) -> str:
+    #     return self._save_clear.clear_info
+    # @clear_info.setter
+    # def clear_info(self, info: str):
+    #     self._save_clear.clear_info = info
 
 class QSettingsOptimizationTab(QWidget):
     constraintChanged = Signal(str)

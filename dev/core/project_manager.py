@@ -190,6 +190,7 @@ class ProjectManager(QObject):
 
         :raises None: This method does not raise any exceptions.
         """
+        self._current_project.on_stop_pressed()
         if self._project_state is ProjectState.SAVED: self._project_title_bar.window().close()
         elif self._was_modified: self._current_project.set_warning_visible(True)
         else: self._project_title_bar.window().close()

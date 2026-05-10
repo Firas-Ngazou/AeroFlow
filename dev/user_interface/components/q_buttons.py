@@ -78,6 +78,7 @@ class QSpecialSettingPB(QWidget):
     :type pressed: Signal
     """
     pressed = Signal(bool)
+    clicked = Signal()
     def __init__(self, text: str, checkable = True, parent: QWidget | None = None):
         """
         Custom QWidget subclass that creates a styled button within a container layout.
@@ -117,6 +118,7 @@ class QSpecialSettingPB(QWidget):
         root_layout.setContentsMargins(0, 0, 0, 0)
 
         self._button.pressed.connect(lambda: self.pressed.emit(not self._button.isChecked()))
+        self._button.clicked.connect(lambda: self.clicked.emit())
 
     def click(self):
         self._button.click()
