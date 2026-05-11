@@ -2,7 +2,8 @@ import sys
 
 from PySide6.QtCore import Qt, Signal, QPoint
 from PySide6.QtGui import QFont, QShowEvent, QHideEvent
-from PySide6.QtWidgets import QWidget, QHBoxLayout, QLabel, QSlider, QApplication, QMainWindow, QVBoxLayout
+from PySide6.QtWidgets import QWidget, QHBoxLayout, QLabel, QSlider, QApplication, QMainWindow, QVBoxLayout, QLineEdit, \
+    QMenu, QFrame
 
 from dev.user_interface.floating.q_floating_widget import QFloatingWidget
 from dev.user_interface.components.q_buttons import QFloatingSettingPB

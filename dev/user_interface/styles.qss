@@ -12,6 +12,18 @@ QPushButton[class="reset_pb"]:pressed{
     background-color: #FFAEAE;
 }
 
+QPushButton[class="delete_pb"]{
+    background-color: #FF8E8E;
+    color: #1D1D1D;
+    border-radius: 8px;
+}
+QPushButton[class="delete_pb"]:hover{
+    background-color: #FF9999;
+}
+QPushButton[class="delete_pb"]:pressed{
+    background-color: #FFAEAE;
+}
+
 QPushButton[class="settings_tab_pb"]{
     background-color: #F5F5F5;
     color: #1D1D1D;
@@ -172,6 +184,20 @@ QPushButton[class="cancel_pb"]:hover{
 }
 QPushButton[class="cancel_pb"]:pressed{
     background-color: #4a4a4a;
+}
+
+QPushButton[class="shape_settings_pb"]{
+    background-color: #F5F5F5;
+    color: #1D1D1D;
+    padding-left: 15px;
+    padding-right: 15px;
+    border-radius: 8px;
+}
+QPushButton[class="shape_settings_pb"]:hover{
+    background-color: #e0e0e0;
+}
+QPushButton[class="shape_settings_pb"]:pressed{
+    background-color: #c0c0c0;
 }
 
 QPushButton[class="titlebar_settings_pb"]{

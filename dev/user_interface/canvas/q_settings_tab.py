@@ -105,6 +105,7 @@ class QSettingsGeneralTab(QWidget):
 
         scroll_area = QScrollArea()
         scroll_area.setWidgetResizable(True)
+        scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         scroll_area.setFrameShape(QFrame.Shape.NoFrame)
         scroll_area.setWidget(content_widget)
 
@@ -143,42 +144,42 @@ class QSettingsGeneralTab(QWidget):
     def viscosity(self) -> float:
         return self._viscosity.value
     @viscosity.setter
-    def viscosity(self, value: float):
+    def viscosity(self, value: float) -> None:
         self._viscosity.value = value
 
     @property
     def live_edit_state(self) -> int:
         return self._live_edit.state
     @live_edit_state.setter
-    def live_edit_state(self, state: int):
+    def live_edit_state(self, state: int) -> None:
         self._live_edit.state = state
 
     @property
     def velocity_state(self) -> int:
         return self._heatmaps_cb.left_state
     @velocity_state.setter
-    def velocity_state(self, state: int):
+    def velocity_state(self, state: int) -> None:
         self._heatmaps_cb.left_state = state
 
     @property
     def density_state(self) -> int:
         return self._heatmaps_cb.right_state
     @density_state.setter
-    def density_state(self, state: int):
+    def density_state(self, state: int) -> None:
         self._heatmaps_cb.right_state = state
 
     @property
     def streamlines_state(self) -> int:
         return self._other_cb.left_state
     @streamlines_state.setter
-    def streamlines_state(self, state: int):
+    def streamlines_state(self, state: int) -> None:
         self._other_cb.left_state = state
 
     @property
     def curl_state(self) -> int:
         return self._other_cb.right_state
     @curl_state.setter
-    def curl_state(self, state: int):
+    def curl_state(self, state: int) -> None:
         self._other_cb.right_state = state
 
     @property
@@ -281,21 +282,21 @@ class QSettingsOptimizationTab(QWidget):
     def constraint_method(self) -> str:
         return self._combo_box.currentText()
     @constraint_method.setter
-    def constraint_method(self, constraint: str):
+    def constraint_method(self, constraint: str) -> None:
         self._combo_box.setCurrentText(constraint)
 
     @property
     def threshold(self) -> int:
         return self._threshold_setting.value
     @threshold.setter
-    def threshold(self, threshold: int):
+    def threshold(self, threshold: int) -> None:
         self._threshold_setting.set_value(threshold)
 
     @property
     def iterations(self) -> int:
         return self._iterations_setting.value
     @iterations.setter
-    def iterations(self, iterations: int):
+    def iterations(self, iterations: int) -> None:
         self._iterations_setting.set_value(iterations)
 
 class QSettingsSideBar(QWidget):
@@ -321,7 +322,7 @@ class QSettingsSideBar(QWidget):
         # Setup
         self._current_tab = 0
 
-        self._height = 900
+        self._height = 800
         self._primary_frame = QFrame()
         self._primary_frame.setProperty("class", "primary_frame")
 
@@ -407,7 +408,7 @@ class QSettingsSideBar(QWidget):
         self.is_collapsed = True
 
     def resizeEvent(self, event):
-        self._height = self.window().height() - 200
+        self._height = self.window().height() - 300
         self._side_button.setFixedHeight(self._height)
         self._full_frame.setFixedHeight(self._height)
 
@@ -415,21 +416,21 @@ class QSettingsSideBar(QWidget):
     def constraint_method(self) -> str:
         return self._optimization_tab.constraint_method
     @constraint_method.setter
-    def constraint_method(self, constraint: str):
+    def constraint_method(self, constraint: str) -> None:
         self._optimization_tab.constraint_method = constraint
 
     @property
     def threshold(self) -> int:
         return self._optimization_tab.threshold
     @threshold.setter
-    def threshold(self, threshold: int):
+    def threshold(self, threshold: int) -> None:
         self._optimization_tab.threshold = threshold
 
     @property
     def iterations(self) -> int:
         return self._optimization_tab.iterations
     @iterations.setter
-    def iterations(self, iterations: int):
+    def iterations(self, iterations: int) -> None:
         self._optimization_tab.iterations = iterations
 
     @property
@@ -450,42 +451,42 @@ class QSettingsSideBar(QWidget):
     def viscosity(self) -> float:
         return self._general_tab.viscosity
     @viscosity.setter
-    def viscosity(self, viscosity: float):
+    def viscosity(self, viscosity: float) -> None:
         self._general_tab.viscosity = viscosity
 
     @property
     def live_edit_state(self) -> int:
         return self._general_tab.live_edit_state
     @live_edit_state.setter
-    def live_edit_state(self, state: int):
+    def live_edit_state(self, state: int) -> None:
         self._general_tab.live_edit_state = state
 
     @property
     def velocity_state(self) -> int:
         return self._general_tab.velocity_state
     @velocity_state.setter
-    def velocity_state(self, state: int):
+    def velocity_state(self, state: int) -> None:
         self._general_tab.velocity_state = state
 
     @property
     def density_state(self) -> int:
         return self._general_tab.density_state
     @density_state.setter
-    def density_state(self, state: int):
+    def density_state(self, state: int) -> None:
         self._general_tab.density_state = state
 
     @property
     def streamlines_state(self) -> int:
         return self._general_tab.streamlines_state
     @streamlines_state.setter
-    def streamlines_state(self, state: int):
+    def streamlines_state(self, state: int) -> None:
         self._general_tab.streamlines_state = state
 
     @property
     def curl_state(self) -> int:
         return self._general_tab.curl_state
     @curl_state.setter
-    def curl_state(self, state: int):
+    def curl_state(self, state: int) -> None:
         self._general_tab.curl_state = state
 
     @property

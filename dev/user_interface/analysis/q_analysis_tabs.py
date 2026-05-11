@@ -76,7 +76,7 @@ class QResultField(QWidget):
         return self._result_value.text()
 
     @result_value.setter
-    def result_value(self, value: str):
+    def result_value(self, value: str) -> None:
         self._result_value.setText(value)
 
 class QAnalysisTab(QWidget):
@@ -197,7 +197,7 @@ class QResultAnalysis(QAnalysisTab):
         return self._drag_coef_field.result_value
 
     @drag_coef_field_value.setter
-    def drag_coef_field_value(self, value: str):
+    def drag_coef_field_value(self, value: str) -> None:
         self._drag_coef_field.result_value = value
 
     @property
@@ -205,7 +205,7 @@ class QResultAnalysis(QAnalysisTab):
         return self._lift_coef_field.result_value
 
     @lift_coef_field_value.setter
-    def lift_coef_field_value(self, value: str):
+    def lift_coef_field_value(self, value: str) -> None:
         self._lift_coef_field.result_value = value
 
 class QAnalysisWidget(QFloatingWidget):
@@ -261,7 +261,7 @@ class QAnalysisWidget(QFloatingWidget):
         return self._progress_bar.fill_percentage
 
     @simulation_progress.setter
-    def simulation_progress(self, value: int):
+    def simulation_progress(self, value: int) -> None:
         self._progress_bar.fill_percentage = value
 
     @property
@@ -269,11 +269,11 @@ class QAnalysisWidget(QFloatingWidget):
         return self._info_label.text()
 
     @simulation_info_label.setter
-    def simulation_info_label(self, value: str):
+    def simulation_info_label(self, value: str) -> None:
         self._info_label.setText(value)
 
     @Slot(str)
-    def set_sim_info_label(self, value: str):
+    def set_sim_info_label(self, value: str) -> None:
         self.simulation_info_label = value
 
     @property
@@ -281,11 +281,11 @@ class QAnalysisWidget(QFloatingWidget):
         return self._results_tab.drag_coef_field_value
 
     @drag_coef_value.setter
-    def drag_coef_value(self, value: str):
+    def drag_coef_value(self, value: str) -> None:
         self._results_tab.drag_coef_field_value = value
 
     @Slot(str)
-    def set_drag_coef_value(self, value: str):
+    def set_drag_coef_value(self, value: str) -> None:
         self.drag_coef_value = value
 
     @property
@@ -293,9 +293,9 @@ class QAnalysisWidget(QFloatingWidget):
         return self._results_tab.lift_coef_field_value
 
     @lift_coef_value.setter
-    def lift_coef_value(self, value: str):
+    def lift_coef_value(self, value: str) -> None:
         self._results_tab.lift_coef_field_value = value
 
     @Slot(str)
-    def set_lift_coef_value(self, value: str):
+    def set_lift_coef_value(self, value: str) -> None:
         self.lift_coef_value = value
