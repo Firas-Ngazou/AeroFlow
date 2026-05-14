@@ -1,4 +1,5 @@
 import numpy as np
+import math
 # from xfoil import XFoil
 import aerosandbox as asb
 
@@ -26,18 +27,31 @@ class GeneticAlgorithm():
         self._estimated_lift = self.__result["CL"]
 
 
-
-
-
-
     def __generate_mutation(self, parent: VectorObstacle) -> VectorObstacle:
         ...
     
     def __evaluate_fitness(self) -> float:
         return 1/self._estimated_drag
 
-    def __verify_distance(self) -> bool:
-        ...
+    def __verify_distance(self, vertices: np.ndarray) -> bool:
+        x = []
+        y = []
+        # mask_under = vertices < ...
+
+
+        # Get coords
+        for i in range(len(vertices)):
+            for j in range(len(vertices[i])):
+                if vertices[i][j] == 1:
+                    x.append(i)
+                    y.append(j)
+
+        max_norm = math.sqrt(x^2 + y^2) #?
+
+
+        
+        
+
 
     def __verify_area(self, mask: np.ndarray) -> bool:
         if not self.constraint_method == "SURFACE":
