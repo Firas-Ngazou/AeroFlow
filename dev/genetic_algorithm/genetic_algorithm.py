@@ -13,9 +13,11 @@ class GeneticAlgorithm():
         self._tolerance_margin: float
         self._constraint_method: str
 
+        self._obstacle : VectorObstacle
 
-        self._current_vertices : np.ndarray
-        self.__shape = asb.Airfoil("Shape", coordinates= self._current_vertices)
+
+    def optimize(self) -> dict:
+        self.__shape = asb.Airfoil("Shape", coordinates= ...)
 
         self.__xf = asb.XFoil(airfoil = self.__shape)
         self.__result = self.__xf.alpha(0)
@@ -24,30 +26,44 @@ class GeneticAlgorithm():
         self._estimated_lift = self.__result["CL"]
 
 
-    def optimize(self, initial_shape: VectorObstacle, engine: SimulationEngine) -> dict:
-        ...
+
+
+
 
     def __generate_mutation(self, parent: VectorObstacle) -> VectorObstacle:
         ...
     
-    def __evaluate_fitness(self, condidate: VectorObstacle, engine: SimulationEngine) -> float:
+    def __evaluate_fitness(self) -> float:
         return 1/self._estimated_drag
 
-    def __verify_distance(self, original: VectorObstacle, candidate: VectorObstacle) -> bool:
+    def __verify_distance(self) -> bool:
         ...
 
-    def __verify_area(self, original: VectorObstacle, candidate: VectorObstacle) -> bool:
-        ...
+    def __verify_area(self, mask: np.ndarray) -> bool:
+        if not self.constraint_method == "SURFACE":
+            return True
+        
+        count_old = np.count_nonzero(self.obstacle.binary_mask.astype(np.int8))
+        count = np.count_nonzero(mask.astype(np.int8))
+        max_diff = self.tolerance_margin*count_old
+
+        left = count_old - max_diff
+        right = count_old + max_diff
+
+        if left < count < right:
+            return True
+        
+        return False
     
-    def calculate_aerodynamic_gain(self, initial_cd: float, optimized_cd: float) -> float:
+    def calculate_aerodynamic_gain(self) -> float:
         ...
 
     @property
-    def current_vertices(self):
-        return self._current_vertices
-    @current_vertices.setter
-    def current_vertices(self, vertices):
-        self._current_vertices = vertices
+    def obstacle(self):
+        return self._obstacle
+    @obstacle.setter
+    def obstacle(self, obstacle: VectorObstacle):
+        self._obstacle = obstacle
 
 
     @property
@@ -72,3 +88,5 @@ class GeneticAlgorithm():
     @constraint_method.setter
     def constraint_method(self, constraint_method):
         self._constraint_method = constraint_method
+
+    
