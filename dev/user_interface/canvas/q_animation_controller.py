@@ -110,7 +110,10 @@ class QSimController(QWidget):
         # h5py
         self._h5py_file = None
         self._dataset = None
-        self._h5_path = "sim_data.h5"
+
+        base_path = os.path.dirname(os.path.abspath(__file__))
+        save_path = os.path.join(base_path, "../../../tmp_files/sim_data.h5")
+        self._h5_path = save_path
 
         # I/O threads
         self._lock = threading.Lock()

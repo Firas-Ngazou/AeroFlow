@@ -104,7 +104,7 @@ class QPrefabScroll(QWidget):
         self._save_path: str | None = None
 
         base_path = os.path.dirname(os.path.abspath(__file__))
-        save_path = os.path.join(base_path, "../../shape_prefabs.json")
+        save_path = os.path.join(base_path, "../../../tmp_files/shape_prefabs.json")
 
         if os.path.exists(save_path):
             self._save_path = save_path
