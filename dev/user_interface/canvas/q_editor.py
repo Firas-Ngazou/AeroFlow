@@ -886,6 +886,10 @@ class Shape:
         """
         return self._status
 
+    @property
+    def vertices_nd(self) -> np.ndarray:
+        return self._vertices_nd
+
 
 class QEditor(QWidget):
     """
@@ -1576,3 +1580,5 @@ class QEditor(QWidget):
     def display_pixmap(self, pixmap: QPixmap | None = None):
         self._to_display = pixmap
         self.update()
+
+    
