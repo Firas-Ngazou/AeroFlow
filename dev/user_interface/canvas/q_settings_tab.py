@@ -25,6 +25,9 @@ class QSettingsGeneralTab(QWidget):
     def __init__(self, parent: QWidget | None = None):
         super().__init__(parent)
 
+        # Setup
+        self._sim_playing = False
+
         # Resolution
         self._quality = QRealSliderGroup("QUALITY")
 
@@ -189,6 +192,16 @@ class QSettingsGeneralTab(QWidget):
     def streamline_count(self, value: int):
         self._streamline_count.value = value
 
+    @property
+    def sim_playing(self) -> bool:
+        return self._sim_playing
+    @sim_playing.setter
+    def sim_playing(self, value: bool):
+        self._wind_speed.setDisabled(value)
+        self._live_edit.setDisabled(value)
+        self._viscosity.setDisabled(value)
+        self._sim_playing = value
+
     # @property
     # def save_disabled(self) -> bool:
     #     return self._save_clear.save_disabled
@@ -224,6 +237,9 @@ class QSettingsOptimizationTab(QWidget):
 
     def __init__(self, parent: QWidget | None = None):
         super().__init__(parent)
+
+        # Setup
+        self._sim_playing = False
 
         # Constraint method
         # Title
@@ -299,6 +315,16 @@ class QSettingsOptimizationTab(QWidget):
     def iterations(self, iterations: int) -> None:
         self._iterations_setting.set_value(iterations)
 
+    @property
+    def sim_playing(self) -> bool:
+        return self._sim_playing
+    @sim_playing.setter
+    def sim_playing(self, value: bool) -> None:
+        self._iterations_setting.setDisabled(value)
+        self._combo_box.setDisabled(value)
+        self._threshold_setting.setDisabled(value)
+        self._sim_playing = value
+
 class QSettingsSideBar(QWidget):
     constraintChanged = Signal(str)
     iterationsChanged = Signal(int)
@@ -344,6 +370,7 @@ class QSettingsSideBar(QWidget):
         self._full_frame.setMaximumWidth(self._collapsed_width)
 
         self._is_collapsed = True
+        self._sim_playing = False
 
         # Side button
         self._open_icon = QIcon(":/res/left_arrow_icon_black.png")
@@ -579,3 +606,12 @@ class QSettingsSideBar(QWidget):
     def _on_animation_finished(self):
         if self._is_collapsed:
             self._primary_frame.hide()
+
+    @property
+    def sim_playing(self):
+        return self._sim_playing
+    @sim_playing.setter
+    def sim_playing(self, value: bool):
+        self._general_tab.sim_playing = value
+        self._optimization_tab.sim_playing = value
+        self._sim_playing = value

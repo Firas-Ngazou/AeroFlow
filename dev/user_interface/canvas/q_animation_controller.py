@@ -40,6 +40,7 @@ class QSimController(QWidget):
         self._reduction_factor = 1.0
         self._streamline_count = 10
         self._save_requested = False
+        self._live_edit = False
 
         # Data
         self._max_soft_steps = 600
@@ -60,6 +61,7 @@ class QSimController(QWidget):
         self._control_button.setProperty("class", "controller_pb")
         self._play_icon = QIcon(":/res/play_icon_black.png")
         self._pause_icon = QIcon(":/res/pause_icon_black.png")
+        self._live_icon = QIcon(":/res/circle_icon_red.png")
         self._control_button.setIcon(self._play_icon)
         self._control_button.setFixedSize(26, 26)
 
@@ -124,8 +126,6 @@ class QSimController(QWidget):
             step, data = self._io_write_queue.get()
             with self._lock:
                 if self._dataset is not None:
-                    # if self._dataset.shape[0] <= step:
-                        # self._dataset.resize(step + 1, axis=0)
                     self._dataset[step] = data
 
             self._io_write_queue.task_done()
@@ -147,7 +147,6 @@ class QSimController(QWidget):
             self._io_read_queue.task_done()
 
     @Slot(int)
-    @Slot(int)
     def _on_slider_value_changed(self, value: int) -> None:
         self._update_label(value)
         self._update_sim_data()
@@ -163,7 +162,6 @@ class QSimController(QWidget):
         self._label.setText(f"{minutes:02d}:{seconds:02d}")
 
     @Slot()
-    @Slot()
     def _on_control_button_pressed(self) -> None:
         if self._control_button.isChecked():
             # Pause requested
@@ -172,7 +170,8 @@ class QSimController(QWidget):
             self._update_fps = False
         else:
             # Play requested
-            self._control_button.setIcon(self._pause_icon)
+            if self._live_edit: self._control_button.setIcon(self._live_icon)
+            else: self._control_button.setIcon(self._pause_icon)
             self._timer.start(1000 // self._fps)
             self._update_fps = True
 
@@ -183,10 +182,11 @@ class QSimController(QWidget):
 
         _, _, _, mask = np.unstack(stacked_data, axis=-1)
 
-        if self._h5py_file is None:
+        if not self._live_edit and self._h5py_file is None:
             self._initiate_cache(mask.shape[0], mask.shape[1])
 
         self._sim_data[step] = [stacked_data]
+
         self._slider.setMaximum(step)
 
     @Slot()
@@ -195,7 +195,8 @@ class QSimController(QWidget):
         step = self._slider.value()
         if step not in self._sim_data: return
 
-        if self._control_button.isChecked(): self._slider.setValue(step + 1)
+        if self._control_button.isChecked() and not self._live_edit: self._slider.setValue(step + 1)
+        elif self._control_button.isChecked() and self._live_edit: self._slider.setValue(self._slider.maximum())
 
         stacked_data = self._sim_data[step][0]
 
@@ -392,3 +393,11 @@ class QSimController(QWidget):
     @property
     def h5_exists(self) -> bool:
         return os.path.exists(self._h5_path)
+
+    @property
+    def live_edit(self):
+        return self._live_edit
+    @live_edit.setter
+    def live_edit(self, value: bool) -> None:
+        self._live_edit = value
+        self._slider.setDisabled(value)

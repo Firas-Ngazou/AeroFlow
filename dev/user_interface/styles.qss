@@ -85,6 +85,7 @@ QPushButton[class="controller_pb"]:hover{
 QPushButton[class="controller_pb"]:pressed{
     background-color: #c0c0c0;
 }
+
 QPushButton[class="open_pb"]{
     background-color: #F5F5F5;
     color: #1D1D1D;

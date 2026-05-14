@@ -105,7 +105,6 @@ class QToolBar(QWidget):
 
         :param state: The new cursor state.
         """
-        print(state)
         if state == QStateManager.CursorState.LOCKED:
             self._default_button.setEnabled(False)
             self._pen_button.setEnabled(False)
