@@ -1,4 +1,3 @@
-import glob
 import json
 import cv2
 import os
@@ -561,3 +560,13 @@ class ProjectManager(QObject):
         allocation = self._ini_config.getint("General", "memory_allocation")
 
         self._home_page.allocation_value = allocation
+
+    @property
+    def current_project( self ) -> ProjectPage | None:
+        return self._current_project
+    @current_project.setter
+    def current_project( self , project: ProjectPage | None):
+        if self._current_project:
+            self._current_project.deleteLater()
+
+        self._current_project = project

@@ -48,17 +48,8 @@ class AeroFlow:
         self._window = FramelessWindow()
         self._window.resize(1920, 1080)
 
-        self._home_page_title_bar = TitleBar(self._window)
-        self._home_page_title_bar.hide()
-        self._home_page_title_bar.minBtn.setNormalColor(QColor("#F5F5F5"))
-        self._home_page_title_bar.maxBtn.setNormalColor(QColor("#F5F5F5"))
-        self._home_page_title_bar.closeBtn.setNormalColor(QColor("#F5F5F5"))
-        self._home_page_title_bar.minBtn.setHoverColor(QColor("#F5F5F5"))
-        self._home_page_title_bar.maxBtn.setHoverColor(QColor("#F5F5F5"))
-
-        self._project_page_title_bar = QCustomTitleBar(self._window)
-        self._project_page_title_bar.icon = QIcon(":/res/app_logo.png")
-        self._project_page_title_bar.hide()
+        self._home_page_title_bar: TitleBar | None = None
+        self._project_page_title_bar: TitleBar | None = None
 
         self._stack = QStackedWidget(self._window)
 
@@ -78,8 +69,6 @@ class AeroFlow:
         self._home_page.projectSelected.connect(self._on_project_selected)
         self._home_page.changedAllocation.connect(lambda y: self._project_manager.save_ini_number(
             "General", "memory_allocation", y))
-        self._project_page_title_bar.closeBtn.clicked.disconnect(self._project_page_title_bar.window().close)
-        self._project_page_title_bar.newFileRequested.connect(self.__show_project_page)
 
         self.__show_home_page()
         self._window.move(800, 200)
@@ -88,6 +77,29 @@ class AeroFlow:
         if splash_screen:
             splash_screen.finish(self._window)
 
+    def _make_new_home_tbar( self ):
+        # if self._home_page_title_bar is not None:
+        #     self._home_page_title_bar.deleteLater()
+
+        self._home_page_title_bar = TitleBar(self._window)
+        self._home_page_title_bar.hide()
+        self._home_page_title_bar.minBtn.setNormalColor(QColor("#F5F5F5"))
+        self._home_page_title_bar.maxBtn.setNormalColor(QColor("#F5F5F5"))
+        self._home_page_title_bar.closeBtn.setNormalColor(QColor("#F5F5F5"))
+        self._home_page_title_bar.minBtn.setHoverColor(QColor("#F5F5F5"))
+        self._home_page_title_bar.maxBtn.setHoverColor(QColor("#F5F5F5"))
+
+    def _make_new_project_tbar( self ):
+        # if self._project_page_title_bar is not None:
+        #     self._project_page_title_bar.deleteLater()
+
+        self._project_page_title_bar = QCustomTitleBar(self._window)
+        self._project_page_title_bar.hide()
+        self._project_page_title_bar.icon = QIcon(":/res/app_logo.png")
+        self._project_page_title_bar.closeBtn.clicked.disconnect(self._project_page_title_bar.window().close)
+        self._project_page_title_bar.newFileRequested.connect(self.__show_project_page)
+        self._project_page_title_bar.homePageRequested.connect(self.__show_home_page)
+
     def __show_home_page(self) -> None:
         """
         Shows the home page of the application by setting the relevant
@@ -95,12 +107,18 @@ class AeroFlow:
 
         :return: None
         """
+        if self._project_page is not None:
+            self._project_page.deleteLater()
+            self._project_page = None
+
         self._project_manager.current_project = None
 
         self._home_page.show()
 
+        self._make_new_home_tbar()
         self._window.setTitleBar(self._home_page_title_bar)
         self._home_page_title_bar.show()
+        self._home_page_title_bar.resize(self._window.width(), 32)
 
         self._stack.setCurrentWidget(self._home_page)
 
@@ -121,6 +139,7 @@ class AeroFlow:
             self._project_page.deleteLater()
 
         if self._window.titleBar is not self._project_page_title_bar:
+            self._make_new_project_tbar()
             self._window.setTitleBar(self._project_page_title_bar)
 
         self._project_page_title_bar.file_name = "Untitled.json"

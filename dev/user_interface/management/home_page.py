@@ -217,6 +217,17 @@ class HomePage(QWidget):
         :type project_path: str
         :return: None
         """
+        duplicate_preview = None
+        for i in range(self._scroll_content_layout.count()):
+            if (self._scroll_content_layout.itemAt(i).widget().project_path == project_path):
+                duplicate_preview = self._scroll_content_layout.itemAt(i).widget()
+                break
+
+        if duplicate_preview is not None:
+            self._scroll_content_layout.removeWidget(duplicate_preview)
+            duplicate_preview.deleteLater()
+            self._rearrange()
+
         project_preview = QProjectPreview(project_path)
         self._scroll_content_layout.addWidget(project_preview, self._current_row, self._current_column)
 

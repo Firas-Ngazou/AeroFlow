@@ -128,3 +128,7 @@ class QProjectPreview(QWidget):
 
         self._header.setText(f"{header}")
         self._description.setText(f"{description}")
+
+    @property
+    def project_path( self ) -> str:
+        return self._path

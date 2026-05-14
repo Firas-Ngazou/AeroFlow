@@ -171,6 +171,7 @@ class QCustomTitleBar(TitleBar):
     deleteRequested = Signal()
     simulationChanged = Signal(str)
     analysisPressed = Signal(bool)
+    homePageRequested = Signal()
 
     def __init__(self, parent: QWidget | None = None) -> None:
         """
@@ -194,7 +195,9 @@ class QCustomTitleBar(TitleBar):
         self.maxBtn.setPressedColor(QColor("#F5F5F5"))
 
         # Application icon
-        self._icon_label = QLabel()
+        self._icon_pb = QPushButton()
+        self._icon_pb.setProperty("class", "titlebar_settings_pb")
+        self._icon_pb.setFixedSize(32, 32)
 
         # File settings & edit settings & view settings
         self._file_menu = QFileMenu(self)
@@ -218,7 +221,7 @@ class QCustomTitleBar(TitleBar):
 
         # Layout
         self.hBoxLayout.insertSpacing(0, 10)
-        self.hBoxLayout.insertWidget(1, self._icon_label, 0, alignment=Qt.AlignmentFlag.AlignLeft)
+        self.hBoxLayout.insertWidget(1, self._icon_pb, 0, alignment=Qt.AlignmentFlag.AlignLeft)
         self.hBoxLayout.insertSpacing(2, 10)
         self.hBoxLayout.insertWidget(3, self._file_name, 0, alignment=Qt.AlignmentFlag.AlignLeft)
         self.hBoxLayout.insertSpacing(4, 10)
@@ -248,6 +251,7 @@ class QCustomTitleBar(TitleBar):
         self._edit_menu.deleteRequested.connect(self.deleteRequested.emit)
         # self._view_menu.simulationChanged.connect(self.simulationChanged.emit)
         self._analysis_button.pressed.connect(lambda y: self.analysisPressed.emit(y))
+        self._icon_pb.clicked.connect(self.homePageRequested.emit)
 
     def click_analysis(self):
         self._analysis_button.click()
@@ -257,7 +261,8 @@ class QCustomTitleBar(TitleBar):
         return
     @icon.setter
     def icon(self, icon: QIcon):
-        self._icon_label.setPixmap(icon.pixmap(32, 32))
+        scaled = icon.pixmap(32, 32)
+        self._icon_pb.setIcon(scaled)
 
     @property
     def is_analysis_checked(self):
