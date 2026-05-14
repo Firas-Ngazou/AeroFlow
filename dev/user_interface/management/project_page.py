@@ -211,6 +211,8 @@ class ProjectPage(QWidget):
         self._tool_bar.instanceRequested.connect(self._editor.add_shape)
 
         self._sim_controller.showPixmapRequested.connect(self._editor.display_pixmap)
+        self._sim_controller.pauseRequested.connect(self._on_sim_pause_requested)
+        self._sim_controller.resumeRequested.connect(self._on_sim_resume_requested)
 
         self._editor.vectorDrawingChanged.connect(self._on_vector_drawing_changed)
         self._editor.saveShapeRequested.connect(self._on_save_shape_requested)
@@ -231,6 +233,14 @@ class ProjectPage(QWidget):
 
         self._save_shortcut.activated.connect(self._on_save_project)
 
+    @Slot()
+    def _on_sim_pause_requested(self):
+        self._simulation_engine.pause_requested = True
+
+    @Slot()
+    def _on_sim_resume_requested(self):
+        self._simulation_engine.pause_requested = False
+
     @Slot(dict)
     def _on_save_shape_requested(self, data: dict) -> None:
         if "Name" in data and "Vertices" in data and "Preview" in data:
@@ -244,6 +254,9 @@ class ProjectPage(QWidget):
         """
         # self._force_reset_sim()
         self.vectorDrawingChanged.emit()
+        if self._simulation_engine.live_edit:
+            updated_vertices = self._editor.get_vertices()
+            self._simulation_engine.vertices = updated_vertices
 
     # def _force_reset_sim(self):
     #     self._sim_controller.save_requested = False
@@ -271,6 +284,8 @@ class ProjectPage(QWidget):
         """
         self.liveEditStateChanged.emit(state)
         self._sim_controller.live_edit = state == 2
+        self._simulation_engine.live_edit = state == 2
+        self._tool_bar.live_edit = state == 2
         self.jsonSettingsChanged.emit()
 
     @Slot(int)

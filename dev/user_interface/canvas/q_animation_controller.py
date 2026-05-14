@@ -27,6 +27,8 @@ class SimImageType(Enum):
 class QSimController(QWidget):
     showPixmapRequested = Signal(QPixmap)
     stepLoadedFromDisk = Signal(int, np.ndarray)
+    pauseRequested = Signal()
+    resumeRequested = Signal()
 
     def __init__(self, parent: QWidget | None = None):
         super().__init__(parent)
@@ -155,6 +157,10 @@ class QSimController(QWidget):
             self._send_sim_pixmap()
 
     def _update_label(self, value: int) -> None:
+        if self._live_edit:
+            self._label.setText("Live")
+            return
+
         total_seconds = value // self._fps
         minutes = total_seconds // 60
         seconds = total_seconds % 60
@@ -168,17 +174,20 @@ class QSimController(QWidget):
             self._control_button.setIcon(self._play_icon)
             self._timer.stop()
             self._update_fps = False
+            self.pauseRequested.emit()
         else:
             # Play requested
             if self._live_edit: self._control_button.setIcon(self._live_icon)
             else: self._control_button.setIcon(self._pause_icon)
             self._timer.start(1000 // self._fps)
             self._update_fps = True
+            self.resumeRequested.emit()
 
     @Slot(list)
     def add_sim_data(self, data: list) -> None:
         stacked_data = data[0]
         step = data[1]
+        if self._live_edit: step = -1
 
         _, _, _, mask = np.unstack(stacked_data, axis=-1)
 
@@ -346,7 +355,6 @@ class QSimController(QWidget):
         self.max_steps = max_steps
 
     def reset(self) -> None:
-        if not self.h5_exists: return
         self._slider.setValue(1)
         self._update_label(0)
         self._control_button.setChecked(False)
@@ -359,7 +367,8 @@ class QSimController(QWidget):
         with self._io_read_queue.mutex:
             self._io_read_queue.queue.clear()
 
-        if self._save_requested: return
+        if self._save_requested or not self.h5_exists: return
+
         with self._lock:
             if self._h5py_file is not None:
                 self._h5py_file.close()

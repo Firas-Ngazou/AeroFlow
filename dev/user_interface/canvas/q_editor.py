@@ -964,7 +964,6 @@ class QEditor(QWidget):
             painter.drawPixmap(0, 0, self._cached_grid)
 
         self._draw_shapes(painter)
-        self._draw_selection_rects(painter)
 
         if self._to_display is not None:
             resized = self._to_display.scaled(self.width(), self.height())
@@ -974,6 +973,7 @@ class QEditor(QWidget):
             to_disp_painter.end()
             painter.drawPixmap(0, 0, resized)
 
+        self._draw_selection_rects(painter)
         painter.end()
 
     def resizeEvent(self, event: QResizeEvent) -> None:

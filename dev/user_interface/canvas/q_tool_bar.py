@@ -46,6 +46,7 @@ class QToolBar(QWidget):
         primary_frame.setFixedWidth(255)
         primary_layout = QHBoxLayout(primary_frame)
         primary_layout.setContentsMargins(5, 5, 5, 5)
+        self._live_edit = False
 
         # default button
         default_icon = QIcon(":/res/cursor_icon_black.png")
@@ -105,7 +106,7 @@ class QToolBar(QWidget):
 
         :param state: The new cursor state.
         """
-        if state == QStateManager.CursorState.LOCKED:
+        if state == QStateManager.CursorState.LOCKED and not self.live_edit:
             self._default_button.setEnabled(False)
             self._pen_button.setEnabled(False)
             self._prefabs_button.setEnabled(False)
@@ -192,3 +193,10 @@ class QToolBar(QWidget):
 
     def add_prefab_to_scroll(self, data: dict) -> None:
         self._prefab_scroll.add_prefab(data)
+
+    @property
+    def live_edit(self) -> bool:
+        return self._live_edit
+    @live_edit.setter
+    def live_edit(self, value: bool) -> None:
+        self._live_edit = value
