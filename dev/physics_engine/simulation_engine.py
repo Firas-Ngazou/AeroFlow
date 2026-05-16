@@ -281,7 +281,7 @@ class SimulationEngine(QObject):
         """
         mask_y = np.where(obstacle_mask)[1]
         if len(mask_y) > 0:
-            area = int(np.max(mask_y)) - int(np.min(mask_y) + 1)
+            area = int(np.max(mask_y)) - int(np.min(mask_y)) + 1
         else:
             return 0.0
         if self._u_ref == 0:
@@ -428,8 +428,8 @@ class SimulationEngine(QObject):
 
         stacked_data = np.stack((macro_velocity_x, macro_velocity_y, macro_density, obstacle_mask), axis=-1)
 
-        drag_coef = self._calculate_drag_coef()
-        lift_coef = self._calculate_lift_coef()
+        drag_coef = self._calculate_drag_coef(obstacle_mask)
+        lift_coef = self._calculate_lift_coef(obstacle_mask)
         data = [stacked_data, self._current_step]
 
         self.iterationCompleted.emit(data)
@@ -660,6 +660,8 @@ class SimulationEngine(QObject):
         """
         # viscosity = (1/3) * (tau - 0.5)
         # tau = (viscosity * 3) + 0.5
+        if viscosity <= 0.0035:
+            raise ValueError("Viscosity must be greater than 0.0035 for numerical stability")
         self._tau = (viscosity * 3) + 0.5
 
     @property

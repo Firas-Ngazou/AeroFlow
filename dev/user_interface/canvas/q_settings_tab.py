@@ -47,10 +47,11 @@ class QSettingsGeneralTab(QWidget):
 
         # Viscosity
         self._viscosity = QRealSliderGroup("VISCOSITÉ")
-        self._viscosity.minimum = 0.52
-        self._viscosity.maximum = 2.0
-        self._viscosity.single_step = 0.02
-        self._viscosity.default_value = 0.8
+        self._viscosity.decimals = 4
+        self._viscosity.minimum = 0.0040
+        self._viscosity.maximum = 10.0
+        self._viscosity.single_step = 0.005
+        self._viscosity.default_value = 0.005
 
         # Live-edit
         self._live_edit = QInfoCheckbox("LIVE-EDIT",
