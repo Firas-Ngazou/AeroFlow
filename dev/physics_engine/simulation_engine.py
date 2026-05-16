@@ -10,6 +10,32 @@ from dev.physics_engine.lattice_grid import LatticeGrid, D2Q9Constants
 from dev.physics_engine.vector_obstacle import  VectorObstacle
 
 class SimulationEngine(QObject):
+    """
+    Manages the execution of a Lattice Boltzmann Method (LBM)-based simulation, including
+    velocity and density initialization, obstacle handling, and iterative computations.
+
+    This class establishes a simulation engine for fluid dynamics using the LBM. It
+    handles grid setup, macroscopic variable updates, runtime settings like live editing,
+    and signal-based communication of progress or results. - Generated using OpenAI's GPT-5.5
+
+    :ivar progressUpdated: Signal emitted to notify progress updates, transmitting
+        an integer indicating the progress percentage.
+    :type progressUpdated: Signal[int]
+    :ivar statusMessageUpdated: Signal emitted to notify status or error messages during
+        execution, carrying a string message.
+    :type statusMessageUpdated: Signal[str]
+    :ivar iterationCompleted: Signal emitted after the completion of each iteration step,
+        carrying a list of values for key metrics or data.
+    :type iterationCompleted: Signal[list]
+    :ivar maxStepUpdated: Signal emitted to communicate an updated maximum step count.
+    :type maxStepUpdated: Signal[int]
+    :ivar dragCoefUpdated: Signal emitted to notify an updated drag coefficient value.
+    :type dragCoefUpdated: Signal[float]
+    :ivar liftCoefUpdated: Signal emitted to notify an updated lift coefficient value.
+    :type liftCoefUpdated: Signal[float]
+    :ivar finished: Signal emitted when the simulation execution completes.
+    :type finished: Signal
+    """
     progressUpdated = Signal(int)
     statusMessageUpdated = Signal(str)
     iterationCompleted = Signal(list)
@@ -19,6 +45,12 @@ class SimulationEngine(QObject):
     finished = Signal()
 
     def __init__(self, parent: QObject | None = None):
+        """
+        Initializes a new instance of the class. - Generated using OpenAI's GPT-5.5
+
+        :param parent: The parent object for the current instance, which can be of
+            type QObject or None. It is used to maintain ownership hierarchy.
+        """
         super().__init__(parent)
         self._grid: LatticeGrid | None = None
         self._obstacle = VectorObstacle()
@@ -51,6 +83,15 @@ class SimulationEngine(QObject):
         self._previous_obstacle_mask: np.ndarray | None = None
 
     def run(self, data: list[float | int]):
+        """
+        Executes the main pipeline for initializing and processing data relevant to boltzmann
+        velocity and obstacle configuration. - Generated using OpenAI's GPT-5.5
+
+        :param data: A list containing numerical values:
+                     - `data[0]` represents the initial velocity (float or int).
+                     - `data[1]` represents the initial resolution (float or int).
+        :return: None
+        """
         initial_velocity = data[0]
         initial_res = data[1]
 
@@ -66,10 +107,35 @@ class SimulationEngine(QObject):
         self._execute_time_step()
 
     def _get_boltzmann_v(self, initial_velocity: float):
+        """
+        Calculates the Boltzmann velocity for a given initial velocity.
+
+        This method computes the velocity using the Boltzmann factor, which is
+        derived from the Boltzmann constant, the room temperature, and the
+        mass of an air particle. It divides the input initial velocity by the
+        calculated factor to determine the result. - Generated using OpenAI's GPT-5.5
+
+        :param initial_velocity: The initial velocity value to be used in the
+            calculation.
+        :type initial_velocity: float
+        :return: The calculated Boltzmann velocity based on the initial velocity.
+        :rtype: float
+        """
         factor = math.sqrt(2 * self._boltzmann_k * self._room_temperature / self._air_particle_mass)
         return initial_velocity / factor
 
     def _initialize(self, initial_velocity: float):
+        """
+        Initializes the lattice grid with the provided initial velocity.
+
+        This method configures the lattice grid with default macro quantities, distribution
+        functions, and applies the obstacle mask to the grid. The equilibrium distribution
+        function is computed and assigned to initialize the grid distributions. - Generated using OpenAI's GPT-5.5
+
+        :param initial_velocity: The initial velocity to be set for the macro velocity
+                                 in the X direction across the lattice grid.
+        :type initial_velocity: float
+        """
         self._grid = LatticeGrid(self._resolution_x, self._resolution_y)
         self._grid.macro_velocity_x[:, :] = initial_velocity
         self._grid.macro_density[:, :] = 1.0
@@ -91,6 +157,13 @@ class SimulationEngine(QObject):
         self._grid.macro_density[obstacle_mask] = 0.0
 
     def _execute_time_step(self):
+        """
+        Executes simulation steps iteratively until a specified maximum step count is reached or an
+        interruption request is detected. The method handles live editing, obstacle updates,
+        and manages grid updates during the simulation's runtime. - Generated using OpenAI's GPT-5.5
+
+        :raises RuntimeError: If the execution encounters an unrecoverable error.
+        """
         i = 0
 
         while i < self._max_step:
@@ -116,6 +189,16 @@ class SimulationEngine(QObject):
         self.finished.emit()
 
     def _evaluate_max_steps(self):
+        """
+        Calculates the maximum number of steps that can be performed given the current
+        resolution and memory allocation. This computation assesses the memory usage
+        for density and velocity fields, as well as the memory required per step,
+        to ensure that the allocation remains within safe limits. - Generated using OpenAI's GPT-5.5
+
+        :return: The estimated maximum number of steps that can be executed without
+            exceeding the safe memory allocation.
+        :rtype: int
+        """
         width = self._resolution_x
         height = self._resolution_y
 
@@ -136,6 +219,19 @@ class SimulationEngine(QObject):
         return estimation
 
     def _calculate_drag_coef(self, obstacle_mask: np.ndarray):
+        """
+        Calculates the drag coefficient based on the current drag force, reference density,
+        reference velocity, and the effective area derived from the obstacle mask. - Generated using OpenAI's GPT-5.5
+
+        The drag coefficient is computed using the formula:
+            C_D = F_D / ((1/2) * rho_ref * U^2 * D)
+
+        :param obstacle_mask: An array representing the mask of the obstacle, used to calculate
+                              the effective area.
+        :type obstacle_mask: numpy.ndarray
+        :return: The computed drag coefficient. If the effective area is zero, it returns 0.0.
+        :rtype: float
+        """
         # C_D = F_D / ((1/2) * rho_ref * U^2 * D)
         area = self._coef_initial_checks(obstacle_mask)
         if area == 0:
@@ -145,6 +241,22 @@ class SimulationEngine(QObject):
         return coef
 
     def _calculate_lift_coef(self, obstacle_mask: np.ndarray):
+        """
+        Calculates the lift coefficient for the given obstacle mask. The lift coefficient (C_L)
+        is determined using the formula:
+
+        C_L = F_L / ((1/2) * rho_ref * U^2 * D)
+
+        where F_L is the current lift force, rho_ref is the reference density, U is the
+        reference velocity, and D is the relevant area associated with the obstacle mask.
+        If the calculated area is zero, a lift coefficient of 0.0 is returned. - Generated using OpenAI's GPT-5.5
+
+        :param obstacle_mask: A 2D numpy array representing the obstacle mask
+                              used in the calculation of the lift coefficient.
+        :type obstacle_mask: numpy.ndarray
+        :return: The calculated lift coefficient. Returns 0.0 if the area is zero.
+        :rtype: float
+        """
         # C_L = F_L / ((1/2) * rho_ref * U^2 * D)
         area = self._coef_initial_checks(obstacle_mask)
         if area == 0:
@@ -154,6 +266,19 @@ class SimulationEngine(QObject):
         return coef
 
     def _coef_initial_checks(self, obstacle_mask: np.ndarray):
+        """
+        Performs initial coefficient checks based on the given obstacle mask. This method
+        determines the area of the obstacle mask along the y-axis and uses it to calculate
+        a value, which is used in further processing. Returns 0.0 if no valid area can be
+        computed or certain conditions are not met. - Generated using OpenAI's GPT-5.5
+
+        :param obstacle_mask: A 2D array representing the obstacle mask, where nonzero values
+            indicate the presence of obstacles.
+        :type obstacle_mask: np.ndarray
+        :return: The calculated area coefficient as a float, or 0.0 if computation is not
+            possible.
+        :rtype: float
+        """
         mask_y = np.where(obstacle_mask)[1]
         if len(mask_y) > 0:
             area = int(np.max(mask_y)) - int(np.min(mask_y) + 1)
@@ -165,6 +290,14 @@ class SimulationEngine(QObject):
         return area
 
     def __apply_streaming(self):
+        """
+        Applies the streaming step in a lattice Boltzmann method simulation. This function updates
+        the particle distribution functions, macrovelocity, and macrodensity at the boundaries
+        of the simulation grid based on predefined constants and equilibrium distribution.
+        - Generated using OpenAI's GPT-5.5
+
+        :return: None
+        """
         new_f = np.zeros_like(self._grid.distributions)
         for i in range(9):
             new_f[:, :, i] = np.roll(self._grid.distributions[:, :, i],
@@ -194,7 +327,14 @@ class SimulationEngine(QObject):
 
     def __apply_collision(self, obstacle_mask: np.ndarray) -> None:
         """
-        Applies the collision step of the LBM using BGK relaxation. - Generated by OpenAI's GPT 5.5
+        Applies collision dynamics to update the distributions of the grid based on
+        the relaxation factor and equilibrium distribution function while excluding
+        cells marked by the obstacle mask. - Generated using OpenAI's GPT-5.5
+
+        :param obstacle_mask: A boolean array indicating cells to exclude during
+            collision processing. True values represent cells that are obstacles.
+        :return: This method does not return any value. Modifies the grid distributions
+            in place.
         """
         # on trouve les valeurs de f_eq pour chaque distribution
         f_eq = self._get_f_eq()
@@ -210,7 +350,19 @@ class SimulationEngine(QObject):
 
     def __apply_boundaries(self, obstacle_mask: np.ndarray) -> None:
         """
-        Applies boundary conditions (bounce-back) and calculates forces. - Generated by OpenAI's GPT 5.5
+        Applies boundary conditions for the given obstacle mask by updating particle
+        distributions and calculating drag and lift forces.
+
+        The method updates the distributions of particles in the grid based on the
+        provided boundary conditions defined by the obstacle mask. Additionally, it
+        computes the drag and lift forces acting on the system by summing the
+        momentum contributions of particles interacting with the obstacles. - Generated using OpenAI's GPT-5.5
+
+        :param obstacle_mask: A boolean mask defining the position of obstacles
+            in the grid. True values indicate the presence of obstacles.
+        :type obstacle_mask: np.ndarray
+        :return: This method does not return any value.
+        :rtype: None
         """
         temp_distributions = np.copy(self._grid.distributions)
 
@@ -232,9 +384,16 @@ class SimulationEngine(QObject):
 
     def _get_f_eq(self) -> np.ndarray:
         """
-        Calculates the equilibrium distribution function. - Generated by OpenAI's GPT 5.5
+        Computes the equilibrium distribution function for the current state of the grid.
 
-        :return: The calculated equilibrium distribution.
+        This method loops through all discrete velocity directions and computes the
+        equilibrium distribution values based on the macroscopic velocity and density
+        fields of the grid, using the appropriate weights and constants associated
+        with the employed lattice Boltzmann model. - Generated using OpenAI's GPT-5.5
+
+        :return: A numpy array representing the equilibrium distribution function
+            computed for all grid points and velocity directions.
+        :rtype: np.ndarray
         """
         f_eq = np.zeros_like(self._grid.distributions)
         last_term = (self._grid.macro_velocity_x ** 2 +
@@ -250,7 +409,12 @@ class SimulationEngine(QObject):
 
     def __end_current_frame(self, obstacle_mask: np.ndarray) -> None:
         """
-        Finalizes the current simulation step and emits relevant data. - Generated by OpenAI's GPT 5.5
+        Ends the processing of the current simulation frame, updates the simulation progress, triggers relevant events,
+        and prepares the output data for emission. - Generated using OpenAI's GPT-5.5
+
+        :param obstacle_mask: A numpy array representing the obstacle mask for the current frame
+            in the simulated grid.
+        :return: None
         """
         self._current_step += 1
 
@@ -274,7 +438,11 @@ class SimulationEngine(QObject):
 
     def __update_status_message(self) -> None:
         """
-        Updates the status message with an estimate of the remaining time. - Generated by OpenAI's GPT 5.5
+        Updates the status message with the computed time remaining for the process to complete.
+        The time remaining is calculated based on the average time per step and the number
+        of remaining steps. - Generated using OpenAI's GPT-5.5
+
+        :return: None
         """
         self._frame_end_time = datetime.now()
         delta_time = self._frame_end_time - self._frame_start_time
@@ -287,7 +455,14 @@ class SimulationEngine(QObject):
 
     def reset(self) -> None:
         """
-        Resets the simulation engine state. - Generated by OpenAI's GPT 5.5
+        Resets the state of the object to its initial configuration.
+
+        Resets various internal attributes to their default initial values, including
+        step count, timing-related variables, and internal state variables. Emits multiple
+        signals to inform any observers about the reset activity, setting drag and lift
+        coefficients, progress updates, and status message updates. - Generated using OpenAI's GPT-5.5
+
+        :return: None
         """
         self._grid = None
         self._current_step = 0
@@ -302,13 +477,33 @@ class SimulationEngine(QObject):
 
     def set_reduction_factor(self, factor: float) -> None:
         """
-        Sets the reduction factor for the obstacle. - Generated by OpenAI's GPT 5.5
+        Sets the reduction factor for an obstacle.
 
-        :param factor: The reduction factor to set.
+        The reduction factor is used to adjust the behavior of the obstacle
+        by modifying certain properties based on the provided factor. - Generated using OpenAI's GPT-5.5
+
+        :param factor: A floating-point value that defines the new reduction
+            factor for the obstacle.
+        :return: None
         """
         self._obstacle.reduction_factor = factor
 
     def _apply_live_obstacle_changes(self):
+        """
+        Updates the obstacle mask based on any live changes in the obstacles and adjusts
+        the grid properties for cells that have changed state.
+
+        The function performs the following operations:
+        1. Detects cells that have transitioned from solid to air and vice versa.
+        2. Updates macroscopic velocity and density for the affected cells.
+        3. Adjusts equilibrium and distribution values for the grid where necessary.
+        - Generated using OpenAI's GPT-5.5
+
+        :param self: Reference to the current instance of the class.
+
+        :return: Updated binary obstacle mask.
+        :rtype: numpy.ndarray
+        """
         obstacle_mask = self._obstacle.binary_mask.copy()
 
         if self._previous_obstacle_mask is None:
@@ -345,67 +540,123 @@ class SimulationEngine(QObject):
     @property
     def vertices(self) -> np.ndarray:
         """
-        Returns the vertices of the obstacle. - Generated by OpenAI's GPT 5.5
+        Provides access to the vertices of the obstacle.
+
+        The `vertices` property returns a numpy array representing the vertices
+        of the associated obstacle. This property is read-only and allows external
+        access to the geometry of the obstacle. - Generated using OpenAI's GPT-5.5
+
+        :return: A numpy array representing the vertices of the obstacle.
+        :rtype: np.ndarray
         """
         return self._obstacle.vertices
 
     @vertices.setter
     def vertices(self, vertices: np.ndarray) -> None:
         """
-        Sets the vertices for the obstacle. - Generated by OpenAI's GPT 5.5
+        Sets the vertices of the obstacle.
+
+        This property setter is used to update the vertices attribute of the obstacle.
+        The input must be a numpy ndarray representing the vertices of the obstacle. - Generated using OpenAI's GPT-5.5
+
+        :param vertices: An ndarray containing the vertices of the obstacle. The
+            structure and dimensions of the array depend on the specific use case.
+
+        :return: None
         """
         self._obstacle.vertices = vertices
 
     @property
     def allocation(self) -> int:
         """
-        Returns the memory allocation for the simulation. - Generated by OpenAI's GPT 5.5
+        Provides a property to access the allocation value.
+
+        This property allows for retrieving the current allocation value
+        which is an internally managed attribute. - Generated using OpenAI's GPT-5.5
+
+        :return: The currently assigned allocation value.
+        :rtype: int
         """
         return self._allocation
 
     @allocation.setter
     def allocation(self, allocation: int) -> None:
         """
-        Sets the memory allocation for the simulation. - Generated by OpenAI's GPT 5.5
+        Sets the allocation value. - Generated using OpenAI's GPT-5.5
+
+        :param allocation: An integer value to set as the allocation.
+        :type allocation: int
+        :return: None
+        :rtype: None
         """
         self._allocation = allocation
 
     @property
     def resolution_x(self) -> int:
         """
-        Returns the X resolution of the simulation. - Generated by OpenAI's GPT 5.5
+        Retrieves the horizontal resolution. - Generated using OpenAI's GPT-5.5
+
+        :return: The horizontal resolution as an integer.
+        :rtype: int
         """
         return self._resolution_x
     @resolution_x.setter
     def resolution_x(self, resolution_x: int) -> None:
         """
-        Sets the X resolution of the simulation. - Generated by OpenAI's GPT 5.5
+        Sets the horizontal resolution for the object. - Generated using OpenAI's GPT-5.5
+
+        :param resolution_x: The new horizontal resolution to set.
+        :type resolution_x: int
         """
         self._resolution_x = resolution_x
 
     @property
     def resolution_y(self) -> int:
         """
-        Returns the Y resolution of the simulation. - Generated by OpenAI's GPT 5.5
+        Retrieves the vertical resolution (resolution_y) value.
+
+        This property provides access to the vertical resolution of an object and
+        should be handled purely as a read-only property. - Generated using OpenAI's GPT-5.5
+
+        :return: Returns the vertical resolution value as an integer.
+        :rtype: int
         """
         return self._resolution_y
     @resolution_y.setter
     def resolution_y(self, resolution_y: int) -> None:
         """
-        Sets the Y resolution of the simulation. - Generated by OpenAI's GPT 5.5
+        Sets the vertical resolution property of the object. - Generated using OpenAI's GPT-5.5
+
+        :param resolution_y: The vertical resolution to set for the object.
+                             Must be an integer specifying the number of
+                             vertical pixels.
+        :type resolution_y: int
+        :return: None
+        :rtype: None
         """
         self._resolution_y = resolution_y
 
     @property
     def viscosity(self) -> float | None:
         """
-        Returns the viscosity of the simulation. - Generated by OpenAI's GPT 5.5
+        Represents the viscosity property of a material or fluid. - Generated using OpenAI's GPT-5.5
+
+        This property provides a mechanism to access and compute the viscosity
+        value, which may be used in scientific or engineering calculations.
+
+        :return: The viscosity value as a float if defined, otherwise None.
+        :rtype: float | None
         """
         return
     @viscosity.setter
     def viscosity(self, viscosity: float) -> None:
         """
-        Sets the viscosity and updates the relaxation time tau. - Generated by OpenAI's GPT 5.5
+        Sets the viscosity value, which is used to calculate the relaxation time (tau).
+        The relaxation time is updated internally based on the provided viscosity. - Generated using OpenAI's GPT-5.5
+
+        :param viscosity: The kinematic viscosity of the fluid. It is a positive
+           floating-point value.
+        :type viscosity: float
         """
         # viscosity = (1/3) * (tau - 0.5)
         # tau = (viscosity * 3) + 0.5
@@ -413,14 +664,53 @@ class SimulationEngine(QObject):
 
     @property
     def live_edit(self):
+        """
+        Indicates whether live editing is enabled or not.
+
+        This property retrieves the internal configuration that determines
+        if the live editing feature is currently enabled. - Generated using OpenAI's GPT-5.5
+
+        :return: A boolean indicating the state of the live edit feature.
+        :rtype: bool
+        """
         return self._live_edit
     @live_edit.setter
     def live_edit(self, live_edit: bool) -> None:
+        """
+        Sets the value of the live_edit attribute.
+
+        This method allows setting the value of the internal live_edit attribute to
+        enable or disable live editing functionality. - Generated using OpenAI's GPT-5.5
+
+        :param live_edit: The new value for the live_edit attribute.
+        :type live_edit: bool
+        """
         self._live_edit = live_edit
 
     @property
     def pause_requested(self):
+        """
+        Indicates whether a pause has been requested.
+
+        This property provides a boolean value that reflects the current state
+        of the pause request. - Generated using OpenAI's GPT-5.5
+
+        :return: True if a pause has been requested, False otherwise
+        :rtype: bool
+        """
         return self._pause_requested
+
     @pause_requested.setter
     def pause_requested(self, pause_requested: bool) -> None:
+        """
+        Sets the pause request status.
+
+        This setter method updates the internal state indicating whether a pause
+        is requested. The value assigned is expected to be of type bool. - Generated using OpenAI's GPT-5.5
+
+        :param pause_requested: Flag to indicate if a pause is requested.
+        :type pause_requested: bool
+        :return: None
+        :rtype: None
+        """
         self._pause_requested = pause_requested
