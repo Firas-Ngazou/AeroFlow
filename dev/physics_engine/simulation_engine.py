@@ -135,26 +135,26 @@ class SimulationEngine(QObject):
         self.maxStepUpdated.emit(estimation)
         return estimation
 
-    def _calculate_drag_coef(self):
+    def _calculate_drag_coef(self, obstacle_mask: np.ndarray):
         # C_D = F_D / ((1/2) * rho_ref * U^2 * D)
-        area = self._coef_initial_checks()
+        area = self._coef_initial_checks(obstacle_mask)
         if area == 0:
             return 0.0
 
         coef = self._current_drag_force/(0.5 * self._rho_ref * (self._u_ref ** 2) * area)
         return coef
 
-    def _calculate_lift_coef(self):
+    def _calculate_lift_coef(self, obstacle_mask: np.ndarray):
         # C_L = F_L / ((1/2) * rho_ref * U^2 * D)
-        area = self._coef_initial_checks()
+        area = self._coef_initial_checks(obstacle_mask)
         if area == 0:
             return 0.0
 
         coef = self._current_lift_force/(0.5 * self._rho_ref * (self._u_ref ** 2) * area)
         return coef
 
-    def _coef_initial_checks(self):
-        mask_y = np.where(self._obstacle.binary_mask)[1]
+    def _coef_initial_checks(self, obstacle_mask: np.ndarray):
+        mask_y = np.where(obstacle_mask)[1]
         if len(mask_y) > 0:
             area = int(np.max(mask_y)) - int(np.min(mask_y) + 1)
         else:
