@@ -33,24 +33,21 @@ class GeneticAlgorithm():
     def __evaluate_fitness(self) -> float:
         return 1/self._estimated_drag
 
-    def __verify_distance(self, vertices: np.ndarray) -> bool:
-        x = []
-        y = []
-        # mask_under = vertices < ...
-
-
-        # Get coords
-        for i in range(len(vertices)):
-            for j in range(len(vertices[i])):
-                if vertices[i][j] == 1:
-                    x.append(i)
-                    y.append(j)
-
-        max_norm = math.sqrt(x^2 + y^2) #?
-
-
+    def __verify_distance(self, mask: np.ndarray) -> bool:
+        if self.constraint_method != "DISTANCE":
+            return True
         
-        
+        original_mask = self.obstacle.binary_mask.astype(bool)
+        new_mask = mask.astype(bool)
+    
+        hamming_distance = np.count_nonzero(original_mask != new_mask)
+
+        original_area = np.count_nonzero(original_mask)
+        max_allowed_distance = self.tolerance_margin / 10 * original_area 
+
+
+        return hamming_distance <= max_allowed_distance
+
 
 
     def __verify_area(self, mask: np.ndarray) -> bool:
@@ -71,6 +68,9 @@ class GeneticAlgorithm():
     
     def calculate_aerodynamic_gain(self) -> float:
         ...
+
+
+
 
     @property
     def obstacle(self):
