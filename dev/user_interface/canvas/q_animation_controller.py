@@ -199,12 +199,15 @@ class QSimController(QWidget):
 
         self._sim_data[step] = [stacked_data]
 
-        self._slider.setMaximum(step)
+        if self._live_edit:
+            self._slider.setMaximum(1)
+        else:
+            self._slider.setMaximum(step)
 
     @Slot()
     def _send_sim_pixmap(self) -> None:
         signal_start = datetime.now()
-        step = self._slider.value()
+        step = -1 if self._live_edit else self._slider.value()
         if step not in self._sim_data: return
 
         if self._control_button.isChecked() and not self._live_edit: self._slider.setValue(step + 1)
@@ -246,7 +249,7 @@ class QSimController(QWidget):
             case _:
                 raise ValueError("Unknown image type")
 
-        self.showPixmapRequested.emit(pixmap)
+        if not pixmap.isNull(): self.showPixmapRequested.emit(pixmap)
 
         if self._update_fps and not self._slider.value() == self._max_steps:
             signal_end = datetime.now()

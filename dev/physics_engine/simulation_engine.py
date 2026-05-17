@@ -1,10 +1,10 @@
 import copy
 import math
-from datetime import time, datetime
+import threading
+from datetime import datetime
 
 import numpy as np
 from PySide6.QtCore import QObject, Signal, Qt, QThread, Slot
-from PySide6.QtGui import QPixmap, QImage, qRgba, QPainter, QPen, QColor
 
 from dev.physics_engine.lattice_grid import LatticeGrid, D2Q9Constants
 from dev.physics_engine.vector_obstacle import  VectorObstacle
@@ -46,10 +46,98 @@ class SimulationEngine(QObject):
 
     def __init__(self, parent: QObject | None = None):
         """
-        Initializes a new instance of the class. - Generated using OpenAI's GPT-5.5
+        Initializes an object with the provided parent and sets up various properties
+        related to lattice grid simulation, environmental constants, and live-edit settings.
+        - Generated using OpenAI's GPT-5.5
 
-        :param parent: The parent object for the current instance, which can be of
-            type QObject or None. It is used to maintain ownership hierarchy.
+        :param parent: The parent QObject for the instance. This can be None.
+        :type parent: QObject | None
+
+        :ivar _grid: Represents the lattice grid used in the simulation. If not yet
+            initialized, this will be None.
+        :vartype _grid: LatticeGrid | None
+
+        :ivar _obstacle: Contains vector obstacle data used in the simulation.
+        :vartype _obstacle: VectorObstacle
+
+        :ivar _tau: The relaxation time for the lattice Boltzmann method, used to
+            control fluid viscosity.
+
+        :ivar _boltzmann_k: Boltzmann constant, used in various calculations related
+            to fluid simulation.
+
+        :ivar _air_particle_mass: Mass of a single particle of air, used in computing
+            simulation data.
+
+        :ivar _room_temperature: Default temperature of the room (in Kelvin) for
+            simulation purposes.
+
+        :ivar _current_step: Indicates the current step or iteration of the simulation.
+        :vartype _current_step: int
+
+        :ivar _max_step: Maximum number of simulation steps allowed.
+        :vartype _max_step: int
+
+        :ivar _resolution_x: Width resolution of the simulation environment in pixels.
+        :vartype _resolution_x: int
+
+        :ivar _resolution_y: Height resolution of the simulation environment in pixels.
+        :vartype _resolution_y: int
+
+        :ivar _allocation: Allocation size for simulation memory usage in arbitrary units.
+
+        :ivar _estimate_time: Estimated simulation time computed during runtime.
+
+        :ivar _frame_start_time: Timestamp recording the start time of a simulation frame.
+        :vartype _frame_start_time: datetime
+
+        :ivar _frame_end_time: Timestamp recording the end time of a simulation frame.
+        :vartype _frame_end_time: datetime
+
+        :ivar _last_times: Stores an array of recent frame durations to analyze
+            simulation performance.
+        :vartype _last_times: numpy.ndarray
+
+        :ivar _constants: Contains constants required for D2Q9 lattice Boltzmann
+            simulation.
+        :vartype _constants: D2Q9Constants
+
+        :ivar _current_drag_force: Current computed drag force during the simulation.
+        :vartype _current_drag_force: float
+
+        :ivar _current_lift_force: Current computed lift force during the simulation.
+        :vartype _current_lift_force: float
+
+        :ivar _u_ref: Reference velocity used in boundary condition computation for
+            simulation.
+        :vartype _u_ref: float
+
+        :ivar _rho_ref: Reference density, often used for normalization in the
+            lattice Boltzmann simulation.
+        :vartype _rho_ref: float
+
+        :ivar _live_edit: Boolean indicator for enabling/disabling live edit features
+            for the obstacle or grid.
+        :vartype _live_edit: bool
+
+        :ivar _pause_requested: Boolean flag indicating whether the simulation pause
+            has been requested.
+        :vartype _pause_requested: bool
+
+        :ivar _previous_obstacle_mask: Stores the mask of the previous obstacle before the
+            live edit session starts.
+        :vartype _previous_obstacle_mask: numpy.ndarray | None
+
+        :ivar _pending_live_edit_vertices: Stores the vertices or points pending for
+            live edit updates.
+        :vartype _pending_live_edit_vertices: numpy.ndarray | None
+
+        :ivar _live_edit_lock: Lock mechanism to ensure thread safety when handling
+            live edit operations.
+        :vartype _live_edit_lock: threading.Lock
+
+        :ivar _live_edit_interval: Interval in seconds between live edit updates.
+        :vartype _live_edit_interval: int
         """
         super().__init__(parent)
         self._grid: LatticeGrid | None = None
@@ -81,6 +169,9 @@ class SimulationEngine(QObject):
         self._live_edit = False
         self._pause_requested = False
         self._previous_obstacle_mask: np.ndarray | None = None
+        self._pending_live_edit_vertices: np.ndarray | None = None
+        self._live_edit_lock = threading.Lock()
+        self._live_edit_interval = 1
 
     def run(self, data: list[float | int]):
         """
@@ -158,11 +249,17 @@ class SimulationEngine(QObject):
 
     def _execute_time_step(self):
         """
-        Executes simulation steps iteratively until a specified maximum step count is reached or an
-        interruption request is detected. The method handles live editing, obstacle updates,
-        and manages grid updates during the simulation's runtime. - Generated using OpenAI's GPT-5.5
+        Executes a time-stepping loop for a simulation process.
 
-        :raises RuntimeError: If the execution encounters an unrecoverable error.
+        This method iterates through a maximum number of time steps (`_max_step`) while
+        performing various updates necessary for simulating the system. The method checks
+        for external interruption requests and pauses and handles live editing scenarios
+        as needed. During each time step, multiple updates, including streaming, boundary
+        applications, collision handling, and frame-end operations, are applied. If the
+        process is paused, the thread sleeps for a short duration before resuming. At the
+        end of the time-stepping loop, an event (`finished`) is emitted. - Generated using OpenAI's GPT-5.5
+
+        :raises RuntimeError: If certain low-level simulation preconditions are not met.
         """
         i = 0
 
@@ -175,6 +272,7 @@ class SimulationEngine(QObject):
                 if not self._live_edit: i += 1
                 self._frame_start_time = datetime.now()
 
+                self._apply_pending_live_edit_vertices()
                 obstacle_mask = self._apply_live_obstacle_changes()
 
                 self.__apply_streaming()
@@ -347,7 +445,6 @@ class SimulationEngine(QObject):
 
         self._grid.distributions += relaxation
 
-
     def __apply_boundaries(self, obstacle_mask: np.ndarray) -> None:
         """
         Applies boundary conditions for the given obstacle mask by updating particle
@@ -409,14 +506,17 @@ class SimulationEngine(QObject):
 
     def __end_current_frame(self, obstacle_mask: np.ndarray) -> None:
         """
-        Ends the processing of the current simulation frame, updates the simulation progress, triggers relevant events,
-        and prepares the output data for emission. - Generated using OpenAI's GPT-5.5
+        Ends the current simulation frame, updates the simulation progress, computes drag and lift
+        coefficients, and emits the corresponding data and updates. - Generated using OpenAI's GPT-5.5
 
-        :param obstacle_mask: A numpy array representing the obstacle mask for the current frame
-            in the simulated grid.
-        :return: None
+        :param obstacle_mask: A NumPy array representing the obstacle mask where obstacles
+            are marked in the simulation grid.
+        :return: This method does not return any value.
         """
         self._current_step += 1
+
+        if self._live_edit and self._current_step % self._live_edit_interval != 0:
+            return
 
         progress = int((self._current_step / self._max_step) * 100)
         self.progressUpdated.emit(progress)
@@ -490,18 +590,15 @@ class SimulationEngine(QObject):
 
     def _apply_live_obstacle_changes(self):
         """
-        Updates the obstacle mask based on any live changes in the obstacles and adjusts
-        the grid properties for cells that have changed state.
+        Updates the simulation grid to reflect dynamic changes in obstacles during the simulation.
 
-        The function performs the following operations:
-        1. Detects cells that have transitioned from solid to air and vice versa.
-        2. Updates macroscopic velocity and density for the affected cells.
-        3. Adjusts equilibrium and distribution values for the grid where necessary.
-        - Generated using OpenAI's GPT-5.5
+        This method handles the adjustment of the simulation grid when obstacles in the domain switch between
+        solid and air. It ensures proper redistribution of fluid properties, including density, velocity, and
+        particle distributions, to account for these dynamic changes. Additionally, the method enforces
+        boundary conditions, reinitializes properties for areas that transition, and maintains the overall
+        stability of the simulation. - Generated using OpenAI's GPT-5.5
 
-        :param self: Reference to the current instance of the class.
-
-        :return: Updated binary obstacle mask.
+        :return: A binary mask representing the current state of obstacles in the domain.
         :rtype: numpy.ndarray
         """
         obstacle_mask = self._obstacle.binary_mask.copy()
@@ -510,7 +607,7 @@ class SimulationEngine(QObject):
             self._previous_obstacle_mask = obstacle_mask.copy()
             return obstacle_mask
 
-        if obstacle_mask.shape is not self._previous_obstacle_mask.shape:
+        if obstacle_mask.shape != self._previous_obstacle_mask.shape:
             self._previous_obstacle_mask = obstacle_mask.copy()
             return obstacle_mask
 
@@ -518,13 +615,53 @@ class SimulationEngine(QObject):
         became_air = self._previous_obstacle_mask & ~obstacle_mask
 
         if np.any(became_air):
-            self._grid.macro_velocity_x[became_air] = self._u_ref
-            self._grid.macro_velocity_y[became_air] = 0.0
-            self._grid.macro_density[became_air] = self._rho_ref
+            source_fluid = ~obstacle_mask & ~became_air
 
-            f_eq = self._get_f_eq()
-            for i in range(9):
-                self._grid.distributions[became_air, i] = f_eq[became_air, i]
+            density_sum = np.zeros_like(self._grid.macro_density)
+            velocity_x_sum = np.zeros_like(self._grid.macro_velocity_x)
+            velocity_y_sum = np.zeros_like(self._grid.macro_velocity_y)
+            distributions_sum = np.zeros_like(self._grid.distributions)
+            neighbor_count = np.zeros_like(self._grid.macro_density)
+
+            for i in range(1, 9):
+                shifted_source = np.roll(source_fluid,(self._constants.E_X[i], self._constants.E_Y[i]),
+                                         axis=(0, 1))
+
+                density_sum += np.where(
+                    shifted_source,
+                    np.roll(self._grid.macro_density,(self._constants.E_X[i], self._constants.E_Y[i]),
+                            axis=(0, 1)),0.0)
+                velocity_x_sum += np.where(shifted_source, np.roll(self._grid.macro_velocity_x,
+                                                                   (self._constants.E_X[i],
+                                                                    self._constants.E_Y[i]),
+                                                                   axis=(0, 1)),0.0)
+                velocity_y_sum += np.where(shifted_source, np.roll(self._grid.macro_velocity_y,
+                                                                   (self._constants.E_X[i],
+                                                                    self._constants.E_Y[i]), axis=(0, 1)),0.0)
+
+                shifted_distributions = np.roll(self._grid.distributions,(self._constants.E_X[i],
+                                                                          self._constants.E_Y[i]), axis=(0, 1))
+                distributions_sum += np.where(shifted_source[:, :, np.newaxis], shifted_distributions,0.0)
+
+                neighbor_count += shifted_source.astype(float)
+
+            has_neighbors = became_air & (neighbor_count > 0)
+            no_neighbors = became_air & (neighbor_count == 0)
+
+            self._grid.macro_density[has_neighbors] = (density_sum[has_neighbors] / neighbor_count[has_neighbors])
+            self._grid.macro_velocity_x[has_neighbors] = (velocity_x_sum[has_neighbors] / neighbor_count[has_neighbors])
+            self._grid.macro_velocity_y[has_neighbors] = (velocity_y_sum[has_neighbors] / neighbor_count[has_neighbors])
+            self._grid.distributions[has_neighbors, :] = (distributions_sum[has_neighbors, :] /
+                                                          neighbor_count[has_neighbors, np.newaxis])
+
+            if np.any(no_neighbors):
+                self._grid.macro_velocity_x[no_neighbors] = self._u_ref
+                self._grid.macro_velocity_y[no_neighbors] = 0.0
+                self._grid.macro_density[no_neighbors] = self._rho_ref
+
+                f_eq = self._get_f_eq()
+                for i in range(9):
+                    self._grid.distributions[no_neighbors, i] = f_eq[no_neighbors, i]
 
         if np.any(became_solid):
             self._grid.macro_velocity_x[became_solid] = 0.0
@@ -536,6 +673,38 @@ class SimulationEngine(QObject):
 
         self._previous_obstacle_mask = obstacle_mask.copy()
         return obstacle_mask
+
+    @Slot(np.ndarray)
+    def queue_live_edit_vertices(self, to_queue: np.ndarray) -> None:
+        """
+        Adds the provided vertices to the queue for live editing. This operation is
+        thread-safe and ensures that the queued vertices are independent of the
+        original data by creating a copy. - Generated using OpenAI's GPT-5.5
+
+        :param to_queue: The array of vertex data to be queued for live editing.
+        :type to_queue: numpy.ndarray
+        """
+        with self._live_edit_lock:
+            self._pending_live_edit_vertices = to_queue.copy()
+
+    def _apply_pending_live_edit_vertices(self):
+        """
+        Applies any pending live edit vertices to the associated obstacle.
+
+        This method ensures thread-safe application of changes to the obstacle's
+        vertices by utilizing a thread lock. If there are no pending vertices, the
+        method exits without performing any action. - Generated using OpenAI's GPT-5.5
+
+        :raises RuntimeError: If an unexpected threading issue occurs
+        """
+        with self._live_edit_lock:
+            if self._pending_live_edit_vertices is None:
+                return
+
+            pending = self._pending_live_edit_vertices
+            self._pending_live_edit_vertices = None
+
+        self._obstacle.vertices = pending
 
     @property
     def vertices(self) -> np.ndarray:

@@ -81,6 +81,8 @@ class ProjectPage(QWidget):
     curlStateChanged = Signal(int)
     streamlineCountChanged = Signal(int)
 
+    liveEditVerticesChanged = Signal(np.ndarray)
+
     jsonSettingsChanged = Signal()
 
     vectorDrawingChanged = Signal()
@@ -133,6 +135,8 @@ class ProjectPage(QWidget):
         self._simulation_engine.liftCoefUpdated.connect(lambda y: self._analysis_tab.set_lift_coef_value(f"{y:.2f}"))
         # self._simulation_engine.finished.connect(self._on_sim_finished)
         self.runSimulation.connect(self._simulation_engine.run)
+        self.liveEditVerticesChanged.connect(self._simulation_engine.queue_live_edit_vertices,
+                                             Qt.ConnectionType.DirectConnection)
 
         self._sim_thread.start()
 
@@ -256,7 +260,7 @@ class ProjectPage(QWidget):
         self.vectorDrawingChanged.emit()
         if self._simulation_engine.live_edit:
             updated_vertices = self._editor.get_vertices()
-            self._simulation_engine.vertices = updated_vertices
+            self.liveEditVerticesChanged.emit(updated_vertices.copy())
 
     # def _force_reset_sim(self):
     #     self._sim_controller.save_requested = False
