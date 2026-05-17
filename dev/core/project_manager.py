@@ -286,6 +286,7 @@ class ProjectManager(QObject):
         save["Other"]["Settings"]["States"]["Density_state"] = data.get("Density_state", False)
         save["Other"]["Settings"]["States"]["Streamlines_state"] = data.get("Streamlines_state", True)
         save["Other"]["Settings"]["States"]["Curl_state"] = data.get("Curl_state", False)
+        save["Other"]["Settings"]["States"]["Staircase_state"] = data.get("Staircase_state", False)
         save["Other"]["Settings"]["Streamline_count"] = data.get("Streamline_count", 10)
 
     @staticmethod

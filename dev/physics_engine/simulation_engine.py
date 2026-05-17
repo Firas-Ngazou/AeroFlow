@@ -386,3 +386,10 @@ class SimulationEngine(QObject):
     @pause_requested.setter
     def pause_requested(self, pause_requested: bool) -> None:
         self._pause_requested = pause_requested
+
+    @property
+    def staircase_effect(self) -> bool:
+        return self._obstacle.staircase_effect
+    @staircase_effect.setter
+    def staircase_effect(self, state: bool):
+        self._obstacle.staircase_effect = state

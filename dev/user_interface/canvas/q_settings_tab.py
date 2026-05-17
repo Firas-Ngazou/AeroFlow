@@ -19,6 +19,7 @@ class QSettingsGeneralTab(QWidget):
     streamlinesStateChanged = Signal(int)
     curlStateChanged = Signal(int)
     streamlineCountChanged = Signal(int)
+    staircaseStateChanged = Signal(int)
     saveRequested = Signal()
     clearRequested = Signal()
 
@@ -65,7 +66,7 @@ class QSettingsGeneralTab(QWidget):
                                         
                                             <p>Les calculs sont effectués en temps réelle, ce qui pourrait expliquer 
                                             unecertaine perte en performances.
-                                        <div>
+                                        </div>
                                         """)
 
         # Check boxes
@@ -81,6 +82,26 @@ class QSettingsGeneralTab(QWidget):
 
         # Save/Clear buttons
         # self._save_clear = QSaveClear()
+
+        self._staircase_cb = QInfoCheckbox("CACHER L'EFFET ESCALIER",
+                                           """
+                                           <div style="text-align: left;">
+                                                <p>Afin de donner à la visualisation une fluidité minimale, 
+                                                la simulation est effectuée à une résolution réduite.
+                                                
+                                                <p>Cela à pour effet de laisser apparaître un effet d'escalier autour
+                                                des objets vectoriels déssinés.
+                                                
+                                                <p>Lorsque l'option est activée, l'effet d'escalier est caché en dessous 
+                                                des objets vectoriels au prix de devoir réduire la précision et la 
+                                                taille exacte des objets, ce qui peut résulter en un mouvement de 
+                                                fluide imprécis.
+                                                
+                                                <p>Lorsque l'option est désactivée, l'effet d'escalier est visible 
+                                                autour des objets vectoriels déssinés, mais la taille exacte des objets
+                                                est maintenue.
+                                           </div>
+                                           """)
 
         # Layouts
         content_widget = QWidget()
@@ -101,6 +122,7 @@ class QSettingsGeneralTab(QWidget):
         content_layout.addSpacing(10)
         content_layout.addWidget(self._streamline_count)
         content_layout.addSpacing(10)
+        content_layout.addWidget(self._staircase_cb)
         # content_layout.addWidget(self._save_clear)
 
         content_layout.setContentsMargins(0, 0, 0, 0)
@@ -126,6 +148,7 @@ class QSettingsGeneralTab(QWidget):
         self._other_cb.leftStateChanged.connect(self.streamlinesStateChanged.emit)
         self._other_cb.rightStateChanged.connect(self.curlStateChanged.emit)
         self._streamline_count.valueChanged.connect(self.streamlineCountChanged.emit)
+        self._staircase_cb.stateChanged.connect(self.staircaseStateChanged.emit)
         # self._save_clear.saveRequested.connect(self.saveRequested.emit)
         # self._save_clear.clearRequested.connect(self.clearRequested.emit)
 
@@ -186,6 +209,13 @@ class QSettingsGeneralTab(QWidget):
         self._other_cb.right_state = state
 
     @property
+    def staircase_state(self) -> int:
+        return self._staircase_cb.state
+    @staircase_state.setter
+    def staircase_state(self, state: int) -> None:
+        self._staircase_cb.state = state
+
+    @property
     def streamline_count(self) -> int:
         return self._streamline_count.value
     @streamline_count.setter
@@ -200,6 +230,7 @@ class QSettingsGeneralTab(QWidget):
         self._wind_speed.setDisabled(value)
         self._live_edit.setDisabled(value)
         self._viscosity.setDisabled(value)
+        self._staircase_cb.setDisabled(value)
         self._sim_playing = value
 
     # @property
@@ -339,6 +370,7 @@ class QSettingsSideBar(QWidget):
     streamlinesStateChanged = Signal(int)
     curlStateChanged = Signal(int)
     streamlineCountChanged = Signal(int)
+    staircaseStateChanged = Signal(int)
     saveRequested = Signal()
     clearRequested = Signal()
 
@@ -417,6 +449,7 @@ class QSettingsSideBar(QWidget):
         self._general_tab.streamlinesStateChanged.connect(self.streamlinesStateChanged.emit)
         self._general_tab.curlStateChanged.connect(self.curlStateChanged.emit)
         self._general_tab.streamlineCountChanged.connect(self.streamlineCountChanged.emit)
+        self._general_tab.staircaseStateChanged.connect(self.staircaseStateChanged.emit)
         self._general_tab.saveRequested.connect(self.saveRequested.emit)
         self._general_tab.clearRequested.connect(self.clearRequested.emit)
 
@@ -515,6 +548,13 @@ class QSettingsSideBar(QWidget):
     @curl_state.setter
     def curl_state(self, state: int) -> None:
         self._general_tab.curl_state = state
+
+    @property
+    def staircase_state(self) -> int:
+        return self._general_tab.staircase_state
+    @staircase_state.setter
+    def staircase_state(self, state: int) -> None:
+        self._general_tab.staircase_state = state
 
     @property
     def streamline_count(self) -> int:
