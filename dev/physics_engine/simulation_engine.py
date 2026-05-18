@@ -341,6 +341,9 @@ class SimulationEngine(QObject):
 
         return pressure_upstream - pressure_downstream
 
+    def _calculate_total_mass(self) -> float:
+        return np.sum(self._grid.macro_density)
+
     def __apply_streaming(self):
         """
         Applies the streaming step in a lattice Boltzmann method simulation. This function updates
