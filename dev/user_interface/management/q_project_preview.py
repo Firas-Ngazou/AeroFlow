@@ -98,7 +98,7 @@ class QProjectPreview(QWidget):
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
 
-        radius = 25
+        radius = 8
         painter_path = QPainterPath()
         painter_path.addRoundedRect(raw_preview.rect(), radius, radius)
 

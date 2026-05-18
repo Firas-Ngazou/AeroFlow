@@ -161,7 +161,7 @@ class QToolBar(QWidget):
             if self._play_button.isChecked():
                 self._prefab_scroll.hide()
 
-                self._state_manager.set_cursor_state(QStateManager.CursorState.LOCKED)
+                if not self._live_edit: self._state_manager.set_cursor_state(QStateManager.CursorState.LOCKED)
                 self._play_button.setIcon(self._stop_icon)
                 self.playPressed.emit()
             else:

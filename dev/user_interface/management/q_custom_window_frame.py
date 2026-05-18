@@ -58,8 +58,13 @@ class QFileMenu(QMenu):
     def set_new_action_enabled(self, enabled: bool):
         self._new_action.setEnabled(enabled)
 
+    def set_save_disabled(self, disabled: bool):
+        self._save_action.setDisabled(disabled)
+
+    def set_save_as_disabled(self, disabled: bool):
+        self._save_as_action.setDisabled(disabled)
+
 class QEditMenu(QMenu):
-    renameFileRequested = Signal()
     undoRequested = Signal()
     redoRequested = Signal()
     selectAllRequested = Signal()
@@ -75,26 +80,35 @@ class QEditMenu(QMenu):
         super().__init__(parent)
 
         # Setup
-        rename_action = QAction("Renommer", self)
-        undo_action = QAction("Annuler (CTRL + Z)", self)
-        redo_action = QAction("Rétablir (CTRL + SHIFT + Z)", self)
-        select_all_action = QAction("Tout sélectionner (CTRL + A)", self)
-        delete_action = QAction("Supprimer (DEL/BACKSPACE)", self)
+        self._undo_action = QAction("Annuler (CTRL + Z)", self)
+        self._redo_action = QAction("Rétablir (CTRL + SHIFT + Z)", self)
+        self._select_all_action = QAction("Tout sélectionner (CTRL + A)", self)
+        self._delete_action = QAction("Supprimer (DEL/BACKSPACE)", self)
 
         # Add actions
-        self.addAction(rename_action)
         self.addSeparator()
-        self.addAction(undo_action)
-        self.addAction(redo_action)
-        self.addAction(select_all_action)
-        self.addAction(delete_action)
+        self.addAction(self._undo_action)
+        self.addAction(self._redo_action)
+        self.addAction(self._select_all_action)
+        self.addAction(self._delete_action)
 
         # Connect actions
-        rename_action.triggered.connect(self.renameFileRequested.emit)
-        undo_action.triggered.connect(self.undoRequested.emit)
-        redo_action.triggered.connect(self.redoRequested.emit)
-        select_all_action.triggered.connect(self.selectAllRequested.emit)
-        delete_action.triggered.connect(self.deleteRequested.emit)
+        self._undo_action.triggered.connect(self.undoRequested.emit)
+        self._redo_action.triggered.connect(self.redoRequested.emit)
+        self._select_all_action.triggered.connect(self.selectAllRequested.emit)
+        self._delete_action.triggered.connect(self.deleteRequested.emit)
+
+    def set_undo_disabled(self, disabled: bool):
+        self._undo_action.setDisabled(disabled)
+
+    def set_redo_disabled(self, disabled: bool):
+        self._redo_action.setDisabled(disabled)
+
+    def set_select_all_disabled(self, disabled: bool):
+        self._select_all_action.setDisabled(disabled)
+
+    def set_delete_disabled(self, disabled: bool):
+        self._delete_action.setDisabled(disabled)
 
 class QViewMenu(QMenu):
     simulationChanged = Signal(str)
@@ -164,7 +178,6 @@ class QCustomTitleBar(TitleBar):
     openFileRequested = Signal(str)
     saveFileRequested = Signal()
     saveAsFileRequested = Signal()
-    renameFileRequested = Signal()
     undoRequested = Signal()
     redoRequested = Signal()
     selectAllRequested = Signal()
@@ -219,6 +232,10 @@ class QCustomTitleBar(TitleBar):
         # History group
         self._history_group = QHistoryGroup()
 
+        # Other
+        self._is_project_saved = False
+        self._is_in_edit_mode = False
+
         # Layout
         self.hBoxLayout.insertSpacing(0, 10)
         self.hBoxLayout.insertWidget(1, self._icon_pb, 0, alignment=Qt.AlignmentFlag.AlignLeft)
@@ -244,7 +261,6 @@ class QCustomTitleBar(TitleBar):
         self._file_menu.openFileRequested.connect(self.openFileRequested.emit)
         self._file_menu.saveFileRequested.connect(self.saveFileRequested.emit)
         self._file_menu.saveAsFileRequested.connect(self.saveAsFileRequested.emit)
-        self._edit_menu.renameFileRequested.connect(self.renameFileRequested.emit)
         self._edit_menu.undoRequested.connect(self.undoRequested.emit)
         self._edit_menu.redoRequested.connect(self.redoRequested.emit)
         self._edit_menu.selectAllRequested.connect(self.selectAllRequested.emit)
@@ -277,6 +293,49 @@ class QCustomTitleBar(TitleBar):
     @file_name.setter
     def file_name(self, new_name: str):
         self._file_name.setText(new_name)
+
+    @property
+    def is_project_saved(self):
+        return self._is_project_saved
+    @is_project_saved.setter
+    def is_project_saved(self, value: bool):
+        match value:
+            case True:
+                self._file_menu.set_save_disabled(True)
+            case False:
+                self._file_menu.set_save_disabled(False)
+
+        self._is_project_saved = value
+
+    @property
+    def is_in_edit_mode(self):
+        """
+        Indicates whether the object is currently in edit mode.
+
+        The property provides a means to check whether the object is in an editable
+        state. This can be useful for conditionally enabling or disabling specific
+        features or functionalities related to editing. - Generated by OpenAI's GPT-5.5
+
+        :rtype: bool
+        :returns: True if the object is in edit mode, False otherwise.
+        """
+        return self._is_in_edit_mode
+    @is_in_edit_mode.setter
+    def is_in_edit_mode(self, value: bool):
+        """
+        Sets the edit mode status and updates the state of certain UI components accordingly.
+        - Generated by OpenAI's GPT-5.5
+
+        :param value: A boolean value indicating whether the edit mode is enabled (True) or disabled (False).
+        :type value: bool
+        """
+        match value:
+            case True:
+                self._edit_menu.set_select_all_disabled(False)
+            case False:
+                self._edit_menu.set_select_all_disabled(True)
+
+        self._is_in_edit_mode = value
 
 class QCustomWindowFrame(FramelessWindow):
     def __init__(self, parent: QWidget | None = None) -> None:

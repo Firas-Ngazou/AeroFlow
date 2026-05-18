@@ -161,6 +161,7 @@ class ProjectManager(QObject):
         :type modified: bool
         """
         self._was_modified = modified
+        self._project_title_bar.is_project_saved = not modified
         if self._project_state is ProjectState.SAVED and modified:
             self._project_state = ProjectState.DEFAULT
             self._project_title_bar.file_name = f"* {self._project_title_bar.file_name()}"
@@ -182,6 +183,10 @@ class ProjectManager(QObject):
         self._current_project = ProjectPage(self._window)
         self._project_title_bar = self._current_project.title_bar
         self._current_project.saveProject.connect(self.save_project)
+        self._current_project.saveAsProject.connect(self.save_as_project)
+
+        self._project_title_bar.is_project_saved = True
+        self._project_title_bar.is_in_edit_mode = False
 
         self.__initialize_connections()
 
@@ -230,6 +235,7 @@ class ProjectManager(QObject):
                 self._update_previews()
                 self._was_modified = False
                 self._project_state = ProjectState.SAVED
+                self._project_title_bar.is_project_saved = True
 
     def save_as_project(self, data: dict) -> None:
         """
