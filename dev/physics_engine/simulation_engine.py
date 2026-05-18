@@ -1,4 +1,3 @@
-import copy
 import math
 import threading
 from datetime import datetime
@@ -249,10 +248,12 @@ class SimulationEngine(QObject):
         # C_D = F_D / ((1/2) * rho_ref * U^2 * D)
         area = self._coef_initial_checks(obstacle_mask)
         if area == 0:
-            return 0.0
+            coef = 0.0
+            self.dragCoefUpdated.emit(coef)
+            return
 
         coef = self._current_drag_force/(0.5 * self._rho_ref * (self._u_ref ** 2) * area)
-        return coef
+        self.dragCoefUpdated.emit(coef)
 
     def _calculate_lift_coef(self, obstacle_mask: np.ndarray):
         """
@@ -274,10 +275,12 @@ class SimulationEngine(QObject):
         # C_L = F_L / ((1/2) * rho_ref * U^2 * D)
         area = self._coef_initial_checks(obstacle_mask)
         if area == 0:
-            return 0.0
+            coef = 0.0
+            self.liftCoefUpdated.emit(coef)
+            return
 
         coef = self._current_lift_force/(0.5 * self._rho_ref * (self._u_ref ** 2) * area)
-        return coef
+        self.liftCoefUpdated.emit(coef)
 
     def _coef_initial_checks(self, obstacle_mask: np.ndarray):
         """
@@ -303,32 +306,75 @@ class SimulationEngine(QObject):
 
         return area
 
-    def _calculate_reynolds_number(self, obstacle_mask: np.ndarray) -> float:
+    def _calculate_reynolds_number(self, obstacle_mask: np.ndarray):
+        """
+        Calculates the Reynolds number based on the provided obstacle mask and updates the value via a signal.
+        - Generated using OpenAI's GPT-5.5
+
+        :param obstacle_mask: A 2D numpy array representing the obstacle mask. Each value in the array
+            indicates whether a corresponding cell is part of an obstacle (non-zero value) or not (zero value).
+        :return: None
+        """
         area = self._coef_initial_checks(obstacle_mask)
 
         if area == 0.0:
-            return 0.0
+            number = 0.0
+            self.reynoldsUpdated.emit(number)
+            return
 
         if self._viscosity <= 0:
-            return float('inf')
+            self.reynoldsUpdated.emit(float('inf'))
+            return
 
-        return (self._u_ref * area) / self._viscosity
+        number = (self._u_ref * area) / self._viscosity
+        self.reynoldsUpdated.emit(number)
 
     def _calculate_max_mach(self):
+        """
+        Calculates the maximum Mach number based on the grid's macro velocity components
+        in the x and y directions. The calculation utilizes the speed of sound specific
+        to the LBM engine. - Generated using OpenAI's GPT-5.5
+
+        :param self: Instance reference.
+        :return: None
+        """
         c_s = 0.57735 # Speed of sound in LBM engine
         v_sq = self._grid.macro_velocity_x**2 + self._grid.macro_velocity_y**2
         max_velocity = math.sqrt(float(np.max(v_sq)))
 
-        return max_velocity/c_s
+        number = max_velocity/c_s
+        self.machUpdated.emit(number)
 
     def _calculate_kinetic_energy(self):
+        """
+        Calculates the kinetic energy for the system based on the macro density and
+        velocity components within the grid. The `kineticEnergyUpdated` signal is emitted
+        with the calculated energy value. - Generated using OpenAI's GPT-5.5
+
+        :return: None
+        """
         v_sq = self._grid.macro_velocity_x**2 + self._grid.macro_velocity_y**2
-        return 0.5 * self._grid.macro_density * np.sum(v_sq)
+
+        energy = 0.5 * self._grid.macro_density * np.sum(v_sq)
+        self.kineticEnergyUpdated.emit(energy)
 
     def _calculate_pressure_drop(self):
+        """
+        Calculates the pressure drop across an obstacle within a simulated fluid
+        grid. This method identifies the obstruction in the binary mask, determines
+        the upstream and downstream regions, and calculates the pressure difference
+        at these positions. The result is emitted through the `pressureDropUpdated`
+        signal. - Generated using OpenAI's GPT-5.5
+
+        :return: None
+        :raises: This method does not explicitly raise any exceptions, but errors
+                 may occur if required attributes are improperly defined or if the
+                 method is called out of appropriate context.
+        """
         mask_x = np.where(self._obstacle.binary_mask)[0]
         if len(mask_x) == 0:
-            return 0.0
+            self.pressureDropUpdated.emit(0.0)
+            return
 
         front_x = int(np.min(mask_x))
         back_x = int(np.max(mask_x))
@@ -336,13 +382,59 @@ class SimulationEngine(QObject):
         upstream_x = max(0, front_x - 5)
         downstream_x = min(self._resolution_x - 1, back_x + 5)
 
-        pressure_upstream = np.mean(self._grid.macro_density[upstream_x, :]) / 3.0
-        pressure_downstream = np.mean(self._grid.macro_density[downstream_x, :]) / 3.0
+        pressure_upstream = np.mean(self._grid.macro_density[upstream_x, :]) / 3
+        pressure_downstream = np.mean(self._grid.macro_density[downstream_x, :]) / 3
 
-        return pressure_upstream - pressure_downstream
+        drop = pressure_upstream - pressure_downstream
+        self.pressureDropUpdated.emit(drop)
 
-    def _calculate_total_mass(self) -> float:
-        return np.sum(self._grid.macro_density)
+    def _calculate_total_mass(self):
+        """
+        Calculates the total mass by summing macro_density values from the grid
+        and emits the updated mass value. - Generated using OpenAI's GPT-5.5
+
+        :return: The total mass calculated from macro_density values.
+        :rtype: float
+        """
+        mass = np.sum(self._grid.macro_density)
+        self.massUpdated.emit(mass)
+
+    def _calculate_total_enstrophy(self):
+        """
+        Calculates the total enstrophy using the vorticity values. Enstrophy is a
+        measure used in fluid dynamics to quantify the intensity of vortices. The
+        calculated enstrophy is emitted via the `enstrophyUpdated` signal for further
+        usage or monitoring. - Generated using OpenAI's GPT-5.5
+
+        :return: The computed value of total enstrophy as a float.
+        :rtype: float
+        """
+        vorticity = self._get_vorticity()
+
+        enstrophy = float(0.5 * np.sum(vorticity ** 2))
+        self.enstrophyUpdated.emit(enstrophy)
+
+    def _calculate_max_vorticity(self):
+        """
+        Calculate the maximum vorticity from the current vorticity field.
+
+        This method processes the vorticity field and determines the maximum absolute
+        vorticity value. The maximum value is then emitted using the corresponding
+        signal for further usage. The method is intended for internal purposes and
+        is not part of the public API. - Generated using OpenAI's GPT-5.5
+
+        :return: The maximum absolute value of the vorticity.
+        :rtype: float
+        """
+        vorticity = self._get_vorticity()
+
+        max_vorticity = float(np.max(np.abs(vorticity)))
+        self.maxVorticityUpdated.emit(max_vorticity)
+
+    def _get_vorticity(self):
+        du_y_dx = np.gradient(self._grid.macro_velocity_y, axis=0)
+        du_x_dy = np.gradient(self._grid.macro_velocity_x, axis=1)
+        return du_y_dx - du_x_dy
 
     def __apply_streaming(self):
         """
@@ -485,13 +577,18 @@ class SimulationEngine(QObject):
 
         stacked_data = np.stack((macro_velocity_x, macro_velocity_y, macro_density, obstacle_mask), axis=-1)
 
-        drag_coef = self._calculate_drag_coef(obstacle_mask)
-        lift_coef = self._calculate_lift_coef(obstacle_mask)
+        self._calculate_drag_coef(obstacle_mask)
+        self._calculate_lift_coef(obstacle_mask)
+        self._calculate_reynolds_number(obstacle_mask)
+        self._calculate_max_mach()
+        self._calculate_kinetic_energy()
+        self._calculate_pressure_drop()
+        self._calculate_total_mass()
+        self._calculate_total_enstrophy()
+        self._calculate_max_vorticity()
         data = [stacked_data, self._current_step]
 
         self.iterationCompleted.emit(data)
-        self.dragCoefUpdated.emit(drag_coef)
-        self.liftCoefUpdated.emit(lift_coef)
 
     def __update_status_message(self) -> None:
         """
