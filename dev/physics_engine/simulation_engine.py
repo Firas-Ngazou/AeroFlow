@@ -42,103 +42,17 @@ class SimulationEngine(QObject):
     maxStepUpdated = Signal(int)
     dragCoefUpdated = Signal(float)
     liftCoefUpdated = Signal(float)
+    reynoldsUpdated = Signal(float)
+    machUpdated = Signal(float)
+    kineticEnergyUpdated = Signal(float)
+    pressureDropUpdated = Signal(float)
+    massUpdated = Signal(float)
+    enstrophyUpdated = Signal(float)
+    maxVorticityUpdated = Signal(float)
+
     finished = Signal()
 
     def __init__(self, parent: QObject | None = None):
-        """
-        Initializes an object with the provided parent and sets up various properties
-        related to lattice grid simulation, environmental constants, and live-edit settings.
-        - Generated using OpenAI's GPT-5.5
-
-        :param parent: The parent QObject for the instance. This can be None.
-        :type parent: QObject | None
-
-        :ivar _grid: Represents the lattice grid used in the simulation. If not yet
-            initialized, this will be None.
-        :vartype _grid: LatticeGrid | None
-
-        :ivar _obstacle: Contains vector obstacle data used in the simulation.
-        :vartype _obstacle: VectorObstacle
-
-        :ivar _tau: The relaxation time for the lattice Boltzmann method, used to
-            control fluid viscosity.
-
-        :ivar _boltzmann_k: Boltzmann constant, used in various calculations related
-            to fluid simulation.
-
-        :ivar _air_particle_mass: Mass of a single particle of air, used in computing
-            simulation data.
-
-        :ivar _room_temperature: Default temperature of the room (in Kelvin) for
-            simulation purposes.
-
-        :ivar _current_step: Indicates the current step or iteration of the simulation.
-        :vartype _current_step: int
-
-        :ivar _max_step: Maximum number of simulation steps allowed.
-        :vartype _max_step: int
-
-        :ivar _resolution_x: Width resolution of the simulation environment in pixels.
-        :vartype _resolution_x: int
-
-        :ivar _resolution_y: Height resolution of the simulation environment in pixels.
-        :vartype _resolution_y: int
-
-        :ivar _allocation: Allocation size for simulation memory usage in arbitrary units.
-
-        :ivar _estimate_time: Estimated simulation time computed during runtime.
-
-        :ivar _frame_start_time: Timestamp recording the start time of a simulation frame.
-        :vartype _frame_start_time: datetime
-
-        :ivar _frame_end_time: Timestamp recording the end time of a simulation frame.
-        :vartype _frame_end_time: datetime
-
-        :ivar _last_times: Stores an array of recent frame durations to analyze
-            simulation performance.
-        :vartype _last_times: numpy.ndarray
-
-        :ivar _constants: Contains constants required for D2Q9 lattice Boltzmann
-            simulation.
-        :vartype _constants: D2Q9Constants
-
-        :ivar _current_drag_force: Current computed drag force during the simulation.
-        :vartype _current_drag_force: float
-
-        :ivar _current_lift_force: Current computed lift force during the simulation.
-        :vartype _current_lift_force: float
-
-        :ivar _u_ref: Reference velocity used in boundary condition computation for
-            simulation.
-        :vartype _u_ref: float
-
-        :ivar _rho_ref: Reference density, often used for normalization in the
-            lattice Boltzmann simulation.
-        :vartype _rho_ref: float
-
-        :ivar _live_edit: Boolean indicator for enabling/disabling live edit features
-            for the obstacle or grid.
-        :vartype _live_edit: bool
-
-        :ivar _pause_requested: Boolean flag indicating whether the simulation pause
-            has been requested.
-        :vartype _pause_requested: bool
-
-        :ivar _previous_obstacle_mask: Stores the mask of the previous obstacle before the
-            live edit session starts.
-        :vartype _previous_obstacle_mask: numpy.ndarray | None
-
-        :ivar _pending_live_edit_vertices: Stores the vertices or points pending for
-            live edit updates.
-        :vartype _pending_live_edit_vertices: numpy.ndarray | None
-
-        :ivar _live_edit_lock: Lock mechanism to ensure thread safety when handling
-            live edit operations.
-        :vartype _live_edit_lock: threading.Lock
-
-        :ivar _live_edit_interval: Interval in seconds between live edit updates.
-        :vartype _live_edit_interval: int
-        """
         super().__init__(parent)
         self._grid: LatticeGrid | None = None
         self._obstacle = VectorObstacle()
@@ -160,10 +74,12 @@ class SimulationEngine(QObject):
 
         self._constants = D2Q9Constants()
 
+        # Data
         self._current_drag_force: float = 0.0
         self._current_lift_force: float = 0.0
         self._u_ref: float = 0.0
         self._rho_ref: float = 1.0
+        self._viscosity: float = 0.014
 
         # Live-edit settings
         self._live_edit = False
@@ -386,6 +302,17 @@ class SimulationEngine(QObject):
             return 0.0
 
         return area
+
+    def _calculate_reynolds_number(self, obstacle_mask: np.ndarray) -> float:
+        area = self._coef_initial_checks(obstacle_mask)
+
+        if area == 0.0:
+            return 0.0
+
+        if self._viscosity <= 0:
+            return float('inf')
+
+        return (self._u_ref * area) / self._viscosity
 
     def __apply_streaming(self):
         """
@@ -816,7 +743,7 @@ class SimulationEngine(QObject):
         :return: The viscosity value as a float if defined, otherwise None.
         :rtype: float | None
         """
-        return
+        return self._viscosity
     @viscosity.setter
     def viscosity(self, viscosity: float) -> None:
         """
@@ -831,6 +758,7 @@ class SimulationEngine(QObject):
         # tau = (viscosity * 3) + 0.5
         if viscosity <= 0.0035:
             raise ValueError("Viscosity must be greater than 0.0035 for numerical stability")
+        self._viscosity = viscosity
         self._tau = (viscosity * 3) + 0.5
 
     @property
