@@ -314,6 +314,13 @@ class SimulationEngine(QObject):
 
         return (self._u_ref * area) / self._viscosity
 
+    def _calculate_max_mach(self):
+        c_s = 0.57735 # Speed of sound in LBM engine
+        v_sq = self._grid.macro_velocity_x**2 + self._grid.macro_velocity_y**2
+        max_velocity = math.sqrt(float(np.max(v_sq)))
+
+        return max_velocity/c_s
+
     def __apply_streaming(self):
         """
         Applies the streaming step in a lattice Boltzmann method simulation. This function updates
