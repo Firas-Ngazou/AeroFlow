@@ -321,6 +321,26 @@ class SimulationEngine(QObject):
 
         return max_velocity/c_s
 
+    def _calculate_kinetic_energy(self):
+        v_sq = self._grid.macro_velocity_x**2 + self._grid.macro_velocity_y**2
+        return 0.5 * self._grid.macro_density * np.sum(v_sq)
+
+    def _calculate_pressure_drop(self):
+        mask_x = np.where(self._obstacle.binary_mask)[0]
+        if len(mask_x) == 0:
+            return 0.0
+
+        front_x = int(np.min(mask_x))
+        back_x = int(np.max(mask_x))
+
+        upstream_x = max(0, front_x - 5)
+        downstream_x = min(self._resolution_x - 1, back_x + 5)
+
+        pressure_upstream = np.mean(self._grid.macro_density[upstream_x, :]) / 3.0
+        pressure_downstream = np.mean(self._grid.macro_density[downstream_x, :]) / 3.0
+
+        return pressure_upstream - pressure_downstream
+
     def __apply_streaming(self):
         """
         Applies the streaming step in a lattice Boltzmann method simulation. This function updates
