@@ -22,7 +22,8 @@
         "Velocity_state": "1",
         "Density_state": "0",
         "Streamlines_state": "1",
-        "Curl_state": "0"
+        "Curl_state": "0",
+        "Staircase_state": "0"
       },
       "Streamline_count": "10"
     }

@@ -226,13 +226,13 @@ class HomePage(QWidget):
         if duplicate_preview is not None:
             self._scroll_content_layout.removeWidget(duplicate_preview)
             duplicate_preview.deleteLater()
-            self._rearrange()
 
         project_preview = QProjectPreview(project_path)
         self._scroll_content_layout.addWidget(project_preview, self._current_row, self._current_column)
 
         self._update_current_values()
         project_preview.selected.connect(self.projectSelected)
+        self._rearrange()
 
     def _rearrange(self) -> None:
         """
