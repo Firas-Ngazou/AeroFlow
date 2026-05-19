@@ -78,7 +78,8 @@ class QSpecialSettingPB(QWidget):
     :type pressed: Signal
     """
     pressed = Signal(bool)
-    def __init__(self, text: str, parent: QWidget | None = None):
+    clicked = Signal()
+    def __init__(self, text: str, checkable = True, parent: QWidget | None = None):
         """
         Custom QWidget subclass that creates a styled button within a container layout.
 
@@ -103,7 +104,7 @@ class QSpecialSettingPB(QWidget):
         self._button.setFont(font)
         self._button.setFixedSize(114, 24)
         self._button.setProperty("class", "title_bar_pb")
-        self._button.setCheckable(True)
+        self._button.setCheckable(checkable)
 
         button_frame = QFrame()
         button_frame.setProperty("class", "constraint_frame")
@@ -117,6 +118,7 @@ class QSpecialSettingPB(QWidget):
         root_layout.setContentsMargins(0, 0, 0, 0)
 
         self._button.pressed.connect(lambda: self.pressed.emit(not self._button.isChecked()))
+        self._button.clicked.connect(lambda: self.clicked.emit())
 
     def click(self):
         self._button.click()
@@ -127,6 +129,29 @@ class QSpecialSettingPB(QWidget):
     @is_checked.setter
     def is_checked(self, value: bool):
         self._button.setChecked(value)
+
+    @property
+    def text(self) -> str:
+        return self._button.text()
+    @text.setter
+    def text(self, value: str):
+        self._button.setText(value)
+
+    @property
+    def height(self) -> int:
+        return self._button.height()
+    @height.setter
+    def height(self, value: int):
+        self._button.setFixedHeight(value)
+        self.setFixedHeight(value + 6)
+
+    @property
+    def width(self) -> int:
+        return self._button.width()
+    @width.setter
+    def width(self, value: int):
+        self._button.setFixedWidth(value)
+        self.setFixedWidth(value + 6)
 
 class QFloatingSettingPB(QPushButton):
     """

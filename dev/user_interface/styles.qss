@@ -1,15 +1,27 @@
 QPushButton[class="reset_pb"]{
-    background-color: #8EE7FF;
+    background-color: #FF8E8E;
     color: #1D1D1D;
     padding-left: 15px;
     padding-right: 15px;
     border-radius: 12px;
 }
 QPushButton[class="reset_pb"]:hover{
-    background-color: #99DEFFFF;
+    background-color: #FF9999;
 }
 QPushButton[class="reset_pb"]:pressed{
-    background-color: #AEE7FFFF;
+    background-color: #FFAEAE;
+}
+
+QPushButton[class="delete_pb"]{
+    background-color: #FF8E8E;
+    color: #1D1D1D;
+    border-radius: 8px;
+}
+QPushButton[class="delete_pb"]:hover{
+    background-color: #FF9999;
+}
+QPushButton[class="delete_pb"]:pressed{
+    background-color: #FFAEAE;
 }
 
 QPushButton[class="settings_tab_pb"]{
@@ -73,6 +85,7 @@ QPushButton[class="controller_pb"]:hover{
 QPushButton[class="controller_pb"]:pressed{
     background-color: #c0c0c0;
 }
+
 QPushButton[class="open_pb"]{
     background-color: #F5F5F5;
     color: #1D1D1D;
@@ -95,7 +108,7 @@ QPushButton[class="title_bar_pb"]{
     color: #1D1D1D;
     padding-left: 15px;
     padding-right: 15px;
-    border-radius: 12px;
+    border-radius: 6px;
 }
 QPushButton[class="title_bar_pb"]:hover{
     background-color: #e0e0e0;
@@ -105,6 +118,10 @@ QPushButton[class="title_bar_pb"]:pressed{
 }
 QPushButton[class="title_bar_pb"]:checked{
     background-color: #A6A6A6;
+}
+QPushButton[class="title_bar_pb"]:disabled{
+    background-color: #1D1D1D;
+    color: #A6A6A6;
 }
 
 QPushButton[class="play_pb"]{
@@ -170,6 +187,20 @@ QPushButton[class="cancel_pb"]:pressed{
     background-color: #4a4a4a;
 }
 
+QPushButton[class="shape_settings_pb"]{
+    background-color: #F5F5F5;
+    color: #1D1D1D;
+    padding-left: 15px;
+    padding-right: 15px;
+    border-radius: 8px;
+}
+QPushButton[class="shape_settings_pb"]:hover{
+    background-color: #e0e0e0;
+}
+QPushButton[class="shape_settings_pb"]:pressed{
+    background-color: #c0c0c0;
+}
+
 QPushButton[class="titlebar_settings_pb"]{
     background-color: transparent;
     color: #F5F5F5;
@@ -186,6 +217,20 @@ QPushButton[class="titlebar_settings_pb"]:pressed{
 QPushButton[class="titlebar_settings_pb"]::menu-indicator{
     image: none;
     width: 0px;
+}
+
+QPushButton[class="info_pb"]{
+    background-color: transparent;
+    padding-left: 2px;
+    padding-right: 2px;
+    border-radius: 15px;
+    border: 2px solid #F5F5F5;
+}
+QPushButton[class="info_pb"]:hover{
+    background-color: #545454;
+}
+QPushButton[class="info_pb"]:pressed{
+    background-color: #4a4a4a;
 }
 
 
@@ -218,7 +263,7 @@ QFrame[class="open_frame"]{
 QFrame[class="constraint_frame"]{
     background-color: #222;
     border: 1px solid #F5F5F5;
-    border-radius: 15px;
+    border-radius: 8px;
 }
 
 QFrame[class="floating_widget"]{
@@ -458,4 +503,32 @@ QTabBar[class="analysis_tabs"]::tab:selected{
 }
 QTabBar[class="analysis_tabs"]::tab:!selected:hover{
     background-color: rgba(224, 224, 224, 50);
+}
+
+
+
+QCheckBox[class="checkbox"]{
+    background-color: #1D1D1D;
+    border: 1px solid #F5F5F5;
+    border-radius: 8px;
+}
+QCheckBox[class="checkbox"]::indicator{
+    background-color: transparent;
+    padding-left: 2px;
+    padding-right: 0px;
+    width: 26px;
+    height: 26px;
+    border-radius: 8px;
+}
+QCheckBox[class="checkbox"]::indicator:checked{
+    background-color: #F5F5F5;
+    border: 1px solid #1D1D1D;
+    border-radius: 8px;
+    width: 26px;
+    height: 26px;
+    padding-left: 0px;
+    padding-right: 0px;
+}
+QCheckBox[class="checkbox"]::indicator:pressed{
+    background-color: #c0c0c0;
 }

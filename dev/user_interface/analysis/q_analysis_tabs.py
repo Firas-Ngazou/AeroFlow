@@ -1,6 +1,6 @@
 from PySide6.QtCore import Qt, QPoint, Slot
 from PySide6.QtGui import QFont
-from PySide6.QtWidgets import QWidget, QFrame, QHBoxLayout, QVBoxLayout, QLabel, QTabWidget
+from PySide6.QtWidgets import QWidget, QFrame, QHBoxLayout, QVBoxLayout, QLabel, QTabWidget, QGridLayout
 
 from dev.user_interface.floating.q_floating_widget import QFloatingWidget
 from dev.user_interface.analysis.q_progress import QProgressBar
@@ -76,7 +76,7 @@ class QResultField(QWidget):
         return self._result_value.text()
 
     @result_value.setter
-    def result_value(self, value: str):
+    def result_value(self, value: str) -> None:
         self._result_value.setText(value)
 
 class QAnalysisTab(QWidget):
@@ -168,8 +168,6 @@ class QResultAnalysis(QAnalysisTab):
     :type _drag_coef_field: QResultField
     :ivar _lift_coef_field: Field for displaying or inputting the lift coefficient.
     :type _lift_coef_field: QResultField
-    :ivar _secondary_layout: Horizontal layout containing the drag and lift coefficient fields.
-    :type _secondary_layout: QHBoxLayout
     """
     def __init__(self, parent: QWidget | None = None):
         """
@@ -183,11 +181,25 @@ class QResultAnalysis(QAnalysisTab):
 
         self._drag_coef_field = QResultField("Coefficient de traîné")
         self._lift_coef_field = QResultField("Coefficient de portance")
+        self._reynolds_number_field = QResultField("Nombre de Reynolds")
+        self._mach_number_field = QResultField("Nombre max de Mach")
+        self._kinetic_energy_field = QResultField("Énergie cinétique")
+        self._pressure_drop_field = QResultField("Chute de pression")
+        self._total_mass_field = QResultField("Poids total")
+        self._total_enstrophy_field = QResultField("Enstrophy total")
+        self._max_vorticity_field = QResultField("Vorticité maximale")
 
-        self._secondary_layout = QHBoxLayout()
-        self._secondary_layout.addWidget(self._drag_coef_field)
-        self._secondary_layout.addWidget(self._lift_coef_field)
-        self._secondary_layout.addStretch()
+        self._secondary_layout = QGridLayout()
+        self._secondary_layout.addWidget(self._drag_coef_field, 0, 0)
+        self._secondary_layout.addWidget(self._lift_coef_field, 0, 1)
+        self._secondary_layout.addWidget(self._reynolds_number_field, 1, 0)
+        self._secondary_layout.addWidget(self._mach_number_field, 1, 1)
+        self._secondary_layout.addWidget(self._kinetic_energy_field, 2, 0)
+        self._secondary_layout.addWidget(self._pressure_drop_field, 2, 1)
+        self._secondary_layout.addWidget(self._total_mass_field, 3, 0)
+        self._secondary_layout.addWidget(self._total_enstrophy_field, 3, 1)
+        self._secondary_layout.addWidget(self._max_vorticity_field, 4, 0)
+        # self._secondary_layout.addStretch()
 
         self._primary_layout.addLayout(self._secondary_layout)
         self._primary_layout.addStretch()
@@ -197,7 +209,7 @@ class QResultAnalysis(QAnalysisTab):
         return self._drag_coef_field.result_value
 
     @drag_coef_field_value.setter
-    def drag_coef_field_value(self, value: str):
+    def drag_coef_field_value(self, value: str) -> None:
         self._drag_coef_field.result_value = value
 
     @property
@@ -205,8 +217,65 @@ class QResultAnalysis(QAnalysisTab):
         return self._lift_coef_field.result_value
 
     @lift_coef_field_value.setter
-    def lift_coef_field_value(self, value: str):
+    def lift_coef_field_value(self, value: str) -> None:
         self._lift_coef_field.result_value = value
+
+    @property
+    def reynolds_number_field_value(self):
+        return self._reynolds_number_field.result_value
+
+    @reynolds_number_field_value.setter
+    def reynolds_number_field_value(self, value: str) -> None:
+        self._reynolds_number_field.result_value = value
+
+
+    @property
+    def mach_number_field_value(self):
+        return self._mach_number_field.result_value
+
+    @mach_number_field_value.setter
+    def mach_number_field_value(self, value: str) -> None:
+        self._mach_number_field.result_value = value
+
+    @property
+    def kinetic_energy_field_value(self):
+        return self._kinetic_energy_field.result_value
+
+    @kinetic_energy_field_value.setter
+    def kinetic_energy_field_value(self, value: str) -> None:
+        self._kinetic_energy_field.result_value = value
+
+    @property
+    def pressure_drop_field_value(self):
+        return self._pressure_drop_field.result_value
+
+    @pressure_drop_field_value.setter
+    def pressure_drop_field_value(self, value: str) -> None:
+        self._pressure_drop_field.result_value = value
+
+    @property
+    def total_mass_field_value(self):
+        return self._total_mass_field.result_value
+
+    @total_mass_field_value.setter
+    def total_mass_field_value(self, value: str) -> None:
+        self._total_mass_field.result_value = value
+
+    @property
+    def total_enstrophy_field_value(self):
+        return self._total_enstrophy_field.result_value
+
+    @total_enstrophy_field_value.setter
+    def total_enstrophy_field_value(self, value: str) -> None:
+        self._total_enstrophy_field.result_value = value
+
+    @property
+    def max_vorticity_field_value(self):
+        return self._max_vorticity_field.result_value
+
+    @max_vorticity_field_value.setter
+    def max_vorticity_field_value(self, value: str) -> None:
+        self._max_vorticity_field.result_value = value
 
 class QAnalysisWidget(QFloatingWidget):
     """
@@ -231,7 +300,7 @@ class QAnalysisWidget(QFloatingWidget):
         super().__init__(parent)
 
         self.setMinimumWidth(600)
-        self.setMinimumHeight(200)
+        self.setMinimumHeight(350)
 
         # Progress bar
         self._progress_bar = QProgressBar()
@@ -261,7 +330,7 @@ class QAnalysisWidget(QFloatingWidget):
         return self._progress_bar.fill_percentage
 
     @simulation_progress.setter
-    def simulation_progress(self, value: int):
+    def simulation_progress(self, value: int) -> None:
         self._progress_bar.fill_percentage = value
 
     @property
@@ -269,23 +338,26 @@ class QAnalysisWidget(QFloatingWidget):
         return self._info_label.text()
 
     @simulation_info_label.setter
-    def simulation_info_label(self, value: str):
+    def simulation_info_label(self, value: str) -> None:
         self._info_label.setText(value)
 
     @Slot(str)
-    def set_sim_info_label(self, value: str):
+    def set_sim_info_label(self, value: str) -> None:
         self.simulation_info_label = value
+
+    def set_results_tab_active(self) -> None:
+        self._tabs.setCurrentWidget(self._results_tab)
 
     @property
     def drag_coef_value(self):
         return self._results_tab.drag_coef_field_value
 
     @drag_coef_value.setter
-    def drag_coef_value(self, value: str):
+    def drag_coef_value(self, value: str) -> None:
         self._results_tab.drag_coef_field_value = value
 
     @Slot(str)
-    def set_drag_coef_value(self, value: str):
+    def set_drag_coef_value(self, value: str) -> None:
         self.drag_coef_value = value
 
     @property
@@ -293,9 +365,93 @@ class QAnalysisWidget(QFloatingWidget):
         return self._results_tab.lift_coef_field_value
 
     @lift_coef_value.setter
-    def lift_coef_value(self, value: str):
+    def lift_coef_value(self, value: str) -> None:
         self._results_tab.lift_coef_field_value = value
 
     @Slot(str)
-    def set_lift_coef_value(self, value: str):
+    def set_lift_coef_value(self, value: str) -> None:
         self.lift_coef_value = value
+
+    @property
+    def reynolds_number_value(self):
+        return self._results_tab.reynolds_number_field_value
+
+    @reynolds_number_value.setter
+    def reynolds_number_value(self, value: str) -> None:
+        self._results_tab.reynolds_number_field_value = value
+
+    @Slot(str)
+    def set_reynolds_number_value(self, value: str) -> None:
+        self.reynolds_number_value = value
+
+    @property
+    def mach_number_value(self):
+        return self._results_tab.mach_number_field_value
+
+    @mach_number_value.setter
+    def mach_number_value(self, value: str) -> None:
+        self._results_tab.mach_number_field_value = value
+
+    @Slot(str)
+    def set_mach_number_value(self, value: str) -> None:
+        self.mach_number_value = value
+
+    @property
+    def kinetic_energy_value(self):
+        return self._results_tab.kinetic_energy_field_value
+
+    @kinetic_energy_value.setter
+    def kinetic_energy_value(self, value: str) -> None:
+        self._results_tab.kinetic_energy_field_value = value
+
+    @Slot(str)
+    def set_kinetic_energy_value(self, value: str) -> None:
+        self.kinetic_energy_value = value
+
+    @property
+    def pressure_drop_value(self):
+        return self._results_tab.pressure_drop_field_value
+
+    @pressure_drop_value.setter
+    def pressure_drop_value(self, value: str) -> None:
+        self._results_tab.pressure_drop_field_value = value
+
+    @Slot(str)
+    def set_pressure_drop_value(self, value: str) -> None:
+        self.pressure_drop_value = value
+
+    @property
+    def total_mass_value(self):
+        return self._results_tab.total_mass_field_value
+
+    @total_mass_value.setter
+    def total_mass_value(self, value: str) -> None:
+        self._results_tab.total_mass_field_value = value
+
+    @Slot(str)
+    def set_total_mass_value(self, value: str) -> None:
+        self.total_mass_value = value
+
+    @property
+    def total_enstrophy_value(self):
+        return self._results_tab.total_enstrophy_field_value
+
+    @total_enstrophy_value.setter
+    def total_enstrophy_value(self, value: str) -> None:
+        self._results_tab.total_enstrophy_field_value = value
+
+    @Slot(str)
+    def set_total_enstrophy_value(self, value: str) -> None:
+        self.total_enstrophy_value = value
+
+    @property
+    def max_vorticity_value(self):
+        return self._results_tab.max_vorticity_field_value
+
+    @max_vorticity_value.setter
+    def max_vorticity_value(self, value: str) -> None:
+        self._results_tab.max_vorticity_field_value = value
+
+    @Slot(str)
+    def set_max_vorticity_value(self, value: str) -> None:
+        self.max_vorticity_value = value
