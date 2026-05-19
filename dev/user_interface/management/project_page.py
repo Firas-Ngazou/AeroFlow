@@ -133,6 +133,18 @@ class ProjectPage(QWidget):
         self._simulation_engine.maxStepUpdated.connect(self._sim_controller.set_max_steps)
         self._simulation_engine.dragCoefUpdated.connect(lambda y: self._analysis_tab.set_drag_coef_value(f"{y:.2f}"))
         self._simulation_engine.liftCoefUpdated.connect(lambda y: self._analysis_tab.set_lift_coef_value(f"{y:.2f}"))
+        self._simulation_engine.reynoldsUpdated.connect(lambda y: self._analysis_tab.set_reynolds_number_value(
+            f"{y:.2f}"))
+        self._simulation_engine.machUpdated.connect(lambda y: self._analysis_tab.set_mach_number_value(f"{y:.2f}"))
+        self._simulation_engine.kineticEnergyUpdated.connect(lambda y: self._analysis_tab.set_kinetic_energy_value(
+            f"{y:.2f}"))
+        self._simulation_engine.pressureDropUpdated.connect(lambda y: self._analysis_tab.set_pressure_drop_value(
+            f"{y:.2f}"))
+        self._simulation_engine.massUpdated.connect(lambda y: self._analysis_tab.set_total_mass_value(f"{y:.2f}"))
+        self._simulation_engine.enstrophyUpdated.connect(lambda y: self._analysis_tab.set_total_enstrophy_value(
+            f"{y:.2f}"))
+        self._simulation_engine.maxVorticityUpdated.connect(lambda y: self._analysis_tab.set_max_vorticity_value(
+            f"{y:.2f}"))
         # self._simulation_engine.finished.connect(self._on_sim_finished)
         self.runSimulation.connect(self._simulation_engine.run)
         self.liveEditVerticesChanged.connect(self._simulation_engine.queue_live_edit_vertices,
@@ -389,6 +401,7 @@ class ProjectPage(QWidget):
 
         if not self._title_bar.is_analysis_checked:
             self._title_bar.click_analysis()
+        self._analysis_tab.set_results_tab_active()
 
         vertices = self._editor.get_vertices()
         self._simulation_engine.vertices = vertices
@@ -429,6 +442,18 @@ class ProjectPage(QWidget):
         self._settings_side_bar.update_clear_info()
         self._settings_side_bar.save_disabled = True
         self._settings_side_bar.clear_disabled = True
+
+        self._analysis_tab.simulation_progress = 0
+        self._analysis_tab.set_sim_info_label(" - ")
+        self._analysis_tab.set_drag_coef_value(" - ")
+        self._analysis_tab.set_lift_coef_value(" - ")
+        self._analysis_tab.set_reynolds_number_value(" - ")
+        self._analysis_tab.set_mach_number_value(" - ")
+        self._analysis_tab.set_kinetic_energy_value(" - ")
+        self._analysis_tab.set_pressure_drop_value(" - ")
+        self._analysis_tab.set_total_mass_value(" - ")
+        self._analysis_tab.set_total_enstrophy_value(" - ")
+        self._analysis_tab.set_max_vorticity_value(" - ")
 
     @Slot(int)
     def _on_sim_progressed(self, progress: int) -> None:

@@ -78,6 +78,7 @@ class SimulationEngine(QObject):
         self._current_lift_force: float = 0.0
         self._u_ref: float = 0.0
         self._rho_ref: float = 1.0
+        self._coef_reference_area: float = 0.0
         self._viscosity: float = 0.014
 
         # Live-edit settings
@@ -151,6 +152,7 @@ class SimulationEngine(QObject):
 
         obstacle_mask = self._obstacle.binary_mask.copy()
         self._previous_obstacle_mask = obstacle_mask.copy()
+        self._coef_reference_area = self._coef_initial_checks(obstacle_mask)
 
         f_eq = self._get_f_eq()
         self._grid.distributions = f_eq
@@ -246,7 +248,7 @@ class SimulationEngine(QObject):
         :rtype: float
         """
         # C_D = F_D / ((1/2) * rho_ref * U^2 * D)
-        area = self._coef_initial_checks(obstacle_mask)
+        area = self._coef_reference_area if self._live_edit else self._coef_initial_checks(obstacle_mask)
         if area == 0:
             coef = 0.0
             self.dragCoefUpdated.emit(coef)
@@ -273,7 +275,7 @@ class SimulationEngine(QObject):
         :rtype: float
         """
         # C_L = F_L / ((1/2) * rho_ref * U^2 * D)
-        area = self._coef_initial_checks(obstacle_mask)
+        area = self._coef_reference_area if self._live_edit else self._coef_initial_checks(obstacle_mask)
         if area == 0:
             coef = 0.0
             self.liftCoefUpdated.emit(coef)
@@ -567,7 +569,7 @@ class SimulationEngine(QObject):
         if self._live_edit and self._current_step % self._live_edit_interval != 0:
             return
 
-        progress = int((self._current_step / self._max_step) * 100)
+        progress = 100 if self._live_edit else int((self._current_step / self._max_step) * 100)
         self.progressUpdated.emit(progress)
         self.__update_status_message()
 
@@ -598,6 +600,10 @@ class SimulationEngine(QObject):
 
         :return: None
         """
+        if self._live_edit:
+            self.statusMessageUpdated.emit("Live")
+            return
+
         self._frame_end_time = datetime.now()
         delta_time = self._frame_end_time - self._frame_start_time
         self._last_times = np.append(self._last_times, delta_time)
@@ -624,6 +630,7 @@ class SimulationEngine(QObject):
         self._frame_start_time = datetime.now()
         self._frame_end_time = datetime.now()
         self._estimate_time = 0
+        self._coef_reference_area = 0.0
         self.dragCoefUpdated.emit(0.0)
         self.liftCoefUpdated.emit(0.0)
         self.progressUpdated.emit(0)
