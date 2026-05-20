@@ -76,6 +76,8 @@ class SimulationEngine(QObject):
         # Data
         self._current_drag_force: float = 0.0
         self._current_lift_force: float = 0.0
+        self._last_drag_coef: float = 0.0
+        self._last_lift_coef: float = 0.0
         self._u_ref: float = 0.0
         self._rho_ref: float = 1.0
         self._coef_reference_area: float = 0.0
@@ -255,6 +257,9 @@ class SimulationEngine(QObject):
             return
 
         coef = self._current_drag_force/(0.5 * self._rho_ref * (self._u_ref ** 2) * area)
+        if self._live_edit:
+            coef = (0.85 * self._last_drag_coef) + (0.15 * coef)
+        self._last_drag_coef = coef
         self.dragCoefUpdated.emit(coef)
 
     def _calculate_lift_coef(self, obstacle_mask: np.ndarray):
@@ -282,6 +287,9 @@ class SimulationEngine(QObject):
             return
 
         coef = self._current_lift_force/(0.5 * self._rho_ref * (self._u_ref ** 2) * area)
+        if self._live_edit:
+            coef = (0.85 * self._last_lift_coef) + (0.15 * coef)
+        self._last_lift_coef = coef
         self.liftCoefUpdated.emit(coef)
 
     def _coef_initial_checks(self, obstacle_mask: np.ndarray):
@@ -357,7 +365,7 @@ class SimulationEngine(QObject):
         """
         v_sq = self._grid.macro_velocity_x**2 + self._grid.macro_velocity_y**2
 
-        energy = 0.5 * self._grid.macro_density * np.sum(v_sq)
+        energy = float(0.5 * np.sum(self._grid.macro_density * v_sq))
         self.kineticEnergyUpdated.emit(energy)
 
     def _calculate_pressure_drop(self):
@@ -518,7 +526,7 @@ class SimulationEngine(QObject):
         momentum_y_before = 0.0
 
         for i in range(9):
-            f_in = temp_distributions[self._obstacle.binary_mask, i]
+            f_in = temp_distributions[obstacle_mask, i]
             momentum_x_before += np.sum(f_in*self._constants.E_X[i])
             momentum_y_before += np.sum(f_in*self._constants.E_Y[i])
 
@@ -631,6 +639,8 @@ class SimulationEngine(QObject):
         self._frame_end_time = datetime.now()
         self._estimate_time = 0
         self._coef_reference_area = 0.0
+        self._last_drag_coef = 0.0
+        self._last_lift_coef = 0.0
         self.dragCoefUpdated.emit(0.0)
         self.liftCoefUpdated.emit(0.0)
         self.progressUpdated.emit(0)

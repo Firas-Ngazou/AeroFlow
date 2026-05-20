@@ -52,7 +52,7 @@ class QResultField(QWidget):
         self._result_name.setProperty("class", "dark_text")
         self._result_name.setFont(QFont("JetBrains Mono", 8))
 
-        self._result_value = QLabel("Place Holder")
+        self._result_value = QLabel(" - ")
         self._result_value.setFont(QFont("JetBrains Mono", 8))
 
         self._primary_layout = QHBoxLayout(primary_field_frame)
@@ -179,15 +179,15 @@ class QResultAnalysis(QAnalysisTab):
         """
         super().__init__(parent)
 
-        self._drag_coef_field = QResultField("Coefficient de traîné")
-        self._lift_coef_field = QResultField("Coefficient de portance")
-        self._reynolds_number_field = QResultField("Nombre de Reynolds")
-        self._mach_number_field = QResultField("Nombre max de Mach")
-        self._kinetic_energy_field = QResultField("Énergie cinétique")
-        self._pressure_drop_field = QResultField("Chute de pression")
-        self._total_mass_field = QResultField("Poids total")
-        self._total_enstrophy_field = QResultField("Enstrophy total")
-        self._max_vorticity_field = QResultField("Vorticité maximale")
+        self._drag_coef_field = QResultField("Coefficient de traîné [-]")
+        self._lift_coef_field = QResultField("Coefficient de portance [-]")
+        self._reynolds_number_field = QResultField("Nombre de Reynolds [-]")
+        self._mach_number_field = QResultField("Nombre max de Mach [-]")
+        self._kinetic_energy_field = QResultField("Énergie cinétique [J]")
+        self._pressure_drop_field = QResultField("Chute de pression [Pa]")
+        self._total_mass_field = QResultField("Poids total [kg]")
+        self._total_enstrophy_field = QResultField("Enstrophie total [-]")
+        self._max_vorticity_field = QResultField("Vorticité maximale [s⁻¹]")
 
         self._secondary_layout = QGridLayout()
         self._secondary_layout.addWidget(self._drag_coef_field, 0, 0)
