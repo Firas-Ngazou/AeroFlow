@@ -27,12 +27,39 @@ class GeneticAlgorithm():
         self._estimated_drag = self.__result["CD"]
         self._estimated_lift = self.__result["CL"]
 
-        ...
+        best_obstacle = None
+        best_fitness = -float('inf')
+
+
+        population = [self.__generate_mutation(self._obstacle, force_random=True) # Check force_random
+                      for _ in range(self.population_size)]
+
+
+        for gen in range(self.max_iterations): # Find use for gen
+            fitness_scores = [self.__evaluate_fitness(ind) for ind in population] # Check evaluate_fitness
+
+            max_idx = np.argmax(fitness_scores)
+            if fitness_scores[max_idx] > best_fitness:
+                best_fitness = fitness_scores[max_idx]
+                best_obstacle = copy.deepcopy(population[max_idx])
+
+            next_generation = []
+
+            for _ in range(self.population_size):
+                p_a, p_b = self.__select_parents(population, fitness_scores)
+                child = self.__generate_mutation(self.__crossover(p_a, p_b))
+                next_generation.append(child)
+
+            population = next_generation
+
+        return best_obstacle, best_fitness
 
 
     def __generate_mutation(self, parent: VectorObstacle, force_random: bool = False) -> VectorObstacle:
         child = copy.deepcopy(parent)
         mask = child.binary_mask.astype(bool)
+
+        # Add force_random
         
         for _ in range(50): # max attempts to find a valid mutation
             mutated_mask = mask.copy()
@@ -43,9 +70,10 @@ class GeneticAlgorithm():
                 child.binary_mask = mutated_mask.astype(np.int8)
                 return child
                 
-        return child # returns the parent if no mutation was valid
+        return child
 
-    def __crossover(self, parent_a: VectorObstacle, parent_b: VectorObstacle) -> VectorObstacle:
+
+    def __crossover(self, parent_a: VectorObstacle, parent_b: VectorObstacle) -> VectorObstacle: # REWORK
         child = copy.deepcopy(parent_a)
 
         mask_a = parent_a.binary_mask
@@ -53,6 +81,7 @@ class GeneticAlgorithm():
 
         split = mask_a.shape[0] // 2
         child.binary_mask = np.vstack((mask_a[:split, :], mask_b[split:, :])) # Top half of mask_a and bottom half of mask_b
+        # If the shape is in either half, then the other half will be empty...?
         return child
 
 
@@ -65,9 +94,11 @@ class GeneticAlgorithm():
         return tournement(), tournement()
 
 
-
     def __evaluate_fitness(self) -> float:
-        return 1/self._estimated_drag
+        # Use the estimated drag/lift coefficient
+        ...
+    
+
 
     def __verify_distance(self, mask: np.ndarray) -> bool:
         if self.constraint_method != "DISTANCE":
@@ -120,7 +151,7 @@ class GeneticAlgorithm():
     def max_iterations(self):
         return self._max_iterations
     @max_iterations.setter
-    def max_iteration(self, max_iteration):
+    def max_iterations(self, max_iteration):
         self._max_iterations = max_iteration
 
 
