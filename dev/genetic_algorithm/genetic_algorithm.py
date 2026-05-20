@@ -2,7 +2,8 @@ import numpy as np
 import math
 # from xfoil import XFoil
 import aerosandbox as asb
-
+import copy
+import random
 
 from dev.physics_engine.vector_obstacle import VectorObstacle
 from dev.physics_engine.simulation_engine import SimulationEngine
@@ -26,10 +27,32 @@ class GeneticAlgorithm():
         self._estimated_drag = self.__result["CD"]
         self._estimated_lift = self.__result["CL"]
 
-
-    def __generate_mutation(self, parent: VectorObstacle) -> VectorObstacle:
         ...
-    
+
+
+    def __generate_mutation(self, parent: VectorObstacle, force_random: bool = False) -> VectorObstacle:
+        child = copy.deepcopy(parent)
+        mask = child.binary_mask.astype(bool)
+        
+        for _ in range(50): # max attempts to find a valid mutation
+            mutated_mask = mask.copy()
+            flip_matrix = np.random.rand(*mask.shape) < self.mutation_rate
+            mutated_mask ^= flip_matrix
+            
+            if self.__verify_distance(mutated_mask) and self.__verify_area(mutated_mask):
+                child.binary_mask = mutated_mask.astype(np.int8)
+                return child
+                
+        return child # returns the parent if no mutation was valid
+
+    def __crossover(self, parent_a: VectorObstacle, parent_b: VectorObstacle) -> VectorObstacle:
+        ...
+
+    def __select_parents(self, population: list, fitness_scores: list) -> tuple:
+        ...
+
+
+
     def __evaluate_fitness(self) -> float:
         return 1/self._estimated_drag
 
