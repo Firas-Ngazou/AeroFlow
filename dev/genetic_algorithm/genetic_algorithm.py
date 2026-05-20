@@ -46,7 +46,16 @@ class GeneticAlgorithm():
         return child # returns the parent if no mutation was valid
 
     def __crossover(self, parent_a: VectorObstacle, parent_b: VectorObstacle) -> VectorObstacle:
-        ...
+        child = copy.deepcopy(parent_a)
+
+        mask_a = parent_a.binary_mask
+        mask_b = parent_b.binary_mask
+
+        split = mask_a.shape[0] // 2
+        child.binary_mask = np.vstack((mask_a[:split, :], mask_b[split:, :])) # Top half of mask_a and bottom half of mask_b
+        return child
+
+
 
     def __select_parents(self, population: list, fitness_scores: list) -> tuple:
         ...
