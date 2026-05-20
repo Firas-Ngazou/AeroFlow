@@ -2277,11 +2277,10 @@ class QEditor(QWidget):
             self._cursor_shape_line = None
             return
 
-        if (self.is_rotating or self.is_scaling) and self._rotate_center is not None:
+        if self.is_rotating and self._rotate_center is not None:
             center = self._rotate_center
             self._cursor_shape_line = QLine(center, cursor_position)
-
-        if (self.is_rotating or self.is_scaling) and self._scale_center is not None:
+        elif self.is_scaling and self._scale_center is not None:
             center = self._scale_center
             self._cursor_shape_line = QLine(center, cursor_position)
 
@@ -2390,7 +2389,6 @@ class QEditor(QWidget):
             self._rotate_start_qp = None
             self._rotate_start_verts = None
             self._cursor_shape_line = None
-            self._rotate_center = None
 
     @property
     def selected_rect(self) -> QRect | None:
