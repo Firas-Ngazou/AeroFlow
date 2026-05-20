@@ -10,32 +10,36 @@ from dev.physics_engine.simulation_engine import SimulationEngine
 from dev.user_interface.canvas.q_editor import Shape
 
 class GeneticAlgorithm():
-    def __init__(self):
-        self._max_iterations: int
-        self._tolerance_margin: float
-        self._constraint_method: str
+    def __init__(self, population_size: int = 20, mutation_rate: float = 0.05):
+        self._max_iterations: int = 100
+        self._tolerance_margin: float = 0.1
+        self._constraint_method: str = "SURFACE"
+        self._obstacle : VectorObstacle = None
 
-        self._obstacle : VectorObstacle
+        self.population_size = population_size
+        self.mutation_rate = mutation_rate
 
+        self._estimated_drag = None
+        self._estimated_lift = None
 
     def optimize(self) -> dict:
-        self.__shape = asb.Airfoil("Shape", coordinates= ...)
+        # self.__shape = asb.Airfoil("Shape", coordinates= ...)
 
-        self.__xf = asb.XFoil(airfoil = self.__shape)
-        self.__result = self.__xf.alpha(0)
+        # self.__xf = asb.XFoil(airfoil = self.__shape)
+        # self.__result = self.__xf.alpha(0)
         
-        self._estimated_drag = self.__result["CD"]
-        self._estimated_lift = self.__result["CL"]
+        # self._estimated_drag = self.__result["CD"]
+        # self._estimated_lift = self.__result["CL"]
 
         best_obstacle = None
         best_fitness = -float('inf')
 
 
-        population = [self.__generate_mutation(self._obstacle, force_random=True) # Check force_random
+        population = [self.__generate_mutation(self._obstacle, force_random=True)
                       for _ in range(self.population_size)]
 
 
-        for gen in range(self.max_iterations): # Find use for gen
+        for gen in range(self.max_iterations): # Find use for gen?
             fitness_scores = [self.__evaluate_fitness(ind) for ind in population] # Check evaluate_fitness
 
             max_idx = np.argmax(fitness_scores)
@@ -44,10 +48,12 @@ class GeneticAlgorithm():
                 best_obstacle = copy.deepcopy(population[max_idx])
 
             next_generation = []
+            next_generation.append(copy.deepcopy(population[max_idx])) # You want the best one to reappear in the next generation(?)
 
-            for _ in range(self.population_size):
+            while len(next_generation) < self.population_size:
                 p_a, p_b = self.__select_parents(population, fitness_scores)
-                child = self.__generate_mutation(self.__crossover(p_a, p_b))
+                child = self.__crossover(p_a, p_b)
+                child = self.__generate_mutation(child, force_random=False)
                 next_generation.append(child)
 
             population = next_generation
@@ -57,18 +63,22 @@ class GeneticAlgorithm():
 
     def __generate_mutation(self, parent: VectorObstacle, force_random: bool = False) -> VectorObstacle:
         child = copy.deepcopy(parent)
-        mask = child.binary_mask.astype(bool)
+        mask_shape = child.binary_mask.shape
 
-        # Add force_random
-        
         for _ in range(50): # max attempts to find a valid mutation
-            mutated_mask = mask.copy()
-            flip_matrix = np.random.rand(*mask.shape) < self.mutation_rate
-            mutated_mask ^= flip_matrix
-            
-            if self.__verify_distance(mutated_mask) and self.__verify_area(mutated_mask):
-                child.binary_mask = mutated_mask.astype(np.int8)
-                return child
+
+            if force_random:
+                # random binary mask
+                mutated_mask = (np.random.rand(*mask_shape) > 0.5).astype(bool) # Bool array if index is > or < than 0.5
+                # NOTE: Since this mask is random, the verify_area and verify_distance might fail
+            else:
+                mask = child.binary_mask.astype(bool)
+                flip_matrix = np.random.rand(*mask.shape) < self.mutation_rate
+                mutated_mask = mask ^ flip_matrix
+                
+                if self.__verify_distance(mutated_mask) and self.__verify_area(mutated_mask):
+                    child.binary_mask = mutated_mask.astype(np.int8)
+                    return child
                 
         return child
 
@@ -76,14 +86,14 @@ class GeneticAlgorithm():
     def __crossover(self, parent_a: VectorObstacle, parent_b: VectorObstacle) -> VectorObstacle: # REWORK
         child = copy.deepcopy(parent_a)
 
-        mask_a = parent_a.binary_mask
-        mask_b = parent_b.binary_mask
+        mask_a = parent_a.binary_mask.astype(bool)
+        mask_b = parent_b.binary_mask.astype(bool)
 
-        split = mask_a.shape[0] // 2
-        child.binary_mask = np.vstack((mask_a[:split, :], mask_b[split:, :])) # Top half of mask_a and bottom half of mask_b
-        # If the shape is in either half, then the other half will be empty...?
+        crossover_mask = np.random.rand(*mask_a.shape) > 0.5 # Random mask
+        child_mask = np.where(crossover_mask, mask_a, mask_b)
+
+        child.binary_mask = child_mask.astype(np.int8)
         return child
-
 
 
     def __select_parents(self, population: list, fitness_scores: list) -> tuple:
@@ -160,7 +170,7 @@ class GeneticAlgorithm():
         return self._tolerance_margin
     @tolerance_margin.setter
     def tolerance_margin(self, tolerance_margin):
-        self.tolerance_margin = tolerance_margin
+        self._tolerance_margin = tolerance_margin
 
 
     @property
