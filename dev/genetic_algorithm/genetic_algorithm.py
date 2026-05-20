@@ -58,7 +58,11 @@ class GeneticAlgorithm():
 
 
     def __select_parents(self, population: list, fitness_scores: list) -> tuple:
-        ...
+        def tournement():
+            contenders = random.sample(list(zip(population, fitness_scores)), 3)
+            contenders.sort(key= lambda x: x[1], reverse=True)
+            return contenders[0][0]
+        return tournement(), tournement()
 
 
 
