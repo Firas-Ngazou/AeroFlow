@@ -28,13 +28,22 @@ class GeneticAlgorithm():
         best_obstacle = None
         best_fitness = -float('inf')
 
+        base_fitness = self.__evaluate_fitness(self._obstacle)
 
-        population = [self.__generate_mutation(self._obstacle, force_random=True)
-                      for _ in range(self.population_size)]
+        best_fitness = base_fitness
+        best_obstacle = copy.deepcopy(self._obstacle)
+
+        population = []
+        population.append(copy.deepcopy(self._obstacle))
+
+        
+        while len(population)< self.population_size:
+            child = self.__generate_mutation(self._obstacle, force_random=True)
+            population.append(child)
 
 
-        for gen in range(self.max_iterations): # Find use for gen?
-            fitness_scores = [self.__evaluate_fitness(ind) for ind in population] # Check evaluate_fitness
+        for gen in range(self.max_iterations):
+            fitness_scores = [self.__evaluate_fitness(ind) for ind in population]
 
             max_idx = np.argmax(fitness_scores)
             if fitness_scores[max_idx] > best_fitness:
