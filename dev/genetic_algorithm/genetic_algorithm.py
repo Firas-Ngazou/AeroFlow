@@ -4,6 +4,8 @@ import math
 import aerosandbox as asb
 import copy
 import random
+import neuralfoil as nf
+from scipy.ndimage import binary_dilation
 
 from dev.physics_engine.vector_obstacle import VectorObstacle
 from dev.physics_engine.simulation_engine import SimulationEngine
@@ -23,14 +25,6 @@ class GeneticAlgorithm():
         self._estimated_lift = None
 
     def optimize(self) -> dict:
-        # self.__shape = asb.Airfoil("Shape", coordinates= ...)
-
-        # self.__xf = asb.XFoil(airfoil = self.__shape)
-        # self.__result = self.__xf.alpha(0)
-        
-        # self._estimated_drag = self.__result["CD"]
-        # self._estimated_lift = self.__result["CL"]
-
         best_obstacle = None
         best_fitness = -float('inf')
 
@@ -104,10 +98,26 @@ class GeneticAlgorithm():
         return tournement(), tournement()
 
 
-    def __evaluate_fitness(self) -> float:
-        # Use the estimated drag/lift coefficient
+    def __evaluate_fitness(self, individual: VectorObstacle) -> float:
+        mask = individual.binary_mask.astype(bool)
+        expanded_mask = binary_dilation(mask)
+
+        # Coords
+        y_indices, x_indices = np.where(expanded_mask)
+        x_max, y_max = mask.shape[1], mask.shape[0]
+        raw_coords = np.column_stack((x_indices / x_max, y_indices / y_max)) # Matrix of normalized coords
+
+        airfoil = asb.Airfoil(name="Shape", coordinates=raw_coords) # Check coords(?)
+        aero = nf.get_aero_from_airfoil(
+            airfoil=airfoil,
+            alpha=0.0,
+            Re=5e5
+        )
+        cd  = aero["CD"]
+
+        fitness_score = 1.0 / cd
+        return float(fitness_score)
         ...
-    
 
 
     def __verify_distance(self, mask: np.ndarray) -> bool:
