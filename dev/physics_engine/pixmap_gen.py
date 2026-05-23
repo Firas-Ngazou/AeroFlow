@@ -311,7 +311,7 @@ class PixmapGen:
         """
         pixmap = heatmap.copy()
         painter = QPainter(pixmap)
-        painter.composition_mode = QPainter.CompositionMode.CompositionMode_DestinationIn
+        painter.set_composition_mode(QPainter.CompositionMode.CompositionMode_DestinationIn)
         painter.draw_pixmap(0, 0, stream)
         painter.end()
         return pixmap
@@ -327,7 +327,7 @@ class PixmapGen:
         """
         pixmap = heatmap.copy()
         painter = QPainter(pixmap)
-        painter.composition_mode = QPainter.CompositionMode.CompositionMode_DestinationIn
+        painter.set_composition_mode(QPainter.CompositionMode.CompositionMode_DestinationIn)
         painter.draw_pixmap(0, 0, curl)
         painter.end()
         return pixmap

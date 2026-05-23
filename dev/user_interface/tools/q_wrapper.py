@@ -34,3 +34,6 @@ def apply_all_wrappers():
 
     QFrame.set_geometry = _wrapped_set_geometry
     QFrame.setGeometry = _wrapped_set_geometry
+
+    QWidget.set_geometry = _wrapped_set_geometry
+    QWidget.setGeometry = _wrapped_set_geometry

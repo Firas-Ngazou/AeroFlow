@@ -1162,7 +1162,7 @@ class QEditor(QWidget):
         if self._to_display is not None:
             resized = self._to_display.scaled(self.width, self.height)
             to_disp_painter = QPainter(resized)
-            to_disp_painter.composition_mode = QPainter.CompositionMode.CompositionMode_Clear
+            to_disp_painter.set_composition_mode(QPainter.CompositionMode.CompositionMode_Clear)
             self._draw_shapes(to_disp_painter)
             to_disp_painter.end()
             painter.draw_pixmap(0, 0, resized)
