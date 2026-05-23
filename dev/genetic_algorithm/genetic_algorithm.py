@@ -1,22 +1,25 @@
 import numpy as np
-import math
-# from xfoil import XFoil
 import aerosandbox as asb
 import copy
 import random
 import neuralfoil as nf
 from scipy.ndimage import binary_dilation
 
-from dev.physics_engine.vector_obstacle import VectorObstacle
+from PySide6.QtCore import QObject, Signal
+
 from dev.physics_engine.simulation_engine import SimulationEngine
 from dev.user_interface.canvas.q_editor import Shape
 
-class GeneticAlgorithm():
+class GeneticAlgorithm(QObject):
+    iterationCompleted = Signal(np.ndarray, int, float)
+    optimizationCompleted = Signal()
+
     def __init__(self, population_size: int = 20, mutation_rate: float = 0.05):
+        super().__init__()
         self._max_iterations: int = 100
         self._tolerance_margin: float = 0.1
-        self._constraint_method: str = "SURFACE"
-        self._obstacle : VectorObstacle = None
+        self._constraint_method: str = "SURFACE" # surface or distance
+        self._constraint_target: str = "DRAG"    # drag or lift
 
         self.population_size = population_size
         self.mutation_rate = mutation_rate
@@ -24,21 +27,21 @@ class GeneticAlgorithm():
         self._estimated_drag = None
         self._estimated_lift = None
 
-    def optimize(self) -> dict:
+    def optimize(self, vertices: np.ndarray) -> dict:
         best_obstacle = None
         best_fitness = -float('inf')
 
         base_fitness = self.__evaluate_fitness(self._obstacle)
 
         best_fitness = base_fitness
-        best_obstacle = copy.deepcopy(self._obstacle)
+        best_obstacle = copy.deepcopy(vertices)
 
         population = []
-        population.append(copy.deepcopy(self._obstacle))
+        population.append(copy.deepcopy(vertices))
 
         
         while len(population)< self.population_size:
-            child = self.__generate_mutation(self._obstacle, force_random=True)
+            child = self.__generate_mutation(vertices, force_random=True)
             population.append(child)
 
 
@@ -50,8 +53,10 @@ class GeneticAlgorithm():
                 best_fitness = fitness_scores[max_idx]
                 best_obstacle = copy.deepcopy(population[max_idx])
 
+            self.iterationCompleted.emit(best_obstacle.binary_mask.copy(), gen, float(best_fitness))
+
             next_generation = []
-            next_generation.append(copy.deepcopy(population[max_idx])) # You want the best one to reappear in the next generation(?)
+            next_generation.append(copy.deepcopy(population[max_idx]))
 
             while len(next_generation) < self.population_size:
                 p_a, p_b = self.__select_parents(population, fitness_scores)
@@ -61,24 +66,31 @@ class GeneticAlgorithm():
 
             population = next_generation
 
-        return best_obstacle, best_fitness
+        self.optimizationCompleted.emit()
+        return best_obstacle, best_fitness # Change(?)
 
 
-    def __generate_mutation(self, parent: VectorObstacle, force_random: bool = False) -> VectorObstacle: # REWORK
+    def __generate_mutation(self, parent: np.ndarray, force_random: bool = False) -> np.ndarray:
         child = copy.deepcopy(parent)
         mask_shape = child.binary_mask.shape
 
-        if force_random: # REWORK
-            # random binary mask
-            mutated_mask = (np.random.rand(*mask_shape) > 0.5).astype(bool) # Bool array if index is > or < than 0.5
-            # NOTE: Since this mask is random, the verify_area and verify_distance might fail
-            return mutated_mask #?
+        if force_random:
+            # mutated_mask = (np.random.rand(*mask_shape) > 0.5).astype(bool) # Bool array if index is > or < than 0.5
+            mutated_mask = np.zeros(mask_shape, dtype=bool)
+            y_center = mask_shape[0] // 2
+            for x in range(int(mask_shape[1] * 0.1), int(mask_shape[1]*0.9)):
+                thickness = random.randint(4, max(5, mask_shape[0] // 3)) # Thickness of the airfoil
+                mutated_mask[y_center - thickness: y_center + thickness, x] = True
+
+            child.binary_mask = mutated_mask.astype(np.int8)
+            return child
         
         for attempt in range(50):
             current_mask = child.binary_mask.astype(bool)
             dilated = binary_dilation(current_mask)
             boundary = dilated ^ current_mask
             y_indices, x_indices = np.where(boundary)
+
             if len(x_indices) == 0: # If boundary is empty
                 continue
 
@@ -96,14 +108,25 @@ class GeneticAlgorithm():
                     if cy + 1 < mask_shape[0]: mutated_mask[cy + 1, cx] = True
                     if cy - 1 >= 0: mutated_mask[cy - 1, cx] = True
 
-            if self.__verify_distance(mutated_mask) or self.__verify_area(mutated_mask): # Change so that the user can pick which one
-                child.binary_mask = mutated_mask.astype(np.int8)
-                return child
-                
+            # if self.__verify_distance(mutated_mask) or self.__verify_area(mutated_mask): # Change so that the user can pick which one
+            #     child.binary_mask = mutated_mask.astype(np.int8)
+            #     return child
+
+            is_valid = False
+            if self.constraint_method == "DISTANCE":
+                is_valid = self.__verify_distance(mutated_mask)
+            elif self.constraint_method == "SURFACE":
+                is_valid = self.__verify_area(mutated_mask)
+            else:
+                is_valid = True
+
+            if is_valid:
+                child.binary_mask = mutated_mask.astype(np.intt8)
+                return child            
         return child
 
 
-    def __crossover(self, parent_a: VectorObstacle, parent_b: VectorObstacle) -> VectorObstacle: # REWORK
+    def __crossover(self, parent_a: np.ndarray, parent_b: np.ndarray) -> np.ndarray:
         child = copy.deepcopy(parent_a)
 
         mask_a = parent_a.binary_mask.astype(bool)
@@ -124,26 +147,57 @@ class GeneticAlgorithm():
         return tournement(), tournement()
 
 
-    def __evaluate_fitness(self, individual: VectorObstacle) -> float:
+    def __evaluate_fitness(self, individual: np.ndarray) -> float: # REWORK
         mask = individual.binary_mask.astype(bool)
         expanded_mask = binary_dilation(mask)
+
+        if np.count_nonzero(mask) < 4 : # empty mask
+            return -9999.0
 
         # Coords
         y_indices, x_indices = np.where(expanded_mask)
         x_max, y_max = mask.shape[1], mask.shape[0]
         raw_coords = np.column_stack((x_indices / x_max, y_indices / y_max)) # Matrix of normalized coords
+        raw_coords = np.unique(raw_coords, axis=0)
 
-        airfoil = asb.Airfoil(name="Shape", coordinates=raw_coords) # Check coords(?)
-        aero = nf.get_aero_from_airfoil(
-            airfoil=airfoil,
-            alpha=0.0,
-            Re=5e5
-        )
-        cd  = aero["CD"]
+        y_mean = np.mean(raw_coords[:, 1]) # centerline of the shape
+        upper_pts = raw_coords[raw_coords[:, 1] >= y_mean]
+        lower_pts = raw_coords[raw_coords[:, 1] < y_mean]
 
-        fitness_score = 1.0 / cd
-        return float(fitness_score)
-        ...
+        upper_pts = upper_pts[np.argsort(upper_pts[:, 0])[::-1]] # Right to left
+        lower_pts = lower_pts[np.argsort(lower_pts[:, 0])] # Left to right => Aerospace eng standard data format for airfoils to be strictly CLOCKWISE
+        # the simulator connects the dots in the exact order they appear in the array
+
+        coords = np.vstack((upper_pts, lower_pts, upper_pts[0]))
+
+        try:
+
+            airfoil = asb.Airfoil(name="Shape", coordinates=coords)
+            airfoil.repanel(n_points_per_side=60) # makes the shape smooth for the cd approx
+            aero = nf.get_aero_from_airfoil(
+                airfoil=airfoil,
+                alpha=0.0,
+                Re=5e5
+            )
+            self._estimated_drag  = aero["CD"]
+            self._estimated_lift  = aero["CL"]
+
+            if np.isnan(self._estimated_drag) or np.isnan(self._estimated_lift):
+                return -9999.0
+            
+            
+            if self._constraint_target == "DRAG":
+                if self._estimated_drag <= 0 :
+                    return -9999.0
+                return float(1.0 / self._estimated_drag)
+            
+            if self._constraint_target == "LIFT":
+                if self._estimated_lift <= 0:
+                    return -9999.0
+                return float(1.0 / self._estimated_lift)
+        
+        except Exception:
+            return -9999.0
 
 
     def __verify_distance(self, mask: np.ndarray) -> bool:
@@ -156,11 +210,10 @@ class GeneticAlgorithm():
         hamming_distance = np.count_nonzero(original_mask != new_mask)
 
         original_area = np.count_nonzero(original_mask)
-        max_allowed_distance = self.tolerance_margin / 10 * original_area 
+        max_allowed_distance = self.tolerance_margin / 10 * original_area
 
 
         return hamming_distance <= max_allowed_distance
-
 
 
     def __verify_area(self, mask: np.ndarray) -> bool:
@@ -183,15 +236,12 @@ class GeneticAlgorithm():
         ...
 
 
-
-
-    @property
-    def obstacle(self):
-        return self._obstacle
-    @obstacle.setter
-    def obstacle(self, obstacle: VectorObstacle):
-        self._obstacle = obstacle
-
+    # @property
+    # def obstacle(self):
+    #     return self._obstacle
+    # @obstacle.setter
+    # def obstacle(self, obstacle: np.ndarray):
+    #     self._obstacle = obstacle
 
     @property
     def max_iterations(self):
@@ -200,14 +250,12 @@ class GeneticAlgorithm():
     def max_iterations(self, max_iteration):
         self._max_iterations = max_iteration
 
-
     @property
     def tolerance_margin(self):
         return self._tolerance_margin
     @tolerance_margin.setter
     def tolerance_margin(self, tolerance_margin):
         self._tolerance_margin = tolerance_margin
-
 
     @property
     def constraint_method(self):
@@ -216,5 +264,30 @@ class GeneticAlgorithm():
     def constraint_method(self, constraint_method):
         self._constraint_method = constraint_method
 
+    @property
+    def constraint(self):
+        return self._constraint_method
+    @constraint.setter
+    def constraint(self, constraint: str):
+        self._constraint_method = constraint
 
-    
+    @property
+    def target(self):
+        return self._constraint_target
+    @target.setter
+    def target(self, target: str):
+        self._constraint_target = target
+
+    @property
+    def iterations(self):
+        return self._max_iterations
+    @iterations.setter
+    def iterations(self, max : int):
+        self._max_iterations = max
+
+    @property
+    def threshold(self):
+        return self._tolerance_margin
+    @threshold.setter
+    def threshold(self, value: float):
+        self._tolerance_margin = value
