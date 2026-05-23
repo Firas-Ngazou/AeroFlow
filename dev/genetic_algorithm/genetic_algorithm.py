@@ -51,7 +51,7 @@ class GeneticAlgorithm():
                 best_obstacle = copy.deepcopy(population[max_idx])
 
             next_generation = []
-            next_generation.append(copy.deepcopy(population[max_idx])) # You want the best one to reappear in the next generation(?)
+            next_generation.append(copy.deepcopy(population[max_idx]))
 
             while len(next_generation) < self.population_size:
                 p_a, p_b = self.__select_parents(population, fitness_scores)
@@ -108,7 +108,7 @@ class GeneticAlgorithm():
         return child
 
 
-    def __crossover(self, parent_a: VectorObstacle, parent_b: VectorObstacle) -> VectorObstacle: # REWORK
+    def __crossover(self, parent_a: VectorObstacle, parent_b: VectorObstacle) -> VectorObstacle:
         child = copy.deepcopy(parent_a)
 
         mask_a = parent_a.binary_mask.astype(bool)
@@ -137,8 +137,19 @@ class GeneticAlgorithm():
         y_indices, x_indices = np.where(expanded_mask)
         x_max, y_max = mask.shape[1], mask.shape[0]
         raw_coords = np.column_stack((x_indices / x_max, y_indices / y_max)) # Matrix of normalized coords
+        raw_coords = np.unique(raw_coords, axis=0)
 
-        airfoil = asb.Airfoil(name="Shape", coordinates=raw_coords) # Check doc for coords(?)
+        y_mean = np.mean(raw_coords[:, 1]) # centerline of the shape
+        upper_pts = raw_coords[raw_coords[:, 1] >= y_mean]
+        lower_pts = raw_coords[raw_coords[:, 1] < y_mean]
+
+        upper_pts = upper_pts[np.argsort(upper_pts[:, 0])[::-1]] # Right to left
+        lower_pts = lower_pts[np.argsort(lower_pts[:, 0])] # Left to right => Aerospace eng standard data format for airfoils to be strictly CLOCKWISE
+        # the simulator connects the dots in the exact order they appear in the array
+
+        coords = np.vstack((upper_pts, lower_pts, upper_pts[0]))
+
+        airfoil = asb.Airfoil(name="Shape", coordinates=coords)
         aero = nf.get_aero_from_airfoil(
             airfoil=airfoil,
             alpha=0.0,
@@ -160,7 +171,7 @@ class GeneticAlgorithm():
         hamming_distance = np.count_nonzero(original_mask != new_mask)
 
         original_area = np.count_nonzero(original_mask)
-        max_allowed_distance = self.tolerance_margin / 10 * original_area 
+        max_allowed_distance = self.tolerance_margin / 10 * original_area
 
 
         return hamming_distance <= max_allowed_distance
