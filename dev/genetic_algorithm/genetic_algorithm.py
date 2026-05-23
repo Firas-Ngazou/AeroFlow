@@ -64,24 +64,41 @@ class GeneticAlgorithm():
         return best_obstacle, best_fitness
 
 
-    def __generate_mutation(self, parent: VectorObstacle, force_random: bool = False) -> VectorObstacle:
+    def __generate_mutation(self, parent: VectorObstacle, force_random: bool = False) -> VectorObstacle: # REWORK
         child = copy.deepcopy(parent)
         mask_shape = child.binary_mask.shape
 
-        for _ in range(50): # max attempts to find a valid mutation
+        if force_random: # REWORK
+            # random binary mask
+            mutated_mask = (np.random.rand(*mask_shape) > 0.5).astype(bool) # Bool array if index is > or < than 0.5
+            # NOTE: Since this mask is random, the verify_area and verify_distance might fail
+            return mutated_mask #?
+        
+        for attempt in range(50):
+            current_mask = child.binary_mask.astype(bool)
+            dilated = binary_dilation(current_mask)
+            boundary = dilated ^ current_mask
+            y_indices, x_indices = np.where(boundary)
+            if len(x_indices) == 0: # If boundary is empty
+                continue
 
-            if force_random:
-                # random binary mask
-                mutated_mask = (np.random.rand(*mask_shape) > 0.5).astype(bool) # Bool array if index is > or < than 0.5
-                # NOTE: Since this mask is random, the verify_area and verify_distance might fail
-            else:
-                mask = child.binary_mask.astype(bool)
-                flip_matrix = np.random.rand(*mask.shape) < self.mutation_rate
-                mutated_mask = mask ^ flip_matrix
-                
-                if self.__verify_distance(mutated_mask) and self.__verify_area(mutated_mask):
-                    child.binary_mask = mutated_mask.astype(np.int8)
-                    return child
+            mutated_mask = current_mask.copy()
+            num_mutations = random.randint(3, 7) # number of mutated pixels
+            chosen_indices = random.sample(range(len(x_indices)), min(num_mutations, len(x_indices)))
+
+            for idx in chosen_indices:
+                cx, cy = x_indices[idx], y_indices[idx] # Grid coords
+        
+                if random.random() > 0.5:
+                    mutated_mask[cy, cx] = False # Removes a pixel
+
+                else: # Expands the shape
+                    if cy + 1 < mask_shape[0]: mutated_mask[cy + 1, cx] = True
+                    if cy - 1 >= 0: mutated_mask[cy - 1, cx] = True
+
+            if self.__verify_distance(mutated_mask) or self.__verify_area(mutated_mask): # Change so that the user can pick which one
+                child.binary_mask = mutated_mask.astype(np.int8)
+                return child
                 
         return child
 
@@ -198,5 +215,6 @@ class GeneticAlgorithm():
     @constraint_method.setter
     def constraint_method(self, constraint_method):
         self._constraint_method = constraint_method
+
 
     
