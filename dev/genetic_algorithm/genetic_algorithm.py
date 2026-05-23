@@ -64,15 +64,20 @@ class GeneticAlgorithm():
         return best_obstacle, best_fitness
 
 
-    def __generate_mutation(self, parent: VectorObstacle, force_random: bool = False) -> VectorObstacle: # REWORK
+    def __generate_mutation(self, parent: VectorObstacle, force_random: bool = False) -> VectorObstacle:
         child = copy.deepcopy(parent)
         mask_shape = child.binary_mask.shape
 
-        if force_random: # REWORK
-            # random binary mask
-            mutated_mask = (np.random.rand(*mask_shape) > 0.5).astype(bool) # Bool array if index is > or < than 0.5
-            # NOTE: Since this mask is random, the verify_area and verify_distance might fail
-            return mutated_mask #?
+        if force_random:
+            # mutated_mask = (np.random.rand(*mask_shape) > 0.5).astype(bool) # Bool array if index is > or < than 0.5
+            mutated_mask = np.zeros(mask_shape, dtype=bool)
+            y_center = mask_shape[0] // 2
+            for x in range(int(mask_shape[1] * 0.1), int(mask_shape[1]*0.9)):
+                thickness = random.randint(4, max(5, mask_shape[0] // 3)) # Thickness of the airfoil
+                mutated_mask[y_center - thickness: y_center + thickness, x] = True
+
+            child.binary_mask = mutated_mask.astype(np.int8)
+            return child
         
         for attempt in range(50):
             current_mask = child.binary_mask.astype(bool)
@@ -124,7 +129,7 @@ class GeneticAlgorithm():
         return tournement(), tournement()
 
 
-    def __evaluate_fitness(self, individual: VectorObstacle) -> float:
+    def __evaluate_fitness(self, individual: VectorObstacle) -> float: # REWORK
         mask = individual.binary_mask.astype(bool)
         expanded_mask = binary_dilation(mask)
 
@@ -133,7 +138,7 @@ class GeneticAlgorithm():
         x_max, y_max = mask.shape[1], mask.shape[0]
         raw_coords = np.column_stack((x_indices / x_max, y_indices / y_max)) # Matrix of normalized coords
 
-        airfoil = asb.Airfoil(name="Shape", coordinates=raw_coords) # Check coords(?)
+        airfoil = asb.Airfoil(name="Shape", coordinates=raw_coords) # Check doc for coords(?)
         aero = nf.get_aero_from_airfoil(
             airfoil=airfoil,
             alpha=0.0,
@@ -143,7 +148,6 @@ class GeneticAlgorithm():
 
         fitness_score = 1.0 / cd
         return float(fitness_score)
-        ...
 
 
     def __verify_distance(self, mask: np.ndarray) -> bool:
