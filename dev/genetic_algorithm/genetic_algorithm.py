@@ -7,7 +7,6 @@ from scipy.ndimage import binary_dilation
 
 from PySide6.QtCore import QObject, Signal
 
-from dev.physics_engine.vector_obstacle import VectorObstacle
 from dev.physics_engine.simulation_engine import SimulationEngine
 from dev.user_interface.canvas.q_editor import Shape
 
@@ -21,7 +20,6 @@ class GeneticAlgorithm(QObject):
         self._tolerance_margin: float = 0.1
         self._constraint_method: str = "SURFACE" # surface or distance
         self._constraint_target: str = "DRAG"    # drag or lift
-        self._obstacle : VectorObstacle = None
 
         self.population_size = population_size
         self.mutation_rate = mutation_rate
@@ -29,21 +27,21 @@ class GeneticAlgorithm(QObject):
         self._estimated_drag = None
         self._estimated_lift = None
 
-    def optimize(self) -> dict:
+    def optimize(self, vertices: np.ndarray) -> dict:
         best_obstacle = None
         best_fitness = -float('inf')
 
         base_fitness = self.__evaluate_fitness(self._obstacle)
 
         best_fitness = base_fitness
-        best_obstacle = copy.deepcopy(self._obstacle)
+        best_obstacle = copy.deepcopy(vertices)
 
         population = []
-        population.append(copy.deepcopy(self._obstacle))
+        population.append(copy.deepcopy(vertices))
 
         
         while len(population)< self.population_size:
-            child = self.__generate_mutation(self._obstacle, force_random=True)
+            child = self.__generate_mutation(vertices, force_random=True)
             population.append(child)
 
 
@@ -72,7 +70,7 @@ class GeneticAlgorithm(QObject):
         return best_obstacle, best_fitness # Change(?)
 
 
-    def __generate_mutation(self, parent: VectorObstacle, force_random: bool = False) -> VectorObstacle:
+    def __generate_mutation(self, parent: np.ndarray, force_random: bool = False) -> np.ndarray:
         child = copy.deepcopy(parent)
         mask_shape = child.binary_mask.shape
 
@@ -128,7 +126,7 @@ class GeneticAlgorithm(QObject):
         return child
 
 
-    def __crossover(self, parent_a: VectorObstacle, parent_b: VectorObstacle) -> VectorObstacle:
+    def __crossover(self, parent_a: np.ndarray, parent_b: np.ndarray) -> np.ndarray:
         child = copy.deepcopy(parent_a)
 
         mask_a = parent_a.binary_mask.astype(bool)
@@ -149,7 +147,7 @@ class GeneticAlgorithm(QObject):
         return tournement(), tournement()
 
 
-    def __evaluate_fitness(self, individual: VectorObstacle) -> float: # REWORK
+    def __evaluate_fitness(self, individual: np.ndarray) -> float: # REWORK
         mask = individual.binary_mask.astype(bool)
         expanded_mask = binary_dilation(mask)
 
@@ -218,7 +216,6 @@ class GeneticAlgorithm(QObject):
         return hamming_distance <= max_allowed_distance
 
 
-
     def __verify_area(self, mask: np.ndarray) -> bool:
         if not self.constraint_method == "SURFACE":
             return True
@@ -239,15 +236,12 @@ class GeneticAlgorithm(QObject):
         ...
 
 
-
-
-    @property
-    def obstacle(self):
-        return self._obstacle
-    @obstacle.setter
-    def obstacle(self, obstacle: VectorObstacle):
-        self._obstacle = obstacle
-
+    # @property
+    # def obstacle(self):
+    #     return self._obstacle
+    # @obstacle.setter
+    # def obstacle(self, obstacle: np.ndarray):
+    #     self._obstacle = obstacle
 
     @property
     def max_iterations(self):
@@ -256,7 +250,6 @@ class GeneticAlgorithm(QObject):
     def max_iterations(self, max_iteration):
         self._max_iterations = max_iteration
 
-
     @property
     def tolerance_margin(self):
         return self._tolerance_margin
@@ -264,14 +257,12 @@ class GeneticAlgorithm(QObject):
     def tolerance_margin(self, tolerance_margin):
         self._tolerance_margin = tolerance_margin
 
-
     @property
     def constraint_method(self):
         return self._constraint_method
     @constraint_method.setter
     def constraint_method(self, constraint_method):
         self._constraint_method = constraint_method
-
 
     @property
     def constraint(self):
