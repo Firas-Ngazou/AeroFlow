@@ -255,4 +255,30 @@ class GeneticAlgorithm(QObject):
         self._constraint_method = constraint_method
 
 
-    
+    @property
+    def constraint(self):
+        return self._constraint_method
+    @constraint.setter
+    def constraint(self, constraint: str):
+        self._constraint_method = constraint'
+
+    @property
+    def target(self):
+        return self._constraint_target
+    @target.setter
+    def target(self, target: str):
+        self._constraint_target = target
+
+    @property
+    def iterations(self):
+        return self._max_iterations
+    @iterations.setter
+    def iterations(self, max : int):
+        self._max_iterations = max
+
+    @property
+    def threshold(self):
+        return self._tolerance_margin
+    @threshold.setter
+    def threshold(self, value: float):
+        self._tolerance_margin = value
