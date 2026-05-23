@@ -1,21 +1,26 @@
 import numpy as np
-import math
-# from xfoil import XFoil
 import aerosandbox as asb
 import copy
 import random
 import neuralfoil as nf
 from scipy.ndimage import binary_dilation
 
+from PySide6.QtCore import QObject, Signal
+
 from dev.physics_engine.vector_obstacle import VectorObstacle
 from dev.physics_engine.simulation_engine import SimulationEngine
 from dev.user_interface.canvas.q_editor import Shape
 
-class GeneticAlgorithm():
+class GeneticAlgorithm(QObject):
+    iterationCompleted = Signal(np.ndarray, int, float)
+    optimizationCompleted = Signal()
+
     def __init__(self, population_size: int = 20, mutation_rate: float = 0.05):
+        super().__init__()
         self._max_iterations: int = 100
         self._tolerance_margin: float = 0.1
-        self._constraint_method: str = "SURFACE"
+        self._constraint_method: str = "SURFACE" # surface or distance
+        self._constraint_target: str = "DRAG"    # drag or lift
         self._obstacle : VectorObstacle = None
 
         self.population_size = population_size
@@ -50,6 +55,8 @@ class GeneticAlgorithm():
                 best_fitness = fitness_scores[max_idx]
                 best_obstacle = copy.deepcopy(population[max_idx])
 
+            self.iterationCompleted.emit(best_obstacle.binary_mask.copy(), gen, float(best_fitness))
+
             next_generation = []
             next_generation.append(copy.deepcopy(population[max_idx]))
 
@@ -61,7 +68,8 @@ class GeneticAlgorithm():
 
             population = next_generation
 
-        return best_obstacle, best_fitness
+        self.optimizationCompleted.emit()
+        return best_obstacle, best_fitness # Change(?)
 
 
     def __generate_mutation(self, parent: VectorObstacle, force_random: bool = False) -> VectorObstacle:
