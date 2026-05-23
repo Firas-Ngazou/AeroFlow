@@ -84,6 +84,7 @@ class GeneticAlgorithm():
             dilated = binary_dilation(current_mask)
             boundary = dilated ^ current_mask
             y_indices, x_indices = np.where(boundary)
+
             if len(x_indices) == 0: # If boundary is empty
                 continue
 
@@ -133,6 +134,9 @@ class GeneticAlgorithm():
         mask = individual.binary_mask.astype(bool)
         expanded_mask = binary_dilation(mask)
 
+        if np.count_nonzero(mask) < 4 : # empty mask
+            return -9999.0
+
         # Coords
         y_indices, x_indices = np.where(expanded_mask)
         x_max, y_max = mask.shape[1], mask.shape[0]
@@ -150,14 +154,25 @@ class GeneticAlgorithm():
         coords = np.vstack((upper_pts, lower_pts, upper_pts[0]))
 
         airfoil = asb.Airfoil(name="Shape", coordinates=coords)
+        airfoil.repanel(n_points_per_side=60) # makes the shape smooth for the cd approx
         aero = nf.get_aero_from_airfoil(
             airfoil=airfoil,
             alpha=0.0,
             Re=5e5
         )
         cd  = aero["CD"]
+        cl  = aero["CL"]
 
+        if cd <= 0 or np.isnan(cd):
+            return -9999.0
+        
         fitness_score = 1.0 / cd
+        
+        if cl <= 0 or np.isnan(cl):
+            return -9999.0
+
+        fitness_score = 1.0 / cl # Change so that the user can pick which one (cd or cl)
+        
         return float(fitness_score)
 
 
