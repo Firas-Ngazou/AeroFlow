@@ -2,33 +2,35 @@ import math
 import random
 
 import numpy as np
+
+import PySide6
+from __feature__ import snake_case, true_property  # type: ignore[import-not-found]
+
+import dev.user_interface.tools.q_wrapper as q_wrapper
+q_wrapper.apply_all_wrappers()
+
 from PySide6.QtCore import QPoint, Qt, QPointF, QMargins
 from PySide6.QtGui import QPen, QColor, QBrush, QFont, QPainter
 from PySide6.QtWidgets import QWidget, QLabel, QApplication, QVBoxLayout
 from PySide6.QtCharts import QChart, QChartView, QLineSeries, QValueAxis
 
-# NOTE: Last fully custom version is still available... I just didn't think of using PySide6 graphs from the start...
-# and I'm not sure why... (using QChartView and QChart is a better way to do it imo though)
-
-
 class QCustomGraph(QChartView):
     def __init__(self, parent=None):
-        super().__init__(parent)
+        self._chart = QChart()
+        super().__init__(self._chart, parent)
 
         # Setup
-        self._chart = QChart()
-        self._chart.setBackgroundVisible(False)
-        self._chart.setMargins(QMargins(0, 0, 0, 0))
-        self._chart.layout().setContentsMargins(0, 0, 0, 0)
+        self._chart.background_visible = False
+        self._chart.margins = QMargins(0, 0, 0, 0)
+        self._chart.layout.set_contents_margins(0, 0, 0, 0)
         self._chart.legend().hide()
-        self.setChart(self._chart)
-        self.setRenderHint(QPainter.RenderHint.Antialiasing)
+        self.set_render_hint(QPainter.RenderHint.Antialiasing)
         self._title = " - "
 
         # Series
         self._series = QLineSeries()
-        self._chart.addSeries(self._series)
-        self._chart.setTitle(self._title)
+        self._chart.add_series(self._series)
+        self._chart.title = self._title
 
         # Axis
         self._axis_x = QValueAxis()
@@ -36,42 +38,38 @@ class QCustomGraph(QChartView):
 
         # Font
         font = QFont("JetBrains Mono", 7)
-        font.setBold(True)
-        self._axis_x.setLabelsFont(font)
-        self._axis_y.setLabelsFont(font)
+        font.bold = True
+        self._axis_x.labels_font = font
+        self._axis_y.labels_font = font
 
         # Colors
         axis_pen = QPen(QColor(245, 245, 245, 255))
-        axis_pen.setWidth(2)
-        self._axis_x.setLinePen(axis_pen)
-        self._axis_y.setLinePen(axis_pen)
-        self._axis_x.setLabelsColor(QColor(245, 245, 245, 255))
-        self._axis_y.setLabelsColor(QColor(245, 245, 245, 255))
+        axis_pen.set_width(2)
+        self._axis_x.line_pen = axis_pen
+        self._axis_y.line_pen = axis_pen
+        self._axis_x.labels_color = QColor(245, 245, 245, 255)
+        self._axis_y.labels_color = QColor(245, 245, 245, 255)
 
         # Grid pen
         grad_pen = QPen(QColor(245, 245, 245, 255))
-        self._axis_x.setGridLinePen(grad_pen)
-        self._axis_y.setGridLinePen(grad_pen)
+        self._axis_x.grid_line_pen = grad_pen
+        self._axis_y.grid_line_pen = grad_pen
 
-        self._chart.addAxis(self._axis_x, Qt.AlignmentFlag.AlignBottom)
-        self._chart.addAxis(self._axis_y, Qt.AlignmentFlag.AlignLeft)
+        self._chart.add_axis(self._axis_x, Qt.AlignmentFlag.AlignBottom)
+        self._chart.add_axis(self._axis_y, Qt.AlignmentFlag.AlignLeft)
 
-        self._series.attachAxis(self._axis_x)
-        self._series.attachAxis(self._axis_y)
+        self._series.attach_axis(self._axis_x)
+        self._series.attach_axis(self._axis_y)
 
         # Line pen
         self._line_pen = QPen(QColor(255, 142, 142, 255))
-        self._line_pen.setWidth(2)
-        self._series.setPen(self._line_pen)
+        self._line_pen.set_width(2)
+        self._series.set_pen(self._line_pen)
 
         self._points = []
         self._g_height = 300
         self._g_width = 600
         self._offset = 50
-
-    def paintEvent(self, event):
-        super().paintEvent(event)
-        self.chart().resize(self.size())
 
     def add_point(self, point: QPointF):
         """
@@ -96,20 +94,20 @@ class QCustomGraph(QChartView):
             y_max = max(p.y() for p in self._points)
 
             if x_min == x_max:
-                self._axis_x.setRange(x_min - 1, x_max + 1)
+                self._axis_x.set_range(x_min - 1, x_max + 1)
             else:
-                self._axis_x.setRange(x_min, x_max)
+                self._axis_x.set_range(x_min, x_max)
 
             if y_min == y_max:
-                self._axis_y.setRange(y_min - 1, y_max + 1)
+                self._axis_y.set_range(y_min - 1, y_max + 1)
             else:
-                self._axis_y.setRange(y_min, y_max)
+                self._axis_y.set_range(y_min, y_max)
 
     def reset(self):
         self._points.clear()
         self._series.clear()
-        self._axis_x.setRange(0, 10)
-        self._axis_y.setRange(0, 10)
+        self._axis_x.set_range(0, 10)
+        self._axis_y.set_range(0, 10)
 
     @property
     def g_height(self):
@@ -117,8 +115,8 @@ class QCustomGraph(QChartView):
     @g_height.setter
     def g_height(self, value: int):
         self._g_height = value
-        self.setFixedHeight(value)
-        self._chart.resize(self.width(), value)
+        self.set_fixed_height(value)
+        self._chart.resize(self.width, value)
 
     @property
     def g_width(self):
@@ -126,8 +124,8 @@ class QCustomGraph(QChartView):
     @g_width.setter
     def g_width(self, value: int):
         self._g_width = value
-        self.setFixedWidth(value)
-        self._chart.resize(value, self.height())
+        self.set_fixed_width(value)
+        self._chart.resize(value, self.height)
 
     @property
     def offset(self):
@@ -142,8 +140,8 @@ class QCustomGraph(QChartView):
     @x_axis_len.setter
     def x_axis_len(self, value: int):
         self._g_width = value + self._offset
-        self.setFixedWidth(self._g_width)
-        self._chart.resize(self._g_width, self.height())
+        self.set_fixed_width(self._g_width)
+        self._chart.resize(self._g_width, self.height)
 
     @property
     def y_axis_len(self):
@@ -151,8 +149,8 @@ class QCustomGraph(QChartView):
     @y_axis_len.setter
     def y_axis_len(self, value: int):
         self._g_height = value + self._offset
-        self.setFixedHeight(self._g_height)
-        self._chart.resize(self.width(), self._g_height)
+        self.set_fixed_height(self._g_height)
+        self._chart.resize(self.width, self._g_height)
 
     @property
     def title(self):
@@ -160,7 +158,7 @@ class QCustomGraph(QChartView):
     @title.setter
     def title(self, value: str):
         self._title = value
-        self._chart.setTitle(value)
+        self._chart.title = value
 
 
 if __name__ == "__main__":

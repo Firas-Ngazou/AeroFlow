@@ -1,5 +1,11 @@
 from enum import Enum
 
+import PySide6
+from __feature__ import snake_case, true_property  # type: ignore[import-not-found]
+
+import dev.user_interface.tools.q_wrapper as q_wrapper
+q_wrapper.apply_all_wrappers()
+
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QFont
 from PySide6.QtWidgets import QWidget, QFrame, QHBoxLayout, QVBoxLayout, QLabel
@@ -55,22 +61,24 @@ class QProgressPoint(QWidget):
         self._finished_qss = """background-color: #8DB182; border-radius: 10px;""" # Green
 
         background_frame = QFrame()
-        background_frame.setProperty("class", "progress_point_background")
-        background_frame.setFixedSize(30, 30)
+        background_frame.set_property("class", "progress_point_background")
+        background_frame.set_fixed_height(30)
+        background_frame.set_fixed_width(30)
 
         self._point_frame = QFrame()
-        self._point_frame.setStyleSheet(self._idle_qss)
-        self._point_frame.setFixedSize(20, 20)
+        self._point_frame.style_sheet = self._idle_qss
+        self._point_frame.set_fixed_height(20)
+        self._point_frame.set_fixed_width(20)
 
         self._status: BarStatus = BarStatus.IDLE
 
         self._primary_layout = QHBoxLayout(background_frame)
-        self._primary_layout.addWidget(self._point_frame)
-        self._primary_layout.setContentsMargins(0, 0, 0, 0)
+        self._primary_layout.add_widget(self._point_frame)
+        self._primary_layout.set_contents_margins(0, 0, 0, 0)
 
         root_layout = QVBoxLayout(self)
-        root_layout.addWidget(background_frame)
-        root_layout.setContentsMargins(0, 0, 0, 0)
+        root_layout.add_widget(background_frame)
+        root_layout.set_contents_margins(0, 0, 0, 0)
 
     @property
     def status(self) -> BarStatus:
@@ -80,11 +88,11 @@ class QProgressPoint(QWidget):
     def status(self, value: BarStatus):
         self._status = value
         if self._status == BarStatus.IDLE:
-            self._point_frame.setStyleSheet(self._idle_qss)
+            self._point_frame.style_sheet = self._idle_qss
         elif self._status == BarStatus.RUNNING:
-            self._point_frame.setStyleSheet(self._running_qss)
+            self._point_frame.style_sheet = self._running_qss
         elif self._status == BarStatus.FINISHED:
-            self._point_frame.setStyleSheet(self._finished_qss)
+            self._point_frame.style_sheet = self._finished_qss
 
 class QProgressBar(QWidget):
     """
@@ -133,41 +141,41 @@ class QProgressBar(QWidget):
 
         # Backgrounds
         background_frame = QFrame()
-        background_frame.setFixedHeight(30)
-        background_frame.setProperty("class", "light_analysis_frame")
+        background_frame.set_fixed_height(30)
+        background_frame.set_property("class", "light_analysis_frame")
 
         self._bar_frame = QFrame()
-        self._bar_frame.setFixedWidth(self._bar_length)
-        self._bar_frame.setFixedHeight(30)
-        self._bar_frame.setProperty("class", "dark_analysis_frame")
+        self._bar_frame.set_fixed_width(self._bar_length)
+        self._bar_frame.set_fixed_height(30)
+        self._bar_frame.set_property("class", "dark_analysis_frame")
 
         # The filling
         self._fill_frame = QFrame()
-        self._fill_frame.setFixedWidth(int(self._fill_percentage*((self._bar_length-6)/100)))
-        self._fill_frame.setFixedHeight(24)
-        self._fill_frame.setStyleSheet(self._idle_qss)
+        self._fill_frame.set_fixed_width(int(self._fill_percentage*((self._bar_length-6)/100)))
+        self._fill_frame.set_fixed_height(24)
+        self._fill_frame.style_sheet = self._idle_qss
 
         bar_layout = QHBoxLayout(self._bar_frame)
-        bar_layout.addWidget(self._fill_frame, alignment=Qt.AlignmentFlag.AlignLeft)
-        bar_layout.setContentsMargins(2, 2, 2, 2)
+        bar_layout.add_widget(self._fill_frame, alignment=Qt.AlignmentFlag.AlignLeft)
+        bar_layout.set_contents_margins(2, 2, 2, 2)
 
         status_label = QLabel("Statut")
-        status_label.setProperty("class", "dark_text")
-        status_label.setFont(QFont("JetBrains Mono", 12))
+        status_label.set_property("class", "dark_text")
+        status_label.font = QFont("JetBrains Mono", 12)
 
         self._progress_point = QProgressPoint()
 
         self._primary_layout = QHBoxLayout(background_frame)
-        self._primary_layout.addSpacing(15)
-        self._primary_layout.addWidget(status_label)
-        self._primary_layout.addSpacing(10)
-        self._primary_layout.addWidget(self._progress_point)
-        self._primary_layout.addWidget(self._bar_frame)
-        self._primary_layout.setContentsMargins(0, 0, 0, 0)
+        self._primary_layout.add_spacing(15)
+        self._primary_layout.add_widget(status_label)
+        self._primary_layout.add_spacing(10)
+        self._primary_layout.add_widget(self._progress_point)
+        self._primary_layout.add_widget(self._bar_frame)
+        self._primary_layout.set_contents_margins(0, 0, 0, 0)
 
         root_layout = QVBoxLayout(self)
-        root_layout.addWidget(background_frame)
-        root_layout.setContentsMargins(0, 0, 0, 0)
+        root_layout.add_widget(background_frame)
+        root_layout.set_contents_margins(0, 0, 0, 0)
 
     @property
     def fill_percentage(self) -> int:
@@ -179,7 +187,7 @@ class QProgressBar(QWidget):
             value = self._min_filling
 
         self._fill_percentage = value
-        self._fill_frame.setFixedWidth(int(self._fill_percentage*((self._bar_length-6)/100)))
+        self._fill_frame.set_fixed_width(int(self._fill_percentage*((self._bar_length-6)/100)))
 
         if self._fill_percentage >= 100:
             self.status = BarStatus.FINISHED
@@ -196,9 +204,9 @@ class QProgressBar(QWidget):
     def status(self, value: BarStatus):
         self._status = value
         if self._status == BarStatus.IDLE:
-            self._fill_frame.setStyleSheet(self._idle_qss)
+            self._fill_frame.style_sheet = self._idle_qss
         elif self._status == BarStatus.RUNNING:
-            self._fill_frame.setStyleSheet(self._running_qss)
+            self._fill_frame.style_sheet = self._running_qss
         elif self._status == BarStatus.FINISHED:
-            self._fill_frame.setStyleSheet(self._finished_qss)
+            self._fill_frame.style_sheet = self._finished_qss
         self._progress_point.status = value

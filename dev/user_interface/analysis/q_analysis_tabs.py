@@ -1,3 +1,9 @@
+import PySide6
+from __feature__ import snake_case, true_property  # type: ignore[import-not-found]
+
+import dev.user_interface.tools.q_wrapper as q_wrapper
+q_wrapper.apply_all_wrappers()
+
 from PySide6.QtCore import Qt, QPoint, Slot, QPointF
 from PySide6.QtGui import QFont
 from PySide6.QtWidgets import QWidget, QFrame, QHBoxLayout, QVBoxLayout, QLabel, QTabWidget, QGridLayout
@@ -43,43 +49,43 @@ class QResultField(QWidget):
         super().__init__(parent)
 
         primary_field_frame = QFrame()
-        primary_field_frame.setFixedHeight(30)
-        primary_field_frame.setProperty("class", "light_analysis_frame")
+        primary_field_frame.set_fixed_height(30)
+        primary_field_frame.set_property("class", "light_analysis_frame")
 
         secondary_field_frame = QFrame()
-        secondary_field_frame.setFixedHeight(30)
-        secondary_field_frame.setProperty("class", "dark_analysis_frame")
+        secondary_field_frame.set_fixed_height(30)
+        secondary_field_frame.set_property("class", "dark_analysis_frame")
 
         self._result_name = QLabel(text)
-        self._result_name.setProperty("class", "dark_text")
-        self._result_name.setFont(QFont("JetBrains Mono", 8))
+        self._result_name.set_property("class", "dark_text")
+        self._result_name.font = QFont("JetBrains Mono", 8)
 
         self._result_value = QLabel(" - ")
-        self._result_value.setFont(QFont("JetBrains Mono", 8))
+        self._result_value.font = QFont("JetBrains Mono", 8)
 
         self._primary_layout = QHBoxLayout(primary_field_frame)
-        self._primary_layout.setContentsMargins(0, 0, 0, 0)
+        self._primary_layout.set_contents_margins(0, 0, 0, 0)
 
         self._secondary_field_layout = QHBoxLayout(secondary_field_frame)
-        self._secondary_field_layout.addWidget(self._result_value)
-        self._secondary_field_layout.setContentsMargins(10, 2, 10, 2)
+        self._secondary_field_layout.add_widget(self._result_value)
+        self._secondary_field_layout.set_contents_margins(10, 2, 10, 2)
 
-        self._primary_layout.addSpacing(10)
-        self._primary_layout.addWidget(self._result_name)
-        self._primary_layout.addSpacing(10)
-        self._primary_layout.addWidget(secondary_field_frame)
+        self._primary_layout.add_spacing(10)
+        self._primary_layout.add_widget(self._result_name)
+        self._primary_layout.add_spacing(10)
+        self._primary_layout.add_widget(secondary_field_frame)
 
         root_layout = QVBoxLayout(self)
-        root_layout.addWidget(primary_field_frame)
-        root_layout.setContentsMargins(0, 0, 0, 0)
+        root_layout.add_widget(primary_field_frame)
+        root_layout.set_contents_margins(0, 0, 0, 0)
 
     @property
     def result_value(self):
-        return self._result_value.text()
+        return self._result_value.text
 
     @result_value.setter
     def result_value(self, value: str) -> None:
-        self._result_value.setText(value)
+        self._result_value.text = value
 
 class QOptimizationAnalysis(QWidget):
     def __init__(self, parent: QWidget | None = None):
@@ -100,13 +106,13 @@ class QOptimizationAnalysis(QWidget):
         self._graph.title = "Coefficient sélectionné en fonction de l'itération"
 
         self._secondary_layout = QGridLayout()
-        self._secondary_layout.addWidget(self._performance_gain_field, 0, 0)
-        self._secondary_layout.addWidget(self._initial_projected_drag, 1, 0)
-        self._secondary_layout.addWidget(self._initial_projected_lift, 0, 1)
+        self._secondary_layout.add_widget(self._performance_gain_field, 0, 0)
+        self._secondary_layout.add_widget(self._initial_projected_drag, 1, 0)
+        self._secondary_layout.add_widget(self._initial_projected_lift, 0, 1)
 
-        self._primary_layout.addLayout(self._secondary_layout)
-        self._primary_layout.addWidget(self._graph)
-        self._primary_layout.addStretch()
+        self._primary_layout.add_layout(self._secondary_layout)
+        self._primary_layout.add_widget(self._graph)
+        self._primary_layout.add_stretch()
 
     @property
     def gain_value(self):
@@ -175,19 +181,19 @@ class QResultAnalysis(QWidget):
         self._max_vorticity_field = QResultField("Vorticité maximale [s⁻¹]")
 
         self._secondary_layout = QGridLayout()
-        self._secondary_layout.addWidget(self._drag_coef_field, 0, 0)
-        self._secondary_layout.addWidget(self._lift_coef_field, 0, 1)
-        self._secondary_layout.addWidget(self._reynolds_number_field, 1, 0)
-        self._secondary_layout.addWidget(self._mach_number_field, 1, 1)
-        self._secondary_layout.addWidget(self._kinetic_energy_field, 2, 0)
-        self._secondary_layout.addWidget(self._pressure_drop_field, 2, 1)
-        self._secondary_layout.addWidget(self._total_mass_field, 3, 0)
-        self._secondary_layout.addWidget(self._total_enstrophy_field, 3, 1)
-        self._secondary_layout.addWidget(self._max_vorticity_field, 4, 0)
+        self._secondary_layout.add_widget(self._drag_coef_field, 0, 0)
+        self._secondary_layout.add_widget(self._lift_coef_field, 0, 1)
+        self._secondary_layout.add_widget(self._reynolds_number_field, 1, 0)
+        self._secondary_layout.add_widget(self._mach_number_field, 1, 1)
+        self._secondary_layout.add_widget(self._kinetic_energy_field, 2, 0)
+        self._secondary_layout.add_widget(self._pressure_drop_field, 2, 1)
+        self._secondary_layout.add_widget(self._total_mass_field, 3, 0)
+        self._secondary_layout.add_widget(self._total_enstrophy_field, 3, 1)
+        self._secondary_layout.add_widget(self._max_vorticity_field, 4, 0)
         # self._secondary_layout.addStretch()
 
-        self._primary_layout.addLayout(self._secondary_layout)
-        self._primary_layout.addStretch()
+        self._primary_layout.add_layout(self._secondary_layout)
+        self._primary_layout.add_stretch()
 
     @property
     def drag_coef_field_value(self):
@@ -284,31 +290,31 @@ class QAnalysisWidget(QFloatingWidget):
         """
         super().__init__(parent)
 
-        self.setMinimumWidth(600)
-        self.setMinimumHeight(350)
+        self.minimum_width = 600
+        self.minimum_height = 350
 
         # Progress bar
         self._progress_bar = QProgressBar()
         self._info_label = QLabel("  Durée estimée : 00:00:00")
-        self._info_label.setFont(QFont("JetBrains Mono", 9))
+        self._info_label.font = QFont("JetBrains Mono", 9)
 
         self.saved_position = initial_position
 
         self._tabs = QTabWidget()
-        self._tabs.setProperty("class", "analysis_tabs")
-        self._tabs.tabBar().setProperty("class", "analysis_tabs")
+        self._tabs.set_property("class", "analysis_tabs")
+        self._tabs.tab_bar().set_property("class", "analysis_tabs")
 
         self._optimization_tab = QOptimizationAnalysis()
-        self._tabs.addTab(self._optimization_tab, "Optimisation")
+        self._tabs.add_tab(self._optimization_tab, "Optimisation")
 
         self._results_tab = QResultAnalysis()
-        self._tabs.addTab(self._results_tab, "Résultats")
+        self._tabs.add_tab(self._results_tab, "Résultats")
 
-        self._tabs.setFont(QFont("JetBrains Mono", 12))
+        self._tabs.font = QFont("JetBrains Mono", 12)
 
-        self._v_box_layout.addWidget(self._progress_bar, alignment=Qt.AlignmentFlag.AlignTop)
-        self._v_box_layout.addWidget(self._info_label, alignment=Qt.AlignmentFlag.AlignTop)
-        self._v_box_layout.addWidget(self._tabs)
+        self._v_box_layout.add_widget(self._progress_bar, alignment=Qt.AlignmentFlag.AlignTop)
+        self._v_box_layout.add_widget(self._info_label, alignment=Qt.AlignmentFlag.AlignTop)
+        self._v_box_layout.add_widget(self._tabs)
 
     @property
     def simulation_progress(self):
@@ -320,18 +326,18 @@ class QAnalysisWidget(QFloatingWidget):
 
     @property
     def simulation_info_label(self):
-        return self._info_label.text()
+        return self._info_label.text
 
     @simulation_info_label.setter
     def simulation_info_label(self, value: str) -> None:
-        self._info_label.setText(value)
+        self._info_label.text = value
 
     @Slot(str)
     def set_sim_info_label(self, value: str) -> None:
         self.simulation_info_label = value
 
     def set_results_tab_active(self) -> None:
-        self._tabs.setCurrentWidget(self._results_tab)
+        self._tabs.set_current_widget(self._results_tab)
 
     @property
     def drag_coef_value(self):

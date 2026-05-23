@@ -3,6 +3,13 @@ import threading
 from datetime import datetime
 
 import numpy as np
+
+import PySide6
+from __feature__ import snake_case, true_property  # type: ignore[import-not-found]
+
+import dev.user_interface.tools.q_wrapper as q_wrapper
+q_wrapper.apply_all_wrappers()
+
 from PySide6.QtCore import QObject, Signal, Qt, QThread, Slot
 
 from dev.physics_engine.lattice_grid import LatticeGrid, D2Q9Constants
@@ -183,7 +190,7 @@ class SimulationEngine(QObject):
         i = 0
 
         while i < self._max_step:
-            if QThread.currentThread().isInterruptionRequested():
+            if QThread.current_thread().is_interruption_requested():
                 self.reset()
                 break
 
@@ -201,7 +208,7 @@ class SimulationEngine(QObject):
                 self.__end_current_frame(obstacle_mask)
 
             else:
-                QThread.currentThread().msleep(50)
+                QThread.current_thread().msleep(50)
 
         self.finished.emit()
 

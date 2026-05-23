@@ -4,6 +4,12 @@ import os
 from enum import Enum
 from pathlib import Path
 
+import PySide6
+from __feature__ import snake_case, true_property  # type: ignore[import-not-found]
+
+import dev.user_interface.tools.q_wrapper as q_wrapper
+q_wrapper.apply_all_wrappers()
+
 from PySide6.QtCore import Slot, QObject, Signal
 from PySide6.QtGui import QPixmap
 from PySide6.QtWidgets import QFileDialog, QLabel
@@ -103,6 +109,9 @@ class ProjectManager(QObject):
         self.__load_ini_values()
         self.__ini_connections()
 
+        if self._current_project is None or self._project_title_bar is None:
+            return
+
         self._current_project.vectorDrawingChanged.connect(lambda: self._set_modified(True))
         self._current_project.jsonSettingsChanged.connect(lambda: self._set_modified(True))
         self._current_project.saveWarningYesPressed.connect(self._safe_close)
@@ -124,6 +133,10 @@ class ProjectManager(QObject):
         :raises: This method does not explicitly raise any exceptions.
         :return: None
         """
+
+        if self._current_project is None:
+            return
+
         self._current_project.qualityChanged.connect(
             lambda y: self.save_ini_number("Simulation", "Quality", y))
         self._current_project.windSpeedChanged.connect(
@@ -164,6 +177,8 @@ class ProjectManager(QObject):
         self._project_title_bar.is_project_saved = not modified
         if self._project_state is ProjectState.SAVED and modified:
             self._project_state = ProjectState.DEFAULT
+            if self._project_title_bar is None:
+                return
             self._project_title_bar.file_name = f"* {self._project_title_bar.file_name()}"
 
     def new_project(self) -> ProjectPage:
@@ -247,7 +262,11 @@ class ProjectManager(QObject):
         :type data: dict
         :return: None
         """
-        current_save_path, _ = QFileDialog.getSaveFileName(self._project_title_bar.window(), "Save as",
+
+        if self._project_title_bar is None:
+            return
+
+        current_save_path, _ = QFileDialog.get_save_file_name(self._project_title_bar.window(), "Save as",
                                                 "../../untitled.json", "JSON Files (*.json);;All Files (*")
         if not current_save_path: return
 
@@ -574,6 +593,6 @@ class ProjectManager(QObject):
     @current_project.setter
     def current_project( self , project: ProjectPage | None):
         if self._current_project:
-            self._current_project.deleteLater()
+            self._current_project.delete_later()
 
         self._current_project = project

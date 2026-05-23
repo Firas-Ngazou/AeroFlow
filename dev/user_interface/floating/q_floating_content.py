@@ -1,4 +1,6 @@
 import sys
+import PySide6
+from __feature__ import snake_case, true_property  # type: ignore[import-not-found]
 
 from PySide6.QtCore import Qt, Signal, QPoint
 from PySide6.QtGui import QFont, QShowEvent, QHideEvent
@@ -30,23 +32,26 @@ class QFloatingContent(QFloatingWidget):
 
         self._title_label = QLabel(title)
 
-        font = QFont("JetBrains Mono", 12)
-        font.setBold(True)
-        self._title_label.setFont(font)
+        self.minimum_width = 300
+        self.minimum_height = 150
 
-        self._title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        font = QFont("JetBrains Mono", 12)
+        font.bold = True
+        self._title_label.font = font
+
+        self._title_label.alignment = Qt.AlignmentFlag.AlignCenter
 
         self._left_pb = QFloatingSettingPB("Appliquer")
         self._right_pb = QFloatingSettingPB("Annuler", fill=False)
 
         self._lower_h_layout = QHBoxLayout()
-        self._lower_h_layout.addStretch()
-        self._lower_h_layout.addWidget(self._left_pb, alignment=Qt.AlignmentFlag.AlignRight)
-        self._lower_h_layout.addWidget(self._right_pb, alignment=Qt.AlignmentFlag.AlignRight)
+        self._lower_h_layout.add_stretch()
+        self._lower_h_layout.add_widget(self._left_pb, alignment=Qt.AlignmentFlag.AlignRight)
+        self._lower_h_layout.add_widget(self._right_pb, alignment=Qt.AlignmentFlag.AlignRight)
 
-        self._v_box_layout.addWidget(self._title_label, alignment=Qt.AlignmentFlag.AlignTop)
-        self._v_box_layout.addStretch()
-        self._v_box_layout.addLayout(self._lower_h_layout)
+        self._v_box_layout.add_widget(self._title_label, alignment=Qt.AlignmentFlag.AlignTop)
+        self._v_box_layout.add_stretch()
+        self._v_box_layout.add_layout(self._lower_h_layout)
 
 class QFloatingWarning(QFloatingContent):
     """
@@ -80,19 +85,18 @@ class QFloatingWarning(QFloatingContent):
         :param parent: The parent widget of the dialog, or None for a top-level window.
         """
         super().__init__(title, parent)
-        self.setMinimumSize(300, 150)
 
-        center_point = QPoint(int(initial_position.x() - self.width()/2 - 40),
-                              int(initial_position.y() - self.height()/2))
+        center_point = QPoint(int(initial_position.x() - self.width / 2 - 40),
+                              int(initial_position.y() - self.height / 2))
         self.saved_position = center_point
 
-        self._left_pb.setText("Oui")
-        self._right_pb.setText("Non")
+        self._left_pb.text = "Oui"
+        self._right_pb.text = "Non"
 
         self._warning_text = warning_text
         self._warning_label: QLabel = QLabel(self._warning_text)
-        self._warning_label.setFont(QFont("JetBrains Mono", 9))
-        self._v_box_layout.insertWidget(2, self._warning_label, alignment=Qt.AlignmentFlag.AlignCenter)
+        self._warning_label.font = QFont("JetBrains Mono", 9)
+        self._v_box_layout.insert_widget(2, self._warning_label, alignment=Qt.AlignmentFlag.AlignCenter)
 
         self._left_pb.clicked.connect(self.yesPressed)
         self._right_pb.clicked.connect(self.noPressed)
@@ -121,7 +125,7 @@ class QFloatingWarning(QFloatingContent):
         :type text: str
         """
         self._warning_text = text
-        self._warning_label.setText(self._warning_text)
+        self._warning_label.text = self._warning_text
 
 class QFloatingSlider(QFloatingContent):
     applyPressed = Signal(int)
@@ -130,14 +134,12 @@ class QFloatingSlider(QFloatingContent):
     def __init__(self, title: str,  parent: QWidget | None = None):
         super().__init__(title, parent)
 
-        self.setMinimumSize(300, 150)
-
-        self._left_pb.setText("Appliquer")
-        self._right_pb.setText("Annuler")
+        self._left_pb.text = "Appliquer"
+        self._right_pb.text = "Annuler"
 
         self._slider_group = QSliderGroup("")
 
-        self._v_box_layout.insertWidget(2, self._slider_group, alignment=Qt.AlignmentFlag.AlignCenter)
+        self._v_box_layout.insert_widget(2, self._slider_group, alignment=Qt.AlignmentFlag.AlignCenter)
 
         self._left_pb.clicked.connect(lambda: self.applyPressed.emit(self._slider_group.value))
         self._right_pb.clicked.connect(self.cancelPressed)

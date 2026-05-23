@@ -1,3 +1,9 @@
+import PySide6
+from __feature__ import snake_case, true_property  # type: ignore[import-not-found]
+
+import dev.user_interface.tools.q_wrapper as q_wrapper
+q_wrapper.apply_all_wrappers()
+
 from PySide6.QtCore import Qt, Slot, Signal, QPropertyAnimation, QEasingCurve
 from PySide6.QtGui import QFont, QIcon
 from PySide6.QtWidgets import QWidget, QFrame, QHBoxLayout, QPushButton, QVBoxLayout, \
@@ -39,7 +45,7 @@ class QSettingsGeneralTab(QWidget):
 
         high_res_warning = QLabel(" ATTENTION : Une trop haute valeur peut résulter \n"
                                   " en une perte de performance importante.")
-        high_res_warning.setFont(QFont("JetBrains Mono", 8))
+        high_res_warning.font = QFont("JetBrains Mono", 8)
 
         # Wind speed
         self._wind_speed = QRealSliderGroup("VITESSE (m/s)")
@@ -106,38 +112,37 @@ class QSettingsGeneralTab(QWidget):
 
         # Layouts
         content_widget = QWidget()
-        content_widget.setFixedWidth(345)
+        content_widget.set_fixed_width(345)
         content_layout = QVBoxLayout(content_widget)
-        content_layout.addWidget(self._quality)
-        content_layout.addWidget(high_res_warning)
-        content_layout.addSpacing(20)
-        content_layout.addWidget(self._wind_speed)
-        content_layout.addSpacing(10)
-        content_layout.addWidget(self._viscosity)
-        content_layout.addSpacing(10)
-        content_layout.addWidget(self._live_edit)
-        content_layout.addSpacing(10)
-        content_layout.addWidget(self._heatmaps_cb)
-        content_layout.addSpacing(10)
-        content_layout.addWidget(self._other_cb)
-        content_layout.addSpacing(10)
-        content_layout.addWidget(self._streamline_count)
-        content_layout.addSpacing(10)
-        content_layout.addWidget(self._staircase_cb)
-        # content_layout.addWidget(self._save_clear)
+        content_layout.add_widget(self._quality)
+        content_layout.add_widget(high_res_warning)
+        content_layout.add_spacing(20)
+        content_layout.add_widget(self._wind_speed)
+        content_layout.add_spacing(10)
+        content_layout.add_widget(self._viscosity)
+        content_layout.add_spacing(10)
+        content_layout.add_widget(self._live_edit)
+        content_layout.add_spacing(10)
+        content_layout.add_widget(self._heatmaps_cb)
+        content_layout.add_spacing(10)
+        content_layout.add_widget(self._other_cb)
+        content_layout.add_spacing(10)
+        content_layout.add_widget(self._streamline_count)
+        content_layout.add_spacing(10)
+        content_layout.add_widget(self._staircase_cb)
 
-        content_layout.setContentsMargins(0, 0, 0, 0)
-        content_layout.addStretch()
+        content_layout.set_contents_margins(0, 0, 0, 0)
+        content_layout.add_stretch()
 
         scroll_area = QScrollArea()
-        scroll_area.setWidgetResizable(True)
-        scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        scroll_area.setFrameShape(QFrame.Shape.NoFrame)
-        scroll_area.setWidget(content_widget)
+        scroll_area.widget_resizable = True
+        scroll_area.horizontal_scroll_bar_policy = Qt.ScrollBarPolicy.ScrollBarAlwaysOff
+        scroll_area.frame_shape = QFrame.Shape.NoFrame
+        scroll_area.set_widget(content_widget)
 
         root_layout = QVBoxLayout(self)
-        root_layout.setContentsMargins(0, 0, 0, 0)
-        root_layout.addWidget(scroll_area)
+        root_layout.set_contents_margins(0, 0, 0, 0)
+        root_layout.add_widget(scroll_area)
 
         # Connections
         self._quality.realValueChanged.connect(self.qualityChanged.emit)
@@ -150,8 +155,6 @@ class QSettingsGeneralTab(QWidget):
         self._other_cb.rightStateChanged.connect(self.curlStateChanged.emit)
         self._streamline_count.valueChanged.connect(self.streamlineCountChanged.emit)
         self._staircase_cb.stateChanged.connect(self.staircaseStateChanged.emit)
-        # self._save_clear.saveRequested.connect(self.saveRequested.emit)
-        # self._save_clear.clearRequested.connect(self.clearRequested.emit)
 
     @property
     def quality(self) -> float:
@@ -228,10 +231,10 @@ class QSettingsGeneralTab(QWidget):
         return self._sim_playing
     @sim_playing.setter
     def sim_playing(self, value: bool):
-        self._wind_speed.setDisabled(value)
-        self._live_edit.setDisabled(value)
-        self._viscosity.setDisabled(value)
-        self._staircase_cb.setDisabled(value)
+        self._wind_speed.set_disabled(value)
+        self._live_edit.set_disabled(value)
+        self._viscosity.set_disabled(value)
+        self._staircase_cb.set_disabled(value)
         self._sim_playing = value
 
     # @property
@@ -276,28 +279,29 @@ class QSettingsOptimizationTab(QWidget):
         # Constraint method
         # Title
         self._title = QLabel("CONTRAINTE")
-        self._title.setFont(QFont("JetBrains Mono", 11))
+        self._title.font = QFont("JetBrains Mono", 11)
 
         # Combobox
         self._combo_box = QComboBox()
-        self._combo_box.setPlaceholderText("MÉTHODE")
-        self._combo_box.setProperty("class", "settings_combo_box")
-        self._combo_box.setFixedSize(150, 30)
-        self._combo_box.setFont(QFont("JetBrains Mono", 9))
+        self._combo_box.placeholder_text = "MÉTHODE"
+        self._combo_box.set_property("class", "settings_combo_box")
+        self._combo_box.set_fixed_width(150)
+        self._combo_box.set_fixed_height(30)
+        self._combo_box.font = QFont("JetBrains Mono", 9)
 
-        self._combo_box.addItem("DISTANCE")
-        self._combo_box.addItem("SURFACE")
+        self._combo_box.add_item("DISTANCE")
+        self._combo_box.add_item("SURFACE")
 
-        self._combo_box.setCurrentIndex(1)
+        self._combo_box.current_index = 1
 
         # Primary frame & layout
         constraint_frame = QFrame()
-        constraint_frame.setProperty("class", "constraint_frame")
+        constraint_frame.set_property("class", "constraint_frame")
         self._constraint_layout = QHBoxLayout(constraint_frame)
 
-        self._constraint_layout.addWidget(self._title, alignment=Qt.AlignmentFlag.AlignLeft)
-        self._constraint_layout.addWidget(self._combo_box, alignment=Qt.AlignmentFlag.AlignRight)
-        self._constraint_layout.setContentsMargins(15, 0, 0, 0)
+        self._constraint_layout.add_widget(self._title, alignment=Qt.AlignmentFlag.AlignLeft)
+        self._constraint_layout.add_widget(self._combo_box, alignment=Qt.AlignmentFlag.AlignRight)
+        self._constraint_layout.set_contents_margins(15, 0, 0, 0)
 
         # Threshold
         self._threshold_setting = QSliderGroup("SEUIL (%)")
@@ -315,11 +319,11 @@ class QSettingsOptimizationTab(QWidget):
 
         # Root
         root_layout = QVBoxLayout(self)
-        root_layout.addWidget(constraint_frame)
-        root_layout.addWidget(self._threshold_setting)
-        root_layout.addWidget(self._iterations_setting)
-        root_layout.setContentsMargins(0, 0, 0, 0)
-        root_layout.addStretch()
+        root_layout.add_widget(constraint_frame)
+        root_layout.add_widget(self._threshold_setting)
+        root_layout.add_widget(self._iterations_setting)
+        root_layout.set_contents_margins(0, 0, 0, 0)
+        root_layout.add_stretch()
 
         # Connections
         self._combo_box.currentTextChanged.connect(self.constraintChanged.emit)
@@ -328,10 +332,10 @@ class QSettingsOptimizationTab(QWidget):
 
     @property
     def constraint_method(self) -> str:
-        return self._combo_box.currentText()
+        return self._combo_box.current_text
     @constraint_method.setter
     def constraint_method(self, constraint: str) -> None:
-        self._combo_box.setCurrentText(constraint)
+        self._combo_box.current_text = constraint
 
     @property
     def threshold(self) -> int:
@@ -352,9 +356,9 @@ class QSettingsOptimizationTab(QWidget):
         return self._sim_playing
     @sim_playing.setter
     def sim_playing(self, value: bool) -> None:
-        self._iterations_setting.setDisabled(value)
-        self._combo_box.setDisabled(value)
-        self._threshold_setting.setDisabled(value)
+        self._iterations_setting.set_disabled(value)
+        self._combo_box.set_disabled(value)
+        self._threshold_setting.set_disabled(value)
         self._sim_playing = value
 
 class QSettingsSideBar(QWidget):
@@ -383,24 +387,24 @@ class QSettingsSideBar(QWidget):
 
         self._height = 800
         self._primary_frame = QFrame()
-        self._primary_frame.setProperty("class", "primary_frame")
+        self._primary_frame.set_property("class", "primary_frame")
 
         self._full_frame = QFrame()
-        self._full_frame.setFixedHeight(self._height)
+        self._full_frame.set_fixed_height(self._height)
 
         self._side_button_layout = QHBoxLayout(self._full_frame)
 
         self._primary_layout = QVBoxLayout(self._primary_frame)
-        self._primary_layout.setContentsMargins(10, 10, 10, 5)
+        self._primary_layout.set_contents_margins(10, 10, 10, 5)
 
         self._secondary_layout = QHBoxLayout()
-        self._secondary_layout.setContentsMargins(10, 5, 10, 5)
-        self._primary_layout.addLayout(self._secondary_layout)
+        self._secondary_layout.set_contents_margins(10, 5, 10, 5)
+        self._primary_layout.add_layout(self._secondary_layout)
 
         self._collapsed_width = 25
         self._expanded_width = 400
 
-        self._full_frame.setMaximumWidth(self._collapsed_width)
+        self._full_frame.minimum_width = self._collapsed_width
 
         self._is_collapsed = True
         self._sim_playing = False
@@ -409,33 +413,34 @@ class QSettingsSideBar(QWidget):
         self._open_icon = QIcon(":/res/left_arrow_icon_black.png")
         self._close_icon = QIcon(":/res/right_arrow_icon_black.png")
         self._side_button = QPushButton()
-        self._side_button.setIcon(self._open_icon)
-        self._side_button.setProperty("class", "sidebar_pb")
-        self._side_button.setFixedSize(25, self._height - 200)
-        self._side_button_layout.setContentsMargins(2, 0, 0, 0)
-        self._side_button_layout.addWidget(self._side_button,
+        self._side_button.icon = self._open_icon
+        self._side_button.set_property("class", "sidebar_pb")
+        self._side_button.set_fixed_width(25)
+        self._side_button.set_fixed_height(self._height - 200)
+        self._side_button_layout.set_contents_margins(2, 0, 0, 0)
+        self._side_button_layout.add_widget(self._side_button,
                                            alignment=Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
-        self._side_button_layout.addWidget(self._primary_frame)
+        self._side_button_layout.add_widget(self._primary_frame)
 
         # General tab
         self._general_button = QSettingsTabPB("GÉNÉRAL")
-        self._general_button.setChecked(True)
-        self._secondary_layout.addWidget(self._general_button, alignment=Qt.AlignmentFlag.AlignTop |
+        self._general_button.checked = True
+        self._secondary_layout.add_widget(self._general_button, alignment=Qt.AlignmentFlag.AlignTop |
                                                                    Qt.AlignmentFlag.AlignLeft)
         self._general_tab = QSettingsGeneralTab()
-        self._primary_layout.addWidget(self._general_tab)
+        self._primary_layout.add_widget(self._general_tab)
 
         # Optimization tab
         self._optimization_button = QSettingsTabPB("OPTIMIZATION")
-        self._secondary_layout.addWidget(self._optimization_button, alignment=Qt.AlignmentFlag.AlignTop |
+        self._secondary_layout.add_widget(self._optimization_button, alignment=Qt.AlignmentFlag.AlignTop |
                                                                         Qt.AlignmentFlag.AlignRight)
         self._optimization_tab = QSettingsOptimizationTab()
-        self._primary_layout.addWidget(self._optimization_tab)
+        self._primary_layout.add_widget(self._optimization_tab)
         self._optimization_tab.hide()
 
         root_layout = QVBoxLayout(self)
-        root_layout.setContentsMargins(0, 0, 0, 0)
-        root_layout.addWidget(self._full_frame)
+        root_layout.set_contents_margins(0, 0, 0, 0)
+        root_layout.add_widget(self._full_frame)
 
         # Connections
         self._general_button.clicked.connect(self._on_tab_changed)
@@ -461,17 +466,17 @@ class QSettingsSideBar(QWidget):
         self._side_button.pressed.connect(self._on_side_button_pressed)
 
         # Animation
-        self._animation = QPropertyAnimation(self._full_frame, b"maximumWidth")
-        self._animation.setDuration(400)
-        self._animation.setEasingCurve(QEasingCurve.Type.InOutQuad)
+        self._animation = QPropertyAnimation(self._full_frame, b"maximum_width")
+        self._animation.set_duration(400)
+        self._animation.easing_curve = QEasingCurve.Type.InOutQuad
         self._animation.finished.connect(self._on_animation_finished)
 
         self.is_collapsed = True
 
     def resizeEvent(self, event):
-        self._height = self.window().height() - 300
-        self._side_button.setFixedHeight(self._height)
-        self._full_frame.setFixedHeight(self._height)
+        self._height = self.window().height - 300
+        self._side_button.set_fixed_height(self._height)
+        self._full_frame.set_fixed_height(self._height)
 
     @property
     def constraint_method(self) -> str:
@@ -564,26 +569,6 @@ class QSettingsSideBar(QWidget):
     def streamline_count(self, count: int):
         self._general_tab.streamline_count = count
 
-    @property
-    def save_disabled(self) -> bool:
-        return self._general_tab.save_disabled
-    @save_disabled.setter
-    def save_disabled(self, state: bool):
-        self._general_tab.save_disabled = state
-
-    @property
-    def clear_disabled(self) -> bool:
-        return self._general_tab.clear_disabled
-    @clear_disabled.setter
-    def clear_disabled(self, state: bool):
-        self._general_tab.clear_disabled = state
-
-    def update_save_info(self, info: str = " - "):
-        self._general_tab.save_info = info
-
-    def update_clear_info(self, info: str = " - "):
-        self._general_tab.clear_info = info
-
     @Slot()
     def _on_tab_changed(self):
         sender = self.sender()
@@ -593,12 +578,12 @@ class QSettingsSideBar(QWidget):
 
             # General tab was already pressed
             if self._current_tab == 0:
-                self._general_button.setChecked(True)
+                self._general_button.checked = True
                 return
 
             # General tab was not pressed
-            self._general_button.setChecked(True)
-            self._optimization_button.setChecked(False)
+            self._general_button.checked = True
+            self._optimization_button.checked = False
             self._current_tab = 0
             self._optimization_tab.hide()
             self._general_tab.show()
@@ -608,11 +593,11 @@ class QSettingsSideBar(QWidget):
 
             # Optimization tab was already pressed
             if self._current_tab == 1:
-                self._optimization_button.setChecked(True)
+                self._optimization_button.checked = True
 
             # Optimization tab was not pressed
-            self._optimization_button.setChecked(True)
-            self._general_button.setChecked(False)
+            self._optimization_button.checked = True
+            self._general_button.checked = False
             self._current_tab = 1
             self._general_tab.hide()
             self._optimization_tab.show()
@@ -633,13 +618,13 @@ class QSettingsSideBar(QWidget):
         self._is_collapsed = value
         self._primary_frame.show()
         if self._is_collapsed:
-            self._side_button.setIcon(self._open_icon)
-            self._animation.setStartValue(self._expanded_width)
-            self._animation.setEndValue(self._collapsed_width)
+            self._side_button.icon = self._open_icon
+            self._animation.start_value = self._expanded_width
+            self._animation.end_value = self._collapsed_width
         else:
-            self._side_button.setIcon(self._close_icon)
-            self._animation.setStartValue(self._collapsed_width)
-            self._animation.setEndValue(self._expanded_width)
+            self._side_button.icon = self._close_icon
+            self._animation.start_value = self._collapsed_width
+            self._animation.end_value = self._expanded_width
 
         self._animation.start()
 

@@ -1,9 +1,16 @@
 import os
 import sys
-from dev.user_interface import ressources_rc
 
+import PySide6
+from __feature__ import snake_case, true_property  # type: ignore[import-not-found]
+
+import dev.user_interface.tools.q_wrapper as q_wrapper
+q_wrapper.apply_all_wrappers()
+
+from dev.user_interface import ressources_rc
 from PySide6.QtWidgets import QApplication, QSplashScreen
 from PySide6.QtGui import QPixmap
+from PySide6.QtCore import Slot
 
 app = QApplication.instance()
 if not app:
@@ -13,7 +20,7 @@ splash_pixmap = QPixmap(":/res/splash_v0_2_0.png")
 splash_screen = QSplashScreen(pixmap=splash_pixmap)
 splash_screen.show()
 
-app.processEvents()
+app.process_events()
 
 from PySide6.QtCore import Slot
 from PySide6.QtGui import QFontDatabase, QPalette, QColor, QIcon
@@ -54,16 +61,16 @@ class AeroFlow:
         self._stack = QStackedWidget(self._window)
 
         self._home_page = HomePage(self._window)
-        self._stack.addWidget(self._home_page)
+        self._stack.add_widget(self._home_page)
 
         self._project_page: ProjectPage | None = None
         self._project_manager = ProjectManager(self._window)
         self._project_manager.home_page = self._home_page
 
         self._primary_layout = QHBoxLayout(self._window)
-        self._primary_layout.setSpacing(0)
-        self._primary_layout.setContentsMargins(0, 32, 0, 0)
-        self._primary_layout.addWidget(self._stack)
+        self._primary_layout.spacing = 0
+        self._primary_layout.set_contents_margins(0, 32, 0, 0)
+        self._primary_layout.add_widget(self._stack)
 
         self._home_page.newProjectPressed.connect(self.__show_project_page)
         self._home_page.projectSelected.connect(self._on_project_selected)
@@ -108,7 +115,7 @@ class AeroFlow:
         :return: None
         """
         if self._project_page is not None:
-            self._project_page.deleteLater()
+            self._project_page.delete_later()
             self._project_page = None
 
         self._project_manager.current_project = None
@@ -118,9 +125,9 @@ class AeroFlow:
         self._make_new_home_tbar()
         self._window.setTitleBar(self._home_page_title_bar)
         self._home_page_title_bar.show()
-        self._home_page_title_bar.resize(self._window.width(), 32)
+        self._home_page_title_bar.resize(self._window.width, 32)
 
-        self._stack.setCurrentWidget(self._home_page)
+        self._stack.set_current_widget(self._home_page)
 
     def __show_project_page(self) -> None:
         """
@@ -135,8 +142,8 @@ class AeroFlow:
         :return: None
         """
         if self._project_page is not None:
-            self._stack.removeWidget(self._project_page)
-            self._project_page.deleteLater()
+            self._stack.remove_widget(self._project_page)
+            self._project_page.delete_later()
 
         if self._window.titleBar is not self._project_page_title_bar:
             self._make_new_project_tbar()
@@ -146,10 +153,10 @@ class AeroFlow:
 
         self._project_page = self._project_manager.new_project()
         self._project_page.homeRequested.connect(self.__show_home_page)
-        self._stack.addWidget(self._project_page)
-        self._stack.setCurrentWidget(self._project_page)
+        self._stack.add_widget(self._project_page)
+        self._stack.set_current_widget(self._project_page)
 
-        self._project_page_title_bar.resize(self._window.width(), 32)
+        self._project_page_title_bar.resize(self._window.width, 32)
         self._project_page_title_bar.show()
 
     @Slot(str)
@@ -200,10 +207,10 @@ class ThemeManager:
 
         :return: None
         """
-        QFontDatabase.addApplicationFont(":/res/JetBrainsMono-Regular.ttf")
-        QFontDatabase.addApplicationFont(":/res/JetBrainsMono-Bold.ttf")
-        QFontDatabase.addApplicationFont(":/res/Author-Regular.otf")
-        QFontDatabase.addApplicationFont(":/res/Author-Bold.otf")
+        QFontDatabase.add_application_font(":/res/JetBrainsMono-Regular.ttf")
+        QFontDatabase.add_application_font(":/res/JetBrainsMono-Bold.ttf")
+        QFontDatabase.add_application_font(":/res/Author-Regular.otf")
+        QFontDatabase.add_application_font(":/res/Author-Bold.otf")
 
     def _apply_dark_palette(self) -> None:
         """
@@ -219,12 +226,12 @@ class ThemeManager:
         """
         dark_palette = QPalette()
 
-        dark_palette.setColor(QPalette.ColorRole.WindowText, QColor("#F5F5F5"))
-        dark_palette.setColor(QPalette.ColorRole.Highlight, QColor("#1D1D1D10"))
-        dark_palette.setColor(QPalette.ColorRole.Window, QColor("#1D1D1D"))
-        dark_palette.setColor(QPalette.ColorRole.HighlightedText, QColor("#1D1D1D"))
+        dark_palette.set_color(QPalette.ColorRole.WindowText, QColor("#F5F5F5"))
+        dark_palette.set_color(QPalette.ColorRole.Highlight, QColor("#1D1D1D10"))
+        dark_palette.set_color(QPalette.ColorRole.Window, QColor("#1D1D1D"))
+        dark_palette.set_color(QPalette.ColorRole.HighlightedText, QColor("#1D1D1D"))
 
-        self._q_app.setPalette(dark_palette)
+        self._q_app.set_palette(dark_palette)
 
         self._palette = dark_palette
 
@@ -244,8 +251,8 @@ class ThemeManager:
                          should inherit the specified palette.
         :type q_widget: QWidget | QApplication
         """
-        for child in q_widget.findChildren(QWidget):
-            child.setPalette(self._palette)
+        for child in q_widget.find_children(QWidget):
+            child.set_palette(self._palette)
             self._inherit_palette(child)
 
     def _load_styles(self) -> None:
@@ -264,7 +271,7 @@ class ThemeManager:
 
         if os.path.exists(styles_path):
             with open(styles_path, "r") as file:
-                self._q_app.setStyleSheet(file.read())
+                self._q_app.style_sheet = file.read()
 
         else:
             print("'styles.qss' file was not found.")

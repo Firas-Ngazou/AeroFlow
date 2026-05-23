@@ -1,5 +1,11 @@
 import sys
 
+import PySide6
+from __feature__ import snake_case, true_property  # type: ignore[import-not-found]
+
+import dev.user_interface.tools.q_wrapper as q_wrapper
+q_wrapper.apply_all_wrappers()
+
 from PySide6.QtCore import QSize, Slot, Qt, Signal
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QWidget, QFrame, QHBoxLayout, QPushButton, QVBoxLayout, QApplication
@@ -22,11 +28,12 @@ class QToolPB(QPushButton):
         """
         super().__init__(parent)
 
-        self.setIcon(icon)
-        self.setIconSize(QSize(21, 21))
-        self.setFixedSize(44, 44)
-        self.setCheckable(checkable)
-        self.setProperty("class", "tool_pb")
+        self.icon = icon
+        self.icon_size = QSize(21, 21)
+        self.set_fixed_width(44)
+        self.set_fixed_height(44)
+        self.checkable = checkable
+        self.set_property("class", "tool_pb")
 
 class QToolBar(QWidget):
     playPressed = Signal()
@@ -41,17 +48,17 @@ class QToolBar(QWidget):
 
         # setup
         primary_frame = QFrame()
-        primary_frame.setProperty("class", "primary_frame")
-        primary_frame.setFixedHeight(56)
-        primary_frame.setFixedWidth(255)
+        primary_frame.set_property("class", "primary_frame")
+        primary_frame.set_fixed_height(56)
+        primary_frame.set_fixed_width(255)
         primary_layout = QHBoxLayout(primary_frame)
-        primary_layout.setContentsMargins(5, 5, 5, 5)
+        primary_layout.set_contents_margins(5, 5, 5, 5)
         self._live_edit = False
 
         # default button
         default_icon = QIcon(":/res/cursor_icon_black.png")
         self._default_button = QToolPB(default_icon)
-        self._default_button.setChecked(True)
+        self._default_button.checked = True
 
         # pen button
         pen_icon = QIcon(":/res/pen_icon_black.png")
@@ -61,11 +68,12 @@ class QToolBar(QWidget):
         self._play_icon = QIcon(":/res/play_icon_black.png")
         self._stop_icon = QIcon(":/res/stop_icon_black.png")
         self._play_button = QPushButton()
-        self._play_button.setCheckable(True)
-        self._play_button.setProperty("class", "play_pb")
-        self._play_button.setIcon(self._play_icon)
-        self._play_button.setIconSize(QSize(21, 21))
-        self._play_button.setFixedSize(44, 44)
+        self._play_button.checkable = True
+        self._play_button.set_property("class", "play_pb")
+        self._play_button.icon = self._play_icon
+        self._play_button.icon_size = QSize(21, 21)
+        self._play_button.set_fixed_width(44)
+        self._play_button.set_fixed_height(44)
 
         # optimize button
         optimize_icon = QIcon(":/res/optimize_icon_black.png")
@@ -77,17 +85,17 @@ class QToolBar(QWidget):
         self._prefab_scroll = QPrefabScroll()
         self._prefab_scroll.hide()
 
-        primary_layout.addWidget(self._default_button)
-        primary_layout.addWidget(self._pen_button)
-        primary_layout.addWidget(self._play_button)
-        primary_layout.addWidget(self._optimize_button)
-        primary_layout.addWidget(self._prefabs_button)
+        primary_layout.add_widget(self._default_button)
+        primary_layout.add_widget(self._pen_button)
+        primary_layout.add_widget(self._play_button)
+        primary_layout.add_widget(self._optimize_button)
+        primary_layout.add_widget(self._prefabs_button)
 
         root_layout = QVBoxLayout(self)
-        root_layout.setSpacing(5)
-        root_layout.addWidget(self._prefab_scroll, alignment=Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignBottom)
-        root_layout.addWidget(primary_frame, alignment=Qt.AlignmentFlag.AlignHCenter)
-        self.setLayout(root_layout)
+        root_layout.spacing = 5
+        root_layout.add_widget(self._prefab_scroll, alignment=Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignBottom)
+        root_layout.add_widget(primary_frame, alignment=Qt.AlignmentFlag.AlignHCenter)
+        self.set_layout(root_layout)
 
         # connect signals
         self._default_button.clicked.connect(self._on_cursor_button_pressed)
@@ -107,15 +115,15 @@ class QToolBar(QWidget):
         :param state: The new cursor state.
         """
         if state == QStateManager.CursorState.LOCKED and not self.live_edit:
-            self._default_button.setEnabled(False)
-            self._pen_button.setEnabled(False)
-            self._prefabs_button.setEnabled(False)
-            self._optimize_button.setEnabled(False)
+            self._default_button.set_disabled(True)
+            self._pen_button.set_disabled(True)
+            self._prefabs_button.set_disabled(True)
+            self._optimize_button.set_disabled(True)
         else:
-            self._default_button.setEnabled(True)
-            self._pen_button.setEnabled(True)
-            self._prefabs_button.setEnabled(True)
-            self._optimize_button.setEnabled(True)
+            self._default_button.set_disabled(False)
+            self._pen_button.set_disabled(False)
+            self._prefabs_button.set_disabled(False)
+            self._optimize_button.set_disabled(False)
 
     @Slot()
     def _on_cursor_button_pressed(self) -> None:
@@ -127,24 +135,24 @@ class QToolBar(QWidget):
         if sender == self._default_button:
             # Cursor was already set to default
             if self._cursor_state == QStateManager.CursorState.DEFAULT:
-                self._default_button.setChecked(True)
+                self._default_button.checked = True
                 return
 
             # Cursor was not set to default
             state = QStateManager.CursorState.DEFAULT
-            self._default_button.setChecked(True)
-            self._pen_button.setChecked(False)
+            self._default_button.checked = True
+            self._pen_button.checked = False
         # The pen cursor was pressed
         elif sender == self._pen_button:
             # Cursor was already set to pen
             if self._cursor_state == QStateManager.CursorState.PEN:
-                self._pen_button.setChecked(True)
+                self._pen_button.checked = True
                 return
 
             # Cursor was not set to pen
             state = QStateManager.CursorState.PEN
-            self._default_button.setChecked(False)
-            self._pen_button.setChecked(True)
+            self._default_button.checked = False
+            self._pen_button.checked = True
         else:
             return
 
@@ -158,16 +166,16 @@ class QToolBar(QWidget):
         """
         sender = self.sender()
         if sender == self._play_button:
-            if self._play_button.isChecked():
+            if self._play_button.checked:
                 self._prefab_scroll.hide()
 
                 if not self._live_edit: self._state_manager.set_cursor_state(QStateManager.CursorState.LOCKED)
-                self._play_button.setIcon(self._stop_icon)
+                self._play_button.icon = self._stop_icon
                 self.playPressed.emit()
             else:
-                if self._prefabs_button.isChecked():
+                if self._prefabs_button.checked:
                     self._prefab_scroll.show()
-                self._play_button.setIcon(self._play_icon)
+                self._play_button.icon = self._play_icon
                 self.stopPressed.emit()
 
     @Slot(QStateManager.CursorState)
@@ -178,15 +186,15 @@ class QToolBar(QWidget):
         :param state: The new cursor state.
         """
         self._cursor_state = state
-        self._default_button.setChecked(state == QStateManager.CursorState.DEFAULT)
-        self._pen_button.setChecked(state == QStateManager.CursorState.PEN)
+        self._default_button.checked = state == QStateManager.CursorState.DEFAULT
+        self._pen_button.checked = state == QStateManager.CursorState.PEN
 
     @Slot()
     def _on_prefabs_button_pressed(self) -> None:
         """
         Handles the settings button press event. - Generated by OpenAI's GPT 5.5
         """
-        if self._prefabs_button.isChecked():
+        if self._prefabs_button.checked:
             self._prefab_scroll.show()
         else:
             self._prefab_scroll.hide()

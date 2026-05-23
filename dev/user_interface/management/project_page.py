@@ -1,3 +1,6 @@
+import PySide6
+from __feature__ import snake_case, true_property  # type: ignore[import-not-found]
+
 from datetime import date
 
 import numpy as np
@@ -56,8 +59,8 @@ class ProjectPage(QWidget):
 
         self._initial_res = 1080
         self.resize(int((16/9)*self._initial_res), self._initial_res)
-        self.setMinimumWidth(self._minimum_window_width)
-        self.setMinimumHeight(self._minimum_window_height)
+        self.minimum_width = self._minimum_window_width
+        self.minimum_height = self._minimum_window_height
         self._allocation = 5000
 
         self._editor: QEditor
@@ -76,7 +79,7 @@ class ProjectPage(QWidget):
         self._ga_thread = QThread()
         self._ga = GeneticAlgorithm() # I am assuming the calls I make are correct until the GA actually works for real
         # Everything needing to be added to the algorithm will be noted in the Milanote inside the GeneticAlgorithm doc.
-        self._ga.moveToThread(self._ga_thread)
+        # self._ga.moveToThread(self._ga_thread)
 
         self.__initialize_canvas()
         self.__initialize_title_bar()
@@ -106,9 +109,9 @@ class ProjectPage(QWidget):
                                              Qt.ConnectionType.DirectConnection)
         self._sim_thread.start()
 
-        self._ga.iterationCompleted.connect(self._on_ga_iteration_completed)
-        self._ga.optimizationCompleted.connect(self._on_ga_optimization_completed)
-        self._ga_thread.start()
+        # self._ga.iterationCompleted.connect(self._on_ga_iteration_completed)
+        # self._ga.optimizationCompleted.connect(self._on_ga_optimization_completed)
+        # self._ga_thread.start()
 
         self._primary_layout = QVBoxLayout(self)
         self._primary_layout.setContentsMargins(0, 0, 0, 0)
@@ -138,7 +141,7 @@ class ProjectPage(QWidget):
         self._save_warning = QFrame(self)
         self._save_warning.setObjectName("save_warning")
         self._save_warning.setStyleSheet("#save_warning { background-color: rgba(245, 245, 245, 70);}")
-        self._save_warning_window = QFloatingWarning(QPoint(int(self.width()/2), int(self.height()/2)),
+        self._save_warning_window = QFloatingWarning(QPoint(int(self.width / 2), int(self.height / 2)),
                                                      "Attention",
                                                      "Quitter sans sauvegarder vos modifications "
                                                      "risque de\n"
@@ -263,22 +266,22 @@ class ProjectPage(QWidget):
     @Slot()
     def _on_ga_optimization_completed(self) -> None:
         self._state_manager.set_cursor_state(QStateManager.CursorState.DEFAULT)
-        self._ga.reset()
+        # self._ga.reset()
         self._analysis_tab.reset_opt_graph()
 
     @Slot(str)
     def _on_constraint_changed(self, constraint_name: str) -> None:
-        self._ga.constraint = constraint_name
+        # self._ga.constraint = constraint_name
         self.constraintChanged.emit(constraint_name)
 
     @Slot(int)
     def _on_iterations_changed(self, iterations: int) -> None:
-        self._ga.iterations = iterations
+        # self._ga.iterations = iterations
         self.iterationsChanged.emit(iterations)
 
     @Slot(float)
     def _on_threshold_changed(self, value: float) -> None:
-        self._ga.threshold = value
+        # self._ga.threshold = value
         self.thresholdChanged.emit(value)
 
     @Slot(float)
@@ -459,11 +462,11 @@ class ProjectPage(QWidget):
             resizing operation.
         :return: None
         """
-        self._save_warning.setGeometry(0, 0, self.width(), self.height())
-        self._save_warning_window.move(QPoint(self.width()//2 - self._save_warning_window.width()//2,
-                                              self.height()//2 - self._save_warning_window.height()//2))
-        self._sim_controller.canvas_height = self._editor.height()
-        self._sim_controller.canvas_width = self._editor.width()
+        self._save_warning.set_geometry(0, 0, self.width, self.height)
+        self._save_warning_window.move(QPoint(self.width // 2 - self._save_warning_window.width // 2,
+                                             self.height // 2 - self._save_warning_window.height // 2))
+        self._sim_controller.canvas_height = self._editor.height
+        self._sim_controller.canvas_width = self._editor.width
 
     @Slot()
     def _on_save_project(self, force_save_as: bool = False) -> None:

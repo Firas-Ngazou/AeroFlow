@@ -1,10 +1,16 @@
 import sys
 
+import PySide6
+from __feature__ import snake_case, true_property  # type: ignore[import-not-found]
+
+import dev.user_interface.tools.q_wrapper as q_wrapper
+q_wrapper.apply_all_wrappers()
+
 from PySide6.QtGui import QIcon, QFont, QAction, QColor
 from PySide6.QtWidgets import QApplication, QWidget, QPushButton, QLabel, QMenu, QFileDialog
 from PySide6.QtCore import Qt, Signal, Slot
 
-from qframelesswindow import FramelessWindow, TitleBar
+from dev.user_interface.tools.qframelesswindow import FramelessWindow, TitleBar
 
 from dev.user_interface.components.q_buttons import QSpecialSettingPB
 from dev.user_interface.groups.q_history_group import QHistoryGroup
@@ -32,11 +38,11 @@ class QFileMenu(QMenu):
         self._save_as_action = QAction("Enregistrer sous (CTRL + SHIFT + S)", self)
 
         # Add actions
-        self.addAction(self._new_action)
-        self.addAction(self._open_action)
-        self.addSeparator()
-        self.addAction(self._save_action)
-        self.addAction(self._save_as_action)
+        self.add_action(self._new_action)
+        self.add_action(self._open_action)
+        self.add_separator()
+        self.add_action(self._save_action)
+        self.add_action(self._save_as_action)
 
         # Connect actions
         self._new_action.triggered.connect(self.newFileRequested.emit)
@@ -46,23 +52,23 @@ class QFileMenu(QMenu):
 
     @Slot()
     def _on_open_file_requested(self):
-        path, _ = QFileDialog.getOpenFileName(self, "Ouvrir un fichier", "../../",
+        path, _ = QFileDialog.get_open_file_name(self, "Ouvrir un fichier", "../../",
                                            "JSON Files (*.json);;All Files (*")
         if path: self.openFileRequested.emit(path)
 
     @Slot()
     def set_save_action_enabled(self, enabled: bool):
-        self._save_action.setEnabled(enabled)
+        self._save_action.set_disabled(not enabled)
 
     @Slot()
     def set_new_action_enabled(self, enabled: bool):
-        self._new_action.setEnabled(enabled)
+        self._new_action.set_disabled(not enabled)
 
     def set_save_disabled(self, disabled: bool):
-        self._save_action.setDisabled(disabled)
+        self._save_action.set_disabled(disabled)
 
     def set_save_as_disabled(self, disabled: bool):
-        self._save_as_action.setDisabled(disabled)
+        self._save_as_action.set_disabled(disabled)
 
 class QEditMenu(QMenu):
     undoRequested = Signal()
@@ -86,11 +92,11 @@ class QEditMenu(QMenu):
         self._delete_action = QAction("Supprimer (DEL/BACKSPACE)", self)
 
         # Add actions
-        self.addSeparator()
-        self.addAction(self._undo_action)
-        self.addAction(self._redo_action)
-        self.addAction(self._select_all_action)
-        self.addAction(self._delete_action)
+        self.add_separator()
+        self.add_action(self._undo_action)
+        self.add_action(self._redo_action)
+        self.add_action(self._select_all_action)
+        self.add_action(self._delete_action)
 
         # Connect actions
         self._undo_action.triggered.connect(self.undoRequested.emit)
@@ -99,16 +105,16 @@ class QEditMenu(QMenu):
         self._delete_action.triggered.connect(self.deleteRequested.emit)
 
     def set_undo_disabled(self, disabled: bool):
-        self._undo_action.setDisabled(disabled)
+        self._undo_action.set_disabled(disabled)
 
     def set_redo_disabled(self, disabled: bool):
-        self._redo_action.setDisabled(disabled)
+        self._redo_action.set_disabled(disabled)
 
     def set_select_all_disabled(self, disabled: bool):
-        self._select_all_action.setDisabled(disabled)
+        self._select_all_action.set_disabled(disabled)
 
     def set_delete_disabled(self, disabled: bool):
-        self._delete_action.setDisabled(disabled)
+        self._delete_action.set_disabled(disabled)
 
 class QViewMenu(QMenu):
     simulationChanged = Signal(str)
@@ -126,15 +132,15 @@ class QViewMenu(QMenu):
         self._density_action = QAction("Density", self)
         self._velocity_action = QAction("Average velocity", self)
 
-        self._density_action.setCheckable(True)
-        self._velocity_action.setCheckable(True)
+        self._density_action.checkable = True
+        self._velocity_action.checkable = True
 
-        self._density_action.setChecked(True)
+        self._density_action.checked = True
 
         # Add actions
-        self._menu.addAction(self._density_action)
-        self._menu.addAction(self._velocity_action)
-        self.addMenu(self._menu)
+        self._menu.add_action(self._density_action)
+        self._menu.add_action(self._velocity_action)
+        self.add_menu(self._menu)
 
         # Connect action
         self._density_action.triggered.connect(self._on_simulation_changed)
@@ -148,12 +154,12 @@ class QViewMenu(QMenu):
         sender = self.sender()
         match sender:
             case self._density_action:
-                self._density_action.setChecked(True)
-                self._velocity_action.setChecked(False)
+                self._density_action.checked = True
+                self._velocity_action.checked = False
                 self.simulationChanged.emit("density")
             case self._velocity_action:
-                self._density_action.setChecked(False)
-                self._velocity_action.setChecked(True)
+                self._density_action.checked = False
+                self._velocity_action.checked = True
                 self.simulationChanged.emit("velocity")
 
 class QTitleBarSettingsPB(QPushButton):
@@ -166,12 +172,12 @@ class QTitleBarSettingsPB(QPushButton):
         :param parent: The parent widget.
         """
         super().__init__(parent)
-        self.setText(text)
-        self.setFont(QFont("JetBrains Mono", 12))
-        self.setProperty("class", "titlebar_settings_pb")
-        self.setFixedSize(100, 32)
+        self.text = text
+        self.font = QFont("JetBrains Mono", 12)
+        self.set_property("class", "titlebar_settings_pb")
+        self.set_fixed_size(100, 32)
 
-        self.setMenu(menu)
+        self.set_menu(menu)
 
 class QCustomTitleBar(TitleBar):
     newFileRequested = Signal()
@@ -194,7 +200,7 @@ class QCustomTitleBar(TitleBar):
         """
         super().__init__(parent)
 
-        self.setFixedHeight(32)
+        self.set_fixed_height(32)
 
         # Min/max/close buttons colors
         self.minBtn.setNormalColor(QColor("#F5F5F5"))
@@ -209,8 +215,8 @@ class QCustomTitleBar(TitleBar):
 
         # Application icon
         self._icon_pb = QPushButton()
-        self._icon_pb.setProperty("class", "titlebar_settings_pb")
-        self._icon_pb.setFixedSize(32, 32)
+        self._icon_pb.set_property("class", "titlebar_settings_pb")
+        self._icon_pb.set_fixed_size(32, 32)
 
         # File settings & edit settings & view settings
         self._file_menu = QFileMenu(self)
@@ -221,10 +227,10 @@ class QCustomTitleBar(TitleBar):
 
         # File name
         self._file_name = QLabel()
-        self._file_name.setFixedSize(170, 32)
-        self._file_name.setFont(QFont("JetBrains Mono", 12))
-        self._file_name.setText("*Nouveau_fichier")
-        self._file_name.setStyleSheet("QLabel { color: rgba(245, 245, 245, 120); }")
+        self._file_name.set_fixed_size(170, 32)
+        self._file_name.font = QFont("JetBrains Mono", 12)
+        self._file_name.text = "*Nouveau_fichier"
+        self._file_name.style_sheet = "QLabel { color: rgba(245, 245, 245, 120); }"
 
         # Analysis button
         self._analysis_button = QSpecialSettingPB("Analyse")
@@ -237,22 +243,22 @@ class QCustomTitleBar(TitleBar):
         self._is_in_edit_mode = False
 
         # Layout
-        self.hBoxLayout.insertSpacing(0, 10)
-        self.hBoxLayout.insertWidget(1, self._icon_pb, 0, alignment=Qt.AlignmentFlag.AlignLeft)
-        self.hBoxLayout.insertSpacing(2, 10)
-        self.hBoxLayout.insertWidget(3, self._file_name, 0, alignment=Qt.AlignmentFlag.AlignLeft)
-        self.hBoxLayout.insertSpacing(4, 10)
-        self.hBoxLayout.insertWidget(5, QVSeperator(), 0, alignment=Qt.AlignmentFlag.AlignLeft)
-        self.hBoxLayout.insertSpacing(6, 10)
-        self.hBoxLayout.insertWidget(7, self._file_settings_pb, 0, alignment=Qt.AlignmentFlag.AlignLeft)
-        self.hBoxLayout.insertSpacing(8, 10)
-        self.hBoxLayout.insertWidget(9, self._edit_settings_pb, 0, alignment=Qt.AlignmentFlag.AlignLeft)
-        self.hBoxLayout.insertSpacing(10, 10)
-        # self.hBoxLayout.insertWidget(11, self._view_settings_pb, 0, alignment=Qt.AlignmentFlag.AlignLeft)
-        self.hBoxLayout.insertWidget(11, QVSeperator(), 0, alignment=Qt.AlignmentFlag.AlignLeft)
-        self.hBoxLayout.insertSpacing(12, 10)
-        self.hBoxLayout.insertWidget(13, self._analysis_button, 0, alignment=Qt.AlignmentFlag.AlignCenter)
-        self.hBoxLayout.insertSpacing(14, 10)
+        self.hBoxLayout.insert_spacing(0, 10)
+        self.hBoxLayout.insert_widget(1, self._icon_pb, 0, alignment=Qt.AlignmentFlag.AlignLeft)
+        self.hBoxLayout.insert_spacing(2, 10)
+        self.hBoxLayout.insert_widget(3, self._file_name, 0, alignment=Qt.AlignmentFlag.AlignLeft)
+        self.hBoxLayout.insert_spacing(4, 10)
+        self.hBoxLayout.insert_widget(5, QVSeperator(), 0, alignment=Qt.AlignmentFlag.AlignLeft)
+        self.hBoxLayout.insert_spacing(6, 10)
+        self.hBoxLayout.insert_widget(7, self._file_settings_pb, 0, alignment=Qt.AlignmentFlag.AlignLeft)
+        self.hBoxLayout.insert_spacing(8, 10)
+        self.hBoxLayout.insert_widget(9, self._edit_settings_pb, 0, alignment=Qt.AlignmentFlag.AlignLeft)
+        self.hBoxLayout.insert_spacing(10, 10)
+        # self.hBoxLayout.insert_widget(11, self._view_settings_pb, 0, alignment=Qt.AlignmentFlag.AlignLeft)
+        self.hBoxLayout.insert_widget(11, QVSeperator(), 0, alignment=Qt.AlignmentFlag.AlignLeft)
+        self.hBoxLayout.insert_spacing(12, 10)
+        self.hBoxLayout.insert_widget(13, self._analysis_button, 0, alignment=Qt.AlignmentFlag.AlignCenter)
+        self.hBoxLayout.insert_spacing(14, 10)
         # self.hBoxLayout.insertWidget(15, self._history_group, 0, alignment=Qt.AlignmentFlag.AlignHCenter)
         # self.hBoxLayout.insertSpacing(16, 10)
 
@@ -278,7 +284,7 @@ class QCustomTitleBar(TitleBar):
     @icon.setter
     def icon(self, icon: QIcon):
         scaled = icon.pixmap(32, 32)
-        self._icon_pb.setIcon(scaled)
+        self._icon_pb.icon = scaled
 
     @property
     def is_analysis_checked(self):
@@ -292,7 +298,7 @@ class QCustomTitleBar(TitleBar):
         return self._file_name.text
     @file_name.setter
     def file_name(self, new_name: str):
-        self._file_name.setText(new_name)
+        self._file_name.text = new_name
 
     @property
     def is_project_saved(self):
@@ -345,7 +351,7 @@ class QCustomWindowFrame(FramelessWindow):
         :param parent: The parent widget.
         """
         super().__init__(parent)
-        self.setMinimumWidth(850)
+        self.minimum_width = 850
 
         self._title_bar = QCustomTitleBar(self)
         self.setTitleBar(self._title_bar)

@@ -1,4 +1,9 @@
 import sys
+import PySide6
+from __feature__ import snake_case, true_property  # type: ignore[import-not-found]
+
+import dev.user_interface.tools.q_wrapper as q_wrapper
+q_wrapper.apply_all_wrappers()
 
 from PySide6.QtCore import Qt, Signal, Slot, QPoint
 from PySide6.QtGui import QFont
@@ -32,10 +37,10 @@ class QHomePageSettingsPB(QPushButton):
         """
         super().__init__(parent)
 
-        self.setText(text)
-        self.setFont(QFont("JetBrains Mono", 12))
-        self.setProperty("class", "titlebar_settings_pb")
-        self.setFixedSize(100, 32)
+        self.text = text
+        self.font = QFont("JetBrains Mono", 12)
+        self.set_property("class", "titlebar_settings_pb")
+        self.set_fixed_size(100, 32)
 
 class HomePage(QWidget):
     """
@@ -66,7 +71,7 @@ class HomePage(QWidget):
         super().__init__(parent)
 
         self.resize(1920, 500)
-        self.setMinimumWidth(1080)
+        self.minimum_width = 1080
 
         # New project button
         self._new_project_pb = QHomePageSettingsPB("Nouveau")
@@ -75,8 +80,8 @@ class HomePage(QWidget):
         self._allocation_pb = QHomePageSettingsPB("Mémoire")
 
         self._allocation = QFrame(self)
-        self._allocation.setObjectName("home_page_allocation")
-        self._allocation.setStyleSheet("""#home_page_allocation {background-color: rgba(245, 245, 245, 30);}""")
+        self._allocation.object_name = "home_page_allocation"
+        self._allocation.style_sheet = """#home_page_allocation {background-color: rgba(245, 245, 245, 30);}"""
         self._allocation_window = QFloatingSlider("Allocation de mémoire vive", self._allocation)
         self._allocation_window.minimum = 1500
         self._allocation_window.maximum = 30000
@@ -88,51 +93,51 @@ class HomePage(QWidget):
 
         # Software name
         self._software_name = QLabel("AeroFlow")
-        self._software_name.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self._software_name.setFont(QFont("JetBrains Mono", 24))
-        self._software_name.setFixedWidth(500)
+        self._software_name.alignment = Qt.AlignmentFlag.AlignCenter
+        self._software_name.font = QFont("JetBrains Mono", 24)
+        self._software_name.set_fixed_width(500)
 
         # ScrollArea
         self._scroll_area = QScrollArea()
-        self._scroll_area.setObjectName("home_page_scroll_area")
-        self._scroll_area.setStyleSheet("#home_page_scroll_area {border: none;}")
-        self._scroll_area.setMinimumHeight(self.height())
-        self._scroll_area.setWidgetResizable(True)
+        self._scroll_area.object_name = "home_page_scroll_area"
+        self._scroll_area.style_sheet = "#home_page_scroll_area {border: none;}"
+        self._scroll_area.minimum_height = self.height
+        self._scroll_area.widget_resizable = True
         self._scroll_content = QWidget()
-        self._scroll_area.setWidget(self._scroll_content)
+        self._scroll_area.set_widget(self._scroll_content)
 
         self._scroll_content_layout = QGridLayout(self._scroll_content)
-        self._scroll_content_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+        self._scroll_content_layout.alignment = Qt.AlignmentFlag.AlignTop
 
         # Layout
         self._settings_layout = QHBoxLayout()
-        self._settings_layout.setSpacing(10)
-        self._settings_layout.setContentsMargins(0, 0, 0, 0)
-        self._settings_layout.addStretch()
+        self._settings_layout.spacing = 10
+        self._settings_layout.set_contents_margins(0, 0, 0, 0)
+        self._settings_layout.add_stretch()
 
         h_seperator_left = QHSeperator()
-        h_seperator_left.setFixedWidth(200)
-        self._settings_layout.addWidget(h_seperator_left, alignment=Qt.AlignmentFlag.AlignCenter)
-        self._settings_layout.addWidget(self._new_project_pb, alignment=Qt.AlignmentFlag.AlignCenter)
+        h_seperator_left.set_fixed_width(200)
+        self._settings_layout.add_widget(h_seperator_left, alignment=Qt.AlignmentFlag.AlignCenter)
+        self._settings_layout.add_widget(self._new_project_pb, alignment=Qt.AlignmentFlag.AlignCenter)
 
-        self._settings_layout.addWidget(self._allocation_pb, alignment=Qt.AlignmentFlag.AlignCenter)
-        self._settings_layout.addWidget(self._open_project_pb, alignment=Qt.AlignmentFlag.AlignCenter)
+        self._settings_layout.add_widget(self._allocation_pb, alignment=Qt.AlignmentFlag.AlignCenter)
+        self._settings_layout.add_widget(self._open_project_pb, alignment=Qt.AlignmentFlag.AlignCenter)
 
         h_seperator_right = QHSeperator()
-        h_seperator_right.setFixedWidth(200)
-        self._settings_layout.addWidget(h_seperator_right, alignment=Qt.AlignmentFlag.AlignCenter)
-        self._settings_layout.addStretch()
+        h_seperator_right.set_fixed_width(200)
+        self._settings_layout.add_widget(h_seperator_right, alignment=Qt.AlignmentFlag.AlignCenter)
+        self._settings_layout.add_stretch()
 
         self._secondary_layout = QVBoxLayout()
-        self._secondary_layout.setContentsMargins(10, 10, 10, 10)
-        self._secondary_layout.addWidget(self._software_name, alignment=Qt.AlignmentFlag.AlignCenter)
-        self._secondary_layout.addLayout(self._settings_layout)
-        self._secondary_layout.addWidget(self._scroll_area)
+        self._secondary_layout.set_contents_margins(10, 10, 10, 10)
+        self._secondary_layout.add_widget(self._software_name, alignment=Qt.AlignmentFlag.AlignCenter)
+        self._secondary_layout.add_layout(self._settings_layout)
+        self._secondary_layout.add_widget(self._scroll_area)
 
         self._primary_layout = QHBoxLayout(self)
-        self._primary_layout.setContentsMargins(0, 0, 0, 0)
-        self._primary_layout.setSpacing(10)
-        self._primary_layout.addLayout(self._secondary_layout)
+        self._primary_layout.set_contents_margins(0, 0, 0, 0)
+        self._primary_layout.spacing = 10
+        self._primary_layout.add_layout(self._secondary_layout)
 
         self._new_project_pb.clicked.connect(self.newProjectPressed.emit)
         self._allocation_pb.clicked.connect(self._on_allocation_pressed)
@@ -140,7 +145,6 @@ class HomePage(QWidget):
         self._allocation_window.cancelPressed.connect(lambda: self._allocation.hide())
         self._allocation_window.applyPressed.connect(lambda: self._allocation.hide())
         self._allocation_window.applyPressed.connect(self.changedAllocation.emit)
-
 
         # ScrollArea setup
         self._max_column = 4
@@ -159,10 +163,10 @@ class HomePage(QWidget):
         self._allocation.show()
         self._allocation.raise_()
 
-        width = self._allocation_window.width()
-        height = self._allocation_window.height()
+        width = self._allocation_window.width
+        height = self._allocation_window.height
 
-        screen_center = QPoint(int(self.width()/2 - width/2), int(self.height()/2 - height/2))
+        screen_center = QPoint(int(self.width / 2 - width / 2), int(self.height / 2 - height / 2))
         self._allocation_window.saved_position = screen_center
         self._allocation_window.move(screen_center)
 
@@ -180,11 +184,11 @@ class HomePage(QWidget):
 
         :return: None
         """
-        path, _ = QFileDialog.getOpenFileName(self, "Ouvrir un fichier", "../../",
+        path, _ = QFileDialog.get_open_file_name(self, "Ouvrir un fichier", "../../",
                                               "JSON Files (*.json);;All Files (*")
         if path: self.projectSelected.emit(path)
 
-    def resizeEvent(self, event: QWidget.resizeEvent) -> None:
+    def resize_event(self, event) -> None:
         """
         Handles the resize event of the widget to dynamically adjust its layout.
 
@@ -196,10 +200,10 @@ class HomePage(QWidget):
         :param event: The resize event triggering this handler.
         :type event: QResizeEvent
         """
-        super().resizeEvent(event)
-        width = self.rect().width()
+        super().resize_event(event)
+        width = self.rect.width()
         self._max_column = int(width) // 400
-        self._allocation.setGeometry(0, 0, self.width(), self.height())
+        self._allocation.set_geometry(0, 0, self.width, self.height)
         self._rearrange()
 
     def add_project(self, project_path: str) -> None:
@@ -219,16 +223,16 @@ class HomePage(QWidget):
         """
         duplicate_preview = None
         for i in range(self._scroll_content_layout.count()):
-            if (self._scroll_content_layout.itemAt(i).widget().project_path == project_path):
-                duplicate_preview = self._scroll_content_layout.itemAt(i).widget()
+            if (self._scroll_content_layout.item_at(i).widget().project_path == project_path):
+                duplicate_preview = self._scroll_content_layout.item_at(i).widget()
                 break
 
         if duplicate_preview is not None:
-            self._scroll_content_layout.removeWidget(duplicate_preview)
-            duplicate_preview.deleteLater()
+            self._scroll_content_layout.remove_widget(duplicate_preview)
+            duplicate_preview.delete_later()
 
         project_preview = QProjectPreview(project_path)
-        self._scroll_content_layout.addWidget(project_preview, self._current_row, self._current_column)
+        self._scroll_content_layout.add_widget(project_preview, self._current_row, self._current_column)
 
         self._update_current_values()
         project_preview.selected.connect(self.projectSelected)
@@ -252,16 +256,16 @@ class HomePage(QWidget):
 
         widgets = []
         while self._scroll_content_layout.count():
-            item = self._scroll_content_layout.takeAt(0)
+            item = self._scroll_content_layout.take_at(0)
             if item is None:
                 continue
             widget = item.widget()
             if widget is not None:
-                self._scroll_content_layout.removeWidget(widget)
+                self._scroll_content_layout.remove_widget(widget)
                 widgets.append(widget)
 
         for widget in widgets:
-            self._scroll_content_layout.addWidget(widget, self._current_row, self._current_column)
+            self._scroll_content_layout.add_widget(widget, self._current_row, self._current_column)
 
             self._update_current_values()
 

@@ -1,4 +1,11 @@
 from dev.user_interface.tools.float_comparator import is_not_close, is_less
+
+import PySide6
+from __feature__ import snake_case, true_property  # type: ignore[import-not-found]
+
+import dev.user_interface.tools.q_wrapper as q_wrapper
+q_wrapper.apply_all_wrappers()
+
 from PySide6.QtCore import Signal, Slot
 from PySide6.QtWidgets import QWidget, QSlider
 from dev.user_interface.tools.q_utils import BlockSignals
@@ -112,26 +119,26 @@ class QRealSlider(QSlider):
 
         with BlockSignals(self):
             self._precision_scale = 10 ** self._decimals
-            super().setRange(0, int(round(self._precision_scale * (self._real_maximum - self._real_minimum))))
+            super().set_range(0, int(round(self._precision_scale * (self._real_maximum - self._real_minimum))))
 
             self._range_scale = (self._real_maximum - self._real_minimum) / (
-                    super().maximum() - super().minimum())
+                    super().maximum - super().minimum)
 
-            super().setSingleStep(self._to_int_scale(self._single_step))
-            super().setPageStep(self._to_int_scale(self._page_step))
+            super().single_step = self._to_int_scale(self._single_step)
+            super().page_step = self._to_int_scale(self._page_step)
 
-            self.setValue(slide_value)
+            self.value = slide_value
 
-        if is_not_close(slide_value, self.value()):
-            self.realValueChanged.emit(self.value())
+        if is_not_close(slide_value, self.value):
+            self.realValueChanged.emit(self.value)
 
     @Slot(int)
     def _on_value_changed(self, _: int) -> None:
-        self.realValueChanged.emit(self.value())
+        self.realValueChanged.emit(self.value)
 
     @Slot(int)
     def _on_slider_moved(self, _: int) -> None:
-        self.realSliderMoved.emit(self.value())
+        self.realSliderMoved.emit(self.value)
 
     @Slot(int, int)
     def _on_range_changed(self, min: int, max: int) -> None:
@@ -140,7 +147,7 @@ class QRealSlider(QSlider):
     def decimals(self) -> int:
         return self._decimals
 
-    def setDecimals(self, value: int) -> None:
+    def set_decimals(self, value: int) -> None:
         if not isinstance(value, int):
             raise TypeError('decimals must be an int')
         if not 0 < value <= 6:
@@ -153,30 +160,31 @@ class QRealSlider(QSlider):
     def minimum(self) -> float:
         return self._real_minimum
 
-    def setMinimum(self, value: float | int) -> None:
-        self.setRange(float(value), self._real_maximum)
+    def set_minimum(self, value: float | int) -> None:
+        self.set_range(float(value), self._real_maximum)
 
     def maximum(self) -> float:
         return self._real_maximum
 
-    def setMaximum(self, value: float | int) -> None:
-        self.setRange(self._real_minimum, float(value))
+    def set_maximum(self, value: float | int) -> None:
+        self.set_range(self._real_minimum, float(value))
 
     def value(self) -> float:
-        return self._to_real_value(super().value())
+        return self._to_real_value(super().value)
 
     @Slot(float)
-    def setValue(self, value: float | int) -> None:
+    def set_value(self, value: float | int) -> None:
         if not isinstance(value, (float, int)):
             raise TypeError('value must be a float or int')
         value = float(value)
-        if is_not_close(value, self.value()):
-            super().setValue(self._to_int_index(value))
+        if is_not_close(value, self.value):
+            super().value = self._to_int_index(value)
 
-    def singleStep(self) -> float:
+    @property
+    def single_step(self) -> float:
         return self._single_step
 
-    def setSingleStep(self, value: float | int) -> None:
+    def set_single_step(self, value: float | int) -> None:
         if not isinstance(value, (float, int)):
             raise TypeError('single_step must be a float or int')
         value = float(value)
@@ -184,10 +192,10 @@ class QRealSlider(QSlider):
             self._single_step = value
             self._setup()
 
-    def pageStep(self) -> float:
+    def page_step(self) -> float:
         return self._page_step
 
-    def setPageStep(self, value: float | int) -> None:
+    def set_page_step(self, value: float | int) -> None:
         if not isinstance(value, (float, int)):
             raise TypeError('page_step must be a float or int')
         value = float(value)
@@ -196,7 +204,7 @@ class QRealSlider(QSlider):
             self._setup()
 
     @Slot(float, float)
-    def setRange(self, minimum: float | int, maximum: float | int) -> None:
+    def set_range(self, minimum: float | int, maximum: float | int) -> None:
         if not isinstance(minimum, (float, int)):
             raise TypeError('minimum must be a float or int')
         if not isinstance(maximum, (float, int)):

@@ -1,12 +1,16 @@
 import math
-from datetime import time, datetime
 import cv2
 
-from scipy.ndimage import zoom
 from numba import njit, prange
 
 import numpy as np
-from PySide6.QtCore import QSize
+
+import PySide6
+from __feature__ import snake_case, true_property  # type: ignore[import-not-found]
+
+import dev.user_interface.tools.q_wrapper as q_wrapper
+q_wrapper.apply_all_wrappers()
+
 from PySide6.QtGui import QImage, QPixmap, QPainter, qRgba, Qt, QPen, QColor
 
 
@@ -99,7 +103,7 @@ class PixmapGen:
 
         im_height, im_width, _ = rgba_data.shape
         temp_image = QImage(rgba_data.data, im_width, im_height, im_width * 4, QImage.Format.Format_RGBA8888)
-        heatmap_pixmap = QPixmap.fromImage(temp_image.copy())
+        heatmap_pixmap = QPixmap.from_image(temp_image.copy())
         return heatmap_pixmap
 
     @staticmethod
@@ -151,7 +155,7 @@ class PixmapGen:
                                                        base_index)
         im_height, im_width, _ = rgba_data.shape
         temp_image = QImage(rgba_data.data, im_width, im_height, im_width * 4, QImage.Format.Format_RGBA8888)
-        stream_pixmap = QPixmap.fromImage(temp_image.copy())
+        stream_pixmap = QPixmap.from_image(temp_image.copy())
 
         return stream_pixmap
 
@@ -209,8 +213,8 @@ class PixmapGen:
 
             color_table.append(qRgba(gray, gray, gray, alpha))
 
-        temp_image.setColorTable(color_table)
-        curl_pixmap = QPixmap.fromImage(temp_image.copy())
+        temp_image.set_color_table(color_table)
+        curl_pixmap = QPixmap.from_image(temp_image.copy())
 
         return curl_pixmap
 
@@ -237,11 +241,11 @@ class PixmapGen:
         final_pixmap.fill(Qt.GlobalColor.transparent)
 
         painter = QPainter(final_pixmap)
-        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        painter.set_render_hint(QPainter.RenderHint.Antialiasing)
 
         pen = QPen(QColor(230, 230, 230, 150))
-        pen.setWidth(2)
-        painter.setPen(pen)
+        pen.set_width(2)
+        painter.set_pen(pen)
 
         spacing_y = height_grid//count # la distance entre les lignes
         max_steps = 1920  # resolution max
@@ -284,7 +288,7 @@ class PixmapGen:
                 screen_y = int(scale_y * y)
 
                 if last_x is not None and last_y is not None:
-                    painter.drawLine(last_x, last_y, screen_x, screen_y)
+                    painter.draw_line(last_x, last_y, screen_x, screen_y)
 
                 last_x = screen_x
                 last_y = screen_y
@@ -307,8 +311,8 @@ class PixmapGen:
         """
         pixmap = heatmap.copy()
         painter = QPainter(pixmap)
-        painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_DestinationIn)
-        painter.drawPixmap(0, 0, stream)
+        painter.composition_mode = QPainter.CompositionMode.CompositionMode_DestinationIn
+        painter.draw_pixmap(0, 0, stream)
         painter.end()
         return pixmap
 
@@ -323,7 +327,7 @@ class PixmapGen:
         """
         pixmap = heatmap.copy()
         painter = QPainter(pixmap)
-        painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_DestinationIn)
-        painter.drawPixmap(0, 0, curl)
+        painter.composition_mode = QPainter.CompositionMode.CompositionMode_DestinationIn
+        painter.draw_pixmap(0, 0, curl)
         painter.end()
         return pixmap

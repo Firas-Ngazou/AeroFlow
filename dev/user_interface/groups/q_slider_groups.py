@@ -1,3 +1,9 @@
+import PySide6
+from __feature__ import snake_case, true_property  # type: ignore[import-not-found]
+
+import dev.user_interface.tools.q_wrapper as q_wrapper
+q_wrapper.apply_all_wrappers()
+
 from PySide6.QtCore import Qt, Slot, Signal
 from PySide6.QtGui import QFont
 from PySide6.QtWidgets import QWidget, QFrame, QHBoxLayout, QVBoxLayout, QLabel, \
@@ -55,53 +61,53 @@ class QAbstractSliderGroup(QWidget):
 
         # Primary frame & layout
         primary_frame = QFrame()
-        primary_frame.setProperty("class", "primary_frame")
+        primary_frame.set_property("class", "primary_frame")
         self._primary_layout = QVBoxLayout(primary_frame)
 
         # Title
         self._title = QLabel(text)
-        self._title.setFont(QFont("JetBrains Mono", 10))
+        self._title.font = QFont("JetBrains Mono", 10)
 
         # Reset button
         self._reset_button = QResetPB()
-        self._reset_button.setFont(QFont("JetBrains Mono", 9))
+        self._reset_button.font = QFont("JetBrains Mono", 9)
         self._reset_button.clicked.connect(self._on_reset_pressed)
 
         # Slider & spinbox
         self._slider = slider
         self._spin_box = spin_box
 
-        self._slider.setOrientation(Qt.Orientation.Horizontal)
-        self._slider.setFixedHeight(24)
-        self._slider.setProperty("class", "settings_slider")
-        self._slider.setValue(self._default_value)
-        self._slider.setRange(*self._default_range)
+        self._slider.orientation = Qt.Orientation.Horizontal
+        self._slider.set_fixed_height(24)
+        self._slider.set_property("class", "settings_slider")
+        self._slider.value = self._default_value
+        self._slider.set_range(*self._default_range)
 
         # self._spin_box.setFixedWidth(100)
-        self._spin_box.setFixedHeight(24)
-        self._spin_box.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self._spin_box.setProperty("class", "settings_spin_box")
-        self._spin_box.setFont(QFont("JetBrains Mono", 7))
-        self._spin_box.setValue(self._default_value)
-        self._spin_box.setRange(*self._default_range)
+        self._spin_box.set_fixed_height(24)
+        self._spin_box.alignment = Qt.AlignmentFlag.AlignCenter
+        self._spin_box.set_property("class", "settings_spin_box")
+        self._spin_box.font = QFont("JetBrains Mono", 7)
+        self._spin_box.value = self._default_value
+        self._spin_box.set_range(*self._default_range)
 
         # Secondary layouts
         self._top_layout = QHBoxLayout()
-        self._top_layout.addWidget(self._title, alignment=Qt.AlignmentFlag.AlignLeft)
-        self._top_layout.addWidget(self._spin_box)
-        self._top_layout.addWidget(self._reset_button, alignment=Qt.AlignmentFlag.AlignRight)
-        self._top_layout.setContentsMargins(10, 2, 10, 2)
+        self._top_layout.add_widget(self._title, alignment=Qt.AlignmentFlag.AlignLeft)
+        self._top_layout.add_widget(self._spin_box)
+        self._top_layout.add_widget(self._reset_button, alignment=Qt.AlignmentFlag.AlignRight)
+        self._top_layout.set_contents_margins(10, 2, 10, 2)
 
         self._bottom_layout = QHBoxLayout()
-        self._bottom_layout.addWidget(self._slider)
-        self._bottom_layout.setContentsMargins(15, 2, 15, 2)
+        self._bottom_layout.add_widget(self._slider)
+        self._bottom_layout.set_contents_margins(15, 2, 15, 2)
 
-        self._primary_layout.addLayout(self._top_layout)
-        self._primary_layout.addLayout(self._bottom_layout)
+        self._primary_layout.add_layout(self._top_layout)
+        self._primary_layout.add_layout(self._bottom_layout)
 
         root_layout = QVBoxLayout(self)
-        root_layout.setContentsMargins(0, 0, 0, 0)
-        root_layout.addWidget(primary_frame)
+        root_layout.set_contents_margins(0, 0, 0, 0)
+        root_layout.add_widget(primary_frame)
 
     @Slot()
     def _on_reset_pressed(self):
@@ -111,8 +117,8 @@ class QAbstractSliderGroup(QWidget):
 
         :return: None
         """
-        self._slider.setValue(self._default_value)
-        self._spin_box.setValue(self._default_value)
+        self._slider.value = self._default_value
+        self._spin_box.value = self._default_value
 
 class QRealSliderGroup(QAbstractSliderGroup):
     """
@@ -148,9 +154,17 @@ class QRealSliderGroup(QAbstractSliderGroup):
         super().__init__(text, QRealSlider(), QDoubleSpinBox(), parent)
 
         # Connections
-        self._slider.realValueChanged.connect(self._spin_box.setValue)
-        self._slider.realValueChanged.connect(self.realValueChanged)
-        self._spin_box.valueChanged.connect(self._slider.setValue)
+        self._slider.realValueChanged.connect(self._on_slider_value_changed)
+        self._spin_box.valueChanged.connect(self._on_spin_box_value_changed)
+
+    @Slot(float)
+    def _on_slider_value_changed(self, value: float):
+        self._spin_box.value = value
+        self.realValueChanged.emit(value)
+
+    @Slot(float)
+    def _on_spin_box_value_changed(self, value: float | int):
+        self._slider.value = value
 
     @property
     def value(self) -> float | int:
@@ -161,7 +175,7 @@ class QRealSliderGroup(QAbstractSliderGroup):
         :return: The current value of the slider.
         :rtype: float | int
         """
-        return self._slider.value()
+        return self._slider.value
 
     @value.setter
     def value(self, value: float | int):
@@ -172,8 +186,8 @@ class QRealSliderGroup(QAbstractSliderGroup):
         :param value: The new value to set for the slider and spinbox. Must be of type
             float or int.
         """
-        self._slider.setValue(value)
-        self._spin_box.setValue(value)
+        self._slider.value = value
+        self._spin_box.value = value
 
     @property
     def maximum(self) -> float | int:
@@ -187,7 +201,7 @@ class QRealSliderGroup(QAbstractSliderGroup):
         :return: The maximum allowed value of the slider.
         :rtype: float | int
         """
-        return self._slider.maximum()
+        return self._slider.maximum
 
     @maximum.setter
     def maximum(self, value: float | int):
@@ -200,8 +214,8 @@ class QRealSliderGroup(QAbstractSliderGroup):
         :param value: The maximum value to set. Can be a float or an integer.
         :type value: float | int
         """
-        self._slider.setMaximum(value)
-        self._spin_box.setMaximum(value)
+        self._slider.maximum = value
+        self._spin_box.maximum = value
 
     @property
     def minimum(self) -> float | int:
@@ -215,7 +229,7 @@ class QRealSliderGroup(QAbstractSliderGroup):
         :return: The minimum value of the slider as a float or int.
         :rtype: float | int
         """
-        return self._slider.minimum()
+        return self._slider.minimum
 
     @minimum.setter
     def minimum(self, value: float | int):
@@ -225,8 +239,8 @@ class QRealSliderGroup(QAbstractSliderGroup):
         :param value: The new minimum value to be set for the slider and
                       spin box. It can be a float or integer.
         """
-        self._slider.setMinimum(value)
-        self._spin_box.setMinimum(value)
+        self._slider.minimum = value
+        self._spin_box.minimum = value
 
     @property
     def single_step(self) -> float | int:
@@ -240,7 +254,7 @@ class QRealSliderGroup(QAbstractSliderGroup):
         :return: The single step increment value for the spin box.
         :rtype: float | int
         """
-        return self._spin_box.singleStep()
+        return self._spin_box.single_step
 
     @single_step.setter
     def single_step(self, step: float | int):
@@ -250,8 +264,8 @@ class QRealSliderGroup(QAbstractSliderGroup):
         :param step: The value of the step to be applied to the spin box and slider.
             Must be a float or int.
         """
-        self._spin_box.setSingleStep(step)
-        self._slider.setSingleStep(step)
+        self._spin_box.single_step = step
+        self._slider.single_step = step
 
     def set_value(self, value: float | int):
         """
@@ -261,8 +275,8 @@ class QRealSliderGroup(QAbstractSliderGroup):
         :param value: The value to set, which can either be a float or an integer.
         :type value: float | int
         """
-        self._slider.setValue(value)
-        self._spin_box.setValue(value)
+        self._slider.value = value
+        self._spin_box.value = value
 
     def set_range(self, min_range: float | int, max_range: float | int):
         """
@@ -275,8 +289,8 @@ class QRealSliderGroup(QAbstractSliderGroup):
         :type max_range: float | int
         :return: None
         """
-        self._slider.setRange(min_range, max_range)
-        self._spin_box.setRange(min_range, max_range)
+        self._slider.set_range(min_range, max_range)
+        self._spin_box.set_range(min_range, max_range)
 
     @property
     def default_value(self) -> float | int:
@@ -298,8 +312,8 @@ class QRealSliderGroup(QAbstractSliderGroup):
         :type value: float | int
         """
         self._default_value = value
-        self._slider.setValue(value)
-        self._spin_box.setValue(value)
+        self._slider.value = value
+        self._spin_box.value = value
 
     @property
     def decimals(self) -> int:
@@ -309,7 +323,7 @@ class QRealSliderGroup(QAbstractSliderGroup):
         :rtype: int
         :return: The number of decimal places to display for the spin box.
         """
-        return self._slider.decimals()
+        return self._slider.decimals
 
     @decimals.setter
     def decimals(self, value: int) -> None:
@@ -319,8 +333,8 @@ class QRealSliderGroup(QAbstractSliderGroup):
         :param value: The new number of decimal places to set for the spin box.
         :type value: int
         """
-        self._slider.setDecimals(value)
-        self._spin_box.setDecimals(value)
+        self._slider.decimals = value
+        self._spin_box.decimals = value
 
 class QSliderGroup(QAbstractSliderGroup):
     """
@@ -356,9 +370,17 @@ class QSliderGroup(QAbstractSliderGroup):
         super().__init__(text, QSlider(), QSpinBox(), parent)
 
         # Connections
-        self._slider.valueChanged.connect(self._spin_box.setValue)
-        self._slider.valueChanged.connect(self.valueChanged)
-        self._spin_box.valueChanged.connect(self._slider.setValue)
+        self._slider.valueChanged.connect(self._on_slider_value_changed)
+        self._spin_box.valueChanged.connect(self._on_spin_box_value_changed)
+
+    @Slot(int)
+    def _on_slider_value_changed(self, value: int):
+        self._spin_box.value = value
+        self.valueChanged.emit(value)
+
+    @Slot(int)
+    def _on_spin_box_value_changed(self, value: int):
+        self._slider.value = value
 
     @property
     def value(self) -> int:
@@ -368,7 +390,7 @@ class QSliderGroup(QAbstractSliderGroup):
         :return: The current slider value as an integer.
         :rtype: int
         """
-        return self._slider.value()
+        return self._slider.value
 
     @value.setter
     def value(self, value: int):
@@ -378,8 +400,8 @@ class QSliderGroup(QAbstractSliderGroup):
         :param value: The integer value to set for both the slider and spin box.
         :type value: int
         """
-        self._slider.setValue(value)
-        self._spin_box.setValue(value)
+        self._slider.value = value
+        self._spin_box.value = value
 
     @property
     def maximum(self) -> int:
@@ -393,7 +415,7 @@ class QSliderGroup(QAbstractSliderGroup):
         :return: The maximum value of the slider.
         :rtype: int
         """
-        return self._slider.maximum()
+        return self._slider.maximum
 
     @maximum.setter
     def maximum(self, value: int):
@@ -404,8 +426,8 @@ class QSliderGroup(QAbstractSliderGroup):
         :param value: The maximum integer value to be set for the slider and spin box.
         :type value: int
         """
-        self._slider.setMaximum(value)
-        self._spin_box.setMaximum(value)
+        self._slider.maximum = value
+        self._spin_box.maximum = value
 
     @property
     def minimum(self) -> int:
@@ -419,7 +441,7 @@ class QSliderGroup(QAbstractSliderGroup):
         :return: The minimum value of the slider.
         :rtype: int
         """
-        return self._slider.minimum()
+        return self._slider.minimum
 
     @minimum.setter
     def minimum(self, value: int):
@@ -433,8 +455,8 @@ class QSliderGroup(QAbstractSliderGroup):
         :param value: New minimum value to set for the slider and spin box.
         :type value: int
         """
-        self._slider.setMinimum(value)
-        self._spin_box.setMinimum(value)
+        self._slider.minimum = value
+        self._spin_box.minimum = value
 
     @property
     def single_step(self) -> int:
@@ -448,7 +470,7 @@ class QSliderGroup(QAbstractSliderGroup):
         :return: The current single step value of the spin box.
         :rtype: int
         """
-        return self._spin_box.singleStep()
+        return self._spin_box.single_step
 
     @single_step.setter
     def single_step(self, step: int):
@@ -463,8 +485,8 @@ class QSliderGroup(QAbstractSliderGroup):
         :param step: The step size to be set for the spin box and slider.
         :type step: int
         """
-        self._spin_box.setSingleStep(step)
-        self._slider.setSingleStep(step)
+        self._spin_box.single_step = step
+        self._slider.single_step = step
 
     def set_value(self, value: int):
         """
@@ -474,8 +496,8 @@ class QSliderGroup(QAbstractSliderGroup):
         :type value: int
         :return: None
         """
-        self._slider.setValue(value)
-        self._spin_box.setValue(value)
+        self._slider.value = value
+        self._spin_box.value = value
 
     def set_range(self, min_range: int, max_range: int):
         """
@@ -487,8 +509,8 @@ class QSliderGroup(QAbstractSliderGroup):
         :param max_range: Maximum allowable value for the slider and spin box.
         :return: None
         """
-        self._slider.setRange(min_range, max_range)
-        self._spin_box.setRange(min_range, max_range)
+        self._slider.set_range(min_range, max_range)
+        self._spin_box.set_range(min_range, max_range)
 
     @property
     def default_value(self) -> int:
@@ -509,5 +531,5 @@ class QSliderGroup(QAbstractSliderGroup):
         :type value: int
         """
         self._default_value = value
-        self._slider.setValue(value)
-        self._spin_box.setValue(value)
+        self._slider.value = value
+        self._spin_box.value = value

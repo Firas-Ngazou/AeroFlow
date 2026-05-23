@@ -1,3 +1,9 @@
+import PySide6
+from __feature__ import snake_case, true_property  # type: ignore[import-not-found]
+
+import dev.user_interface.tools.q_wrapper as q_wrapper
+q_wrapper.apply_all_wrappers()
+
 from PySide6.QtWidgets import QWidget, QFrame
 
 class QVSeperator(QFrame):
@@ -23,9 +29,9 @@ class QVSeperator(QFrame):
         :type parent: QWidget | None
         """
         super().__init__(parent)
-        self.setFrameShape(QFrame.Shape.VLine)
-        self.setFrameShadow(QFrame.Shadow.Sunken)
-        self.setFixedHeight(16)
+        self.frame_shape = QFrame.Shape.VLine
+        self.frame_shadow = QFrame.Shadow.Sunken
+        self.set_fixed_height(16)
 
 class QHSeperator(QFrame):
     """
@@ -51,6 +57,6 @@ class QHSeperator(QFrame):
         :type parent: QWidget or None
         """
         super().__init__(parent)
-        self.setFrameShape(QFrame.Shape.HLine)
-        self.setFrameShadow(QFrame.Shadow.Sunken)
-        self.setFixedHeight(16)
+        self.frame_shape = QFrame.Shape.HLine
+        self.frame_shadow = QFrame.Shadow.Sunken
+        self.set_fixed_height(16)

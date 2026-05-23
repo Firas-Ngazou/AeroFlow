@@ -1,3 +1,9 @@
+import PySide6
+from __feature__ import snake_case, true_property  # type: ignore[import-not-found]
+
+import dev.user_interface.tools.q_wrapper as q_wrapper
+q_wrapper.apply_all_wrappers()
+
 from PySide6.QtCore import Slot, Signal
 from PySide6.QtGui import QFont
 from PySide6.QtWidgets import QWidget, QFrame, QHBoxLayout, QPushButton, QVBoxLayout
@@ -26,10 +32,11 @@ class QResetPB(QPushButton):
         super().__init__(parent)
 
         font = QFont("JetBrains Mono", 12)
-        self.setText("RESET")
-        self.setFont(font)
-        self.setFixedSize(75, 24)
-        self.setProperty("class", "reset_pb")
+        self.text = "RESET"
+        self.font = font
+        self.set_fixed_width(75)
+        self.set_fixed_height(24)
+        self.set_property("class", "reset_pb")
 
 class QSettingsTabPB(QPushButton):
     """
@@ -58,12 +65,13 @@ class QSettingsTabPB(QPushButton):
         super().__init__(parent)
 
         font = QFont("JetBrains Mono", 12)
-        font.setBold(True)
-        self.setFont(font)
-        self.setText(text)
-        self.setCheckable(True)
-        self.setFixedSize(150, 30)
-        self.setProperty("class", "settings_tab_pb")
+        font.bold = True
+        self.font = font
+        self.text = text
+        self.checkable = True
+        self.set_fixed_width(150)
+        self.set_fixed_height(30)
+        self.set_property("class", "settings_tab_pb")
 
 class QSpecialSettingPB(QWidget):
     """
@@ -94,30 +102,31 @@ class QSpecialSettingPB(QWidget):
         """
         super().__init__(parent)
 
-        self.setFixedHeight(30)
-        self.setFixedWidth(120)
+        self.set_fixed_height(30)
+        self.set_fixed_width(120)
 
         font = QFont("JetBrains Mono", 12)
-        font.setBold(True)
+        font.bold = True
 
         self._button = QPushButton(text)
-        self._button.setFont(font)
-        self._button.setFixedSize(114, 24)
-        self._button.setProperty("class", "title_bar_pb")
-        self._button.setCheckable(checkable)
+        self._button.font = font
+        self._button.set_fixed_width(114)
+        self._button.set_fixed_height(24)
+        self._button.set_property("class", "title_bar_pb")
+        self._button.checkable = checkable
 
         button_frame = QFrame()
-        button_frame.setProperty("class", "constraint_frame")
+        button_frame.set_property("class", "constraint_frame")
 
         self._primary_layout = QHBoxLayout(button_frame)
-        self._primary_layout.addWidget(self._button)
-        self._primary_layout.setContentsMargins(2, 2, 2, 2)
+        self._primary_layout.add_widget(self._button)
+        self._primary_layout.set_contents_margins(2, 2, 2, 2)
 
         root_layout = QVBoxLayout(self)
-        root_layout.addWidget(button_frame)
-        root_layout.setContentsMargins(0, 0, 0, 0)
+        root_layout.add_widget(button_frame)
+        root_layout.set_contents_margins(0, 0, 0, 0)
 
-        self._button.pressed.connect(lambda: self.pressed.emit(not self._button.isChecked()))
+        self._button.pressed.connect(lambda: self.pressed.emit(not self._button.checked))
         self._button.clicked.connect(lambda: self.clicked.emit())
 
     def click(self):
@@ -125,33 +134,33 @@ class QSpecialSettingPB(QWidget):
 
     @property
     def is_checked(self) -> bool:
-        return self._button.isChecked()
+        return self._button.checked
     @is_checked.setter
     def is_checked(self, value: bool):
-        self._button.setChecked(value)
+        self._button.checked = value
 
     @property
     def text(self) -> str:
-        return self._button.text()
+        return self._button.text
     @text.setter
     def text(self, value: str):
-        self._button.setText(value)
+        self._button.text = value
 
     @property
     def height(self) -> int:
-        return self._button.height()
+        return self._button.height
     @height.setter
     def height(self, value: int):
-        self._button.setFixedHeight(value)
-        self.setFixedHeight(value + 6)
+        self._button.set_fixed_height(value)
+        self.set_fixed_height(value + 6)
 
     @property
     def width(self) -> int:
-        return self._button.width()
+        return self._button.width
     @width.setter
     def width(self, value: int):
-        self._button.setFixedWidth(value)
-        self.setFixedWidth(value + 6)
+        self._button.set_fixed_width(value)
+        self.set_fixed_width(value + 6)
 
 class QFloatingSettingPB(QPushButton):
     """
@@ -163,6 +172,8 @@ class QFloatingSettingPB(QPushButton):
 
     :ivar text: The text displayed on the button.
     :type text: str
+    :ivar font: The font used for the button text.
+    :type font: QFont
     :ivar fill: Indicates whether the button should be styled as an "apply" or
         "cancel" button. Default is True, representing an "apply" button.
     :type fill: bool
@@ -170,11 +181,11 @@ class QFloatingSettingPB(QPushButton):
     def __init__(self, txt: str, fill: bool = True, parent: QWidget | None = None):
         super().__init__(parent)
 
-        self.setText(txt)
-        self.setFont(QFont("JetBrains Mono", 12))
+        self.text = txt
+        self.font = QFont("JetBrains Mono", 12)
 
-        if fill: self.setProperty("class", "apply_pb")
-        else: self.setProperty("class", "cancel_pb")
+        if fill: self.set_property("class", "apply_pb")
+        else: self.set_property("class", "cancel_pb")
 
-        self.setFixedHeight(32)
-        self.setFixedWidth(120)
+        self.set_fixed_height(32)
+        self.set_fixed_width(120)

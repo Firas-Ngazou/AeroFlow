@@ -6,6 +6,12 @@ import threading
 import queue
 import numpy as np
 
+import PySide6
+from __feature__ import snake_case, true_property  # type: ignore[import-not-found]
+
+import dev.user_interface.tools.q_wrapper as q_wrapper
+q_wrapper.apply_all_wrappers()
+
 from PySide6.QtCore import Signal, Slot, QTimer
 from PySide6.QtGui import QPixmap, QIcon, Qt, QFont, QPainter
 from PySide6.QtWidgets import QWidget, QFrame, QVBoxLayout, QPushButton, QSlider, QLabel, QHBoxLayout
@@ -34,7 +40,8 @@ class QSimController(QWidget):
         super().__init__(parent)
 
         # Setup
-        self.setFixedSize(380, 40)
+        self.set_fixed_width(380)
+        self.set_fixed_height(40)
         self._timer = QTimer(self)
         self._fps = 30
         self._canvas_height = 1080
@@ -53,53 +60,57 @@ class QSimController(QWidget):
 
         # Layout
         self._primary_frame = QFrame()
-        self._primary_frame.setProperty("class", "controller_frame")
+        self._primary_frame.set_property("class", "controller_frame")
         self._primary_layout = QHBoxLayout(self._primary_frame)
-        self._primary_layout.setContentsMargins(5, 5, 5, 5)
+        self._primary_layout.set_contents_margins(5, 5, 5, 5)
 
         # Resume/pause button
         self._control_button = QPushButton()
-        self._control_button.setCheckable(True)
-        self._control_button.setProperty("class", "controller_pb")
+        self._control_button.checkable = True
+        self._control_button.set_property("class", "controller_pb")
         self._play_icon = QIcon(":/res/play_icon_black.png")
         self._pause_icon = QIcon(":/res/pause_icon_black.png")
         self._live_icon = QIcon(":/res/circle_icon_red.png")
-        self._control_button.setIcon(self._play_icon)
-        self._control_button.setFixedSize(26, 26)
+        self._control_button.icon = self._play_icon
+        self._control_button.set_fixed_width(26)
+        self._control_button.set_fixed_height(26)
 
         # Slider
         self._slider = QSlider()
-        self._slider.setOrientation(Qt.Orientation.Horizontal)
-        self._slider.setProperty("class", "controller_slider")
-        self._slider.setFixedSize(200, 26)
-        self._slider.setMinimum(1)
+        self._slider.orientation = Qt.Orientation.Horizontal
+        self._slider.set_property("class", "controller_slider")
+        self._slider.set_fixed_width(200)
+        self._slider.set_fixed_height(26)
+        self._slider.minimum = 1
 
         # Time label
         self._label = QLabel()
         font = QFont("JetBrains Mono", 10)
-        self._label.setFont(font)
-        self._label.setFixedSize(50, 16)
-        self._label.setText("00:00")
-        self._label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self._label.font = font
+        self._label.set_fixed_width(50)
+        self._label.set_fixed_height(16)
+        self._label.text = "00:00"
+        self._label.alignment = Qt.AlignmentFlag.AlignCenter
 
         # FPS label
         self._fps_label = QLabel()
-        self._fps_label.setFont(font)
-        self._fps_label.setFixedSize(60, 16)
-        self._fps_label.setText("30 FPS")
-        self._fps_label.setAlignment(Qt.AlignmentFlag.AlignRight)
+        self._fps_label.font = font
+        self._fps_label.set_fixed_width(60)
+        self._fps_label.set_fixed_height(16)
+        self._fps_label.text = "30 FPS"
+        self._fps_label.alignment = Qt.AlignmentFlag.AlignRight
         self._update_fps = False
 
-        self._primary_layout.addWidget(self._control_button, alignment=Qt.AlignmentFlag.AlignLeft)
-        self._primary_layout.addWidget(self._slider, alignment=Qt.AlignmentFlag.AlignHCenter)
-        self._primary_layout.addStretch()
-        self._primary_layout.addWidget(self._label, alignment=Qt.AlignmentFlag.AlignRight)
-        self._primary_layout.addWidget(self._fps_label, alignment=Qt.AlignmentFlag.AlignRight)
-        self._primary_layout.setSpacing(10)
+        self._primary_layout.add_widget(self._control_button, alignment=Qt.AlignmentFlag.AlignLeft)
+        self._primary_layout.add_widget(self._slider, alignment=Qt.AlignmentFlag.AlignHCenter)
+        self._primary_layout.add_stretch()
+        self._primary_layout.add_widget(self._label, alignment=Qt.AlignmentFlag.AlignRight)
+        self._primary_layout.add_widget(self._fps_label, alignment=Qt.AlignmentFlag.AlignRight)
+        self._primary_layout.spacing = 10
 
         root_layout = QVBoxLayout(self)
-        root_layout.addWidget(self._primary_frame)
-        root_layout.setContentsMargins(0, 0, 0, 0)
+        root_layout.add_widget(self._primary_frame)
+        root_layout.set_contents_margins(0, 0, 0, 0)
 
         # Connections
         self._control_button.pressed.connect(self._on_control_button_pressed)
@@ -156,32 +167,32 @@ class QSimController(QWidget):
         self._update_label(value)
         self._update_sim_data()
 
-        if not self._control_button.isChecked():
+        if not self._control_button.checked:
             self._send_sim_pixmap()
 
     def _update_label(self, value: int) -> None:
         if self._live_edit:
-            self._label.setText("Live")
+            self._label.text = "Live"
             return
 
         total_seconds = value // self._fps
         minutes = total_seconds // 60
         seconds = total_seconds % 60
 
-        self._label.setText(f"{minutes:02d}:{seconds:02d}")
+        self._label.text = f"{minutes:02d}:{seconds:02d}"
 
     @Slot()
     def _on_control_button_pressed(self) -> None:
-        if self._control_button.isChecked():
+        if self._control_button.checked:
             # Pause requested
-            self._control_button.setIcon(self._play_icon)
+            self._control_button.icon = self._play_icon
             self._timer.stop()
             self._update_fps = False
             self.pauseRequested.emit()
         else:
             # Play requested
-            if self._live_edit: self._control_button.setIcon(self._live_icon)
-            else: self._control_button.setIcon(self._pause_icon)
+            if self._live_edit: self._control_button.icon = self._live_icon
+            else: self._control_button.icon = self._pause_icon
             self._timer.start(1000 // self._fps)
             self._update_fps = True
             self.resumeRequested.emit()
@@ -200,18 +211,20 @@ class QSimController(QWidget):
         self._sim_data[step] = [stacked_data]
 
         if self._live_edit:
-            self._slider.setMaximum(1)
+            self._slider.maximum = 1
         else:
-            self._slider.setMaximum(step)
+            self._slider.maximum = step
 
     @Slot()
     def _send_sim_pixmap(self) -> None:
         signal_start = datetime.now()
-        step = -1 if self._live_edit else self._slider.value()
+        step = -1 if self._live_edit else self._slider.value
         if step not in self._sim_data: return
 
-        if self._control_button.isChecked() and not self._live_edit: self._slider.setValue(step + 1)
-        elif self._control_button.isChecked() and self._live_edit: self._slider.setValue(self._slider.maximum())
+        if self._control_button.checked and not self._live_edit:
+            self._slider.value = step + 1
+        elif self._control_button.checked and self._live_edit:
+            self._slider.value = self._slider.maximum
 
         stacked_data = self._sim_data[step][0]
 
@@ -249,12 +262,12 @@ class QSimController(QWidget):
             case _:
                 raise ValueError("Unknown image type")
 
-        if not pixmap.isNull(): self.showPixmapRequested.emit(pixmap)
+        if not pixmap.is_null(): self.showPixmapRequested.emit(pixmap)
 
-        if self._update_fps and not self._slider.value() == self._max_steps:
+        if self._update_fps and not self._slider.value == self._max_steps:
             signal_end = datetime.now()
             delta_time_s = (signal_end - signal_start).total_seconds()
-            self._fps_label.setText(f"{(1/delta_time_s):.0f} FPS")
+            self._fps_label.text = f"{(1/delta_time_s):.0f} FPS"
 
     def _initiate_cache(self, width: int, height: int) -> None:
         with self._lock:
@@ -267,23 +280,23 @@ class QSimController(QWidget):
                                                            chunks=optimal_chunk, compression="lzf")
 
     def _update_sim_data(self) -> None:
-        current_step = self._slider.value()
+        current_step = self._slider.value
         left_soft = max(current_step - self._max_soft_steps//2, 1)
-        right_soft = min(current_step + self._max_soft_steps//2, self._slider.maximum())
+        right_soft = min(current_step + self._max_soft_steps//2, self._slider.maximum)
 
         left_hard = None
         right_hard = None
         if left_soft != 1:
             left_hard = 1 + current_step - left_soft
-        if right_soft != self._slider.maximum():
-            right_hard = self._slider.maximum() - (right_soft + current_step)
+        if right_soft != self._slider.maximum:
+            right_hard = self._slider.maximum - (right_soft + current_step)
 
         if left_hard is not None:
             for step in range(1, left_hard):
                 self._save_step_to_disk(step)
 
         if right_hard is not None:
-            for step in range(right_soft, self._slider.maximum() + 1):
+            for step in range(right_soft, self._slider.maximum + 1):
                 self._save_step_to_disk(step)
 
         with self._io_read_queue.mutex:
@@ -361,10 +374,10 @@ class QSimController(QWidget):
         self.max_steps = max_steps
 
     def reset(self) -> None:
-        self._slider.setValue(1)
+        self._slider.value = 1
         self._update_label(0)
-        self._control_button.setChecked(False)
-        self._control_button.setIcon(self._play_icon)
+        self._control_button.checked = False
+        self._control_button.icon = self._play_icon
         self._timer.stop()
         self._sim_data.clear()
 
@@ -415,4 +428,4 @@ class QSimController(QWidget):
     @live_edit.setter
     def live_edit(self, value: bool) -> None:
         self._live_edit = value
-        self._slider.setDisabled(value)
+        self._slider.set_disabled(value)

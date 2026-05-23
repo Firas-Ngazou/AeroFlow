@@ -3,25 +3,23 @@ import json
 import math
 from dataclasses import dataclass
 
-from PySide6.QtCore import Qt, QPoint, QRect, QLine, Signal, QByteArray, QBuffer, QIODevice, QSize, QUrl, Slot, QTimer, \
-    QPointF
+import PySide6
+from __feature__ import snake_case, true_property  # type: ignore[import-not-found]
+
+import dev.user_interface.tools.q_wrapper as q_wrapper
+q_wrapper.apply_all_wrappers()
+
+from PySide6.QtCore import Qt, QPoint, QRect, QLine, Signal, QByteArray, QBuffer, QIODevice, QSize, Slot, QPointF
 from PySide6.QtGui import QPainter, QColor, QPen, QPixmap, QCursor, QBrush, QPainterPath, QPolygonF, QPaintEvent, \
     QMouseEvent, QKeyEvent, QResizeEvent, QImage, QKeySequence, QShortcut
-from PySide6.QtMultimedia import QMediaPlayer, QVideoSink, QVideoFrame
-from PySide6.QtMultimediaWidgets import QVideoWidget
-from PySide6.QtWidgets import QWidget, QApplication, QLabel
+from PySide6.QtWidgets import QWidget
 
-import sys
 import numpy as np
 from enum import Enum
 
 from dev.user_interface.canvas.q_state_manager import QStateManager
-from dev.physics_engine.pixmap_gen import PixmapGen
 from dev.user_interface.floating.q_shape_settings import QFloatingShapeMenu
 
-# NOTE: I refactored it a little by adding some properties where useful. Also, the user can now scale/rotate the
-# shapes, although there still may be some issues as I didn't play test it that much, but it should work fine for
-# most cases. (Could still make a renderer class, but it's really not necessary yet)
 
 @dataclass
 class Vertex:
@@ -89,8 +87,8 @@ class Vertex:
         :type delta_y: int
         :return: None
         """
-        self.position.setX(self.position.x() + delta_x)
-        self.position.setY(self.position.y() + delta_y)
+        self.position.set_x(self.position.x() + delta_x)
+        self.position.set_y(self.position.y() + delta_y)
 
 
 class Shape:
@@ -197,15 +195,15 @@ class Shape:
 
         # region Pens and brushes
         self._default_vertex_pen = QPen(QColor(179, 208, 255))  # light blue
-        self._default_vertex_pen.setWidth(2)
+        self._default_vertex_pen.set_width(2)
         self._selected_vertex_pen = QPen(QColor(77, 142, 255))  # dark blue
-        self._selected_vertex_pen.setWidth(4)
+        self._selected_vertex_pen.set_width(4)
         self._hovered_vertex_pen = QPen(QColor(179, 208, 255))  # light blue
-        self._hovered_vertex_pen.setWidth(2)
+        self._hovered_vertex_pen.set_width(2)
         self._held_vertex_pen = QPen(QColor(77, 142, 255))  # dark blue
-        self._held_vertex_pen.setWidth(4)
+        self._held_vertex_pen.set_width(4)
         self._hovered_selected_vertex_pen = QPen(QColor(77, 142, 255))  # dark blue
-        self._hovered_selected_vertex_pen.setWidth(4)
+        self._hovered_selected_vertex_pen.set_width(4)
 
         self._default_vertex_brush = QBrush(QColor(245, 245, 245))  # white
         self._selected_vertex_brush = QBrush(QColor(245, 245, 245))  # white
@@ -214,17 +212,17 @@ class Shape:
         self._hovered_selected_vertex_brush = QBrush(QColor(204, 204, 204))  # light gray
 
         self._shape_pen = QPen(QColor(245, 245, 245))
-        self._shape_pen.setWidth(2)
+        self._shape_pen.set_width(2)
         self._shape_brush = QBrush(QColor(220, 220, 220, 100))
         self._shape_hover_pen = QPen(QColor(0, 124, 217))
-        self._shape_hover_pen.setWidth(4)
+        self._shape_hover_pen.set_width(4)
         self._shape_hover_brush = QBrush(QColor(119, 197, 255, 100))
         self._shape_hover_delete_pen = QPen(QColor(225, 0, 0))
-        self._shape_hover_delete_pen.setWidth(4)
+        self._shape_hover_delete_pen.set_width(4)
         self._shape_hover_delete_brush = QBrush(QColor(225, 0, 0, 100))
 
         self._median_vertex_pen = QPen(QColor(179, 208, 255))
-        self._median_vertex_pen.setWidth(4)
+        self._median_vertex_pen.set_width(4)
         self._median_vertex_brush = QBrush(QColor(179, 208, 255))
 
         self._painter_configs = {
@@ -254,18 +252,18 @@ class Shape:
         """
         if self._path is None: self._update_path()
         if self._state == Shape.ShapeState.HOVERED:
-            painter.setPen(self._shape_hover_pen)
-            painter.setBrush(self._shape_hover_brush)
+            painter.set_pen(self._shape_hover_pen)
+            painter.set_brush(self._shape_hover_brush)
         elif self._state == Shape.ShapeState.HOVERED_DELETE:
-            painter.setPen(self._shape_hover_delete_pen)
-            painter.setBrush(self._shape_hover_delete_brush)
+            painter.set_pen(self._shape_hover_delete_pen)
+            painter.set_brush(self._shape_hover_delete_brush)
         else:
-            painter.setPen(self._shape_pen)
-            painter.setBrush(self._shape_brush)
+            painter.set_pen(self._shape_pen)
+            painter.set_brush(self._shape_brush)
 
         if self._status == Shape.ShapeStatus.CLOSED:
-            self._path.closeSubpath()
-        painter.drawPath(self._path)
+            self._path.close_subpath()
+        painter.draw_path(self._path)
 
         if not self._hide_vertices: self._draw_vertices(painter)
 
@@ -279,16 +277,16 @@ class Shape:
         """
         if self._vertices:
             for state, (pen, brush, radius) in self._painter_configs.items():
-                painter.setPen(pen)
-                painter.setBrush(brush)
+                painter.set_pen(pen)
+                painter.set_brush(brush)
 
                 for vertex in self._categories[state]:
-                    painter.drawEllipse(vertex.position, radius, radius)
+                    painter.draw_ellipse(vertex.position, radius, radius)
 
-            painter.setPen(self._median_vertex_pen)
-            painter.setBrush(self._median_vertex_brush)
+            painter.set_pen(self._median_vertex_pen)
+            painter.set_brush(self._median_vertex_brush)
             if self._current_median is not None:
-                painter.drawPath(self._current_median_path)
+                painter.draw_path(self._current_median_path)
 
     #endregion
 
@@ -698,7 +696,7 @@ class Shape:
 
         normalized_rect = rect.normalized()
 
-        left, top, right, bottom = normalized_rect.getCoords()
+        left, top, right, bottom = normalized_rect.get_coords()
         inside_x = (left <= x_coords) & (x_coords <= right)
         inside_y = (top <= y_coords) & (y_coords <= bottom)
 
@@ -747,10 +745,10 @@ class Shape:
                                         median.position.y() + cross_line_length // 2),
                                  QPoint(median.position.x() + cross_line_length // 2,
                                         median.position.y() - cross_line_length // 2))
-            self._current_median_path.moveTo(cross_line_1.p1())
-            self._current_median_path.lineTo(cross_line_1.p2())
-            self._current_median_path.moveTo(cross_line_2.p1())
-            self._current_median_path.lineTo(cross_line_2.p2())
+            self._current_median_path.move_to(cross_line_1.p1())
+            self._current_median_path.line_to(cross_line_1.p2())
+            self._current_median_path.move_to(cross_line_2.p1())
+            self._current_median_path.line_to(cross_line_2.p2())
 
         else:
             self._current_median = None
@@ -799,14 +797,14 @@ class Shape:
         image.fill(0)
 
         painter = QPainter(image)
-        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-        painter.setPen(QPen(QColor(255, 255, 255)))
-        painter.setBrush(QBrush(QColor(255, 255, 255)))
-        painter.drawPath(self._path)
+        painter.set_render_hint(QPainter.RenderHint.Antialiasing)
+        painter.set_pen(QPen(QColor(255, 255, 255)))
+        painter.set_brush(QBrush(QColor(255, 255, 255)))
+        painter.draw_path(self._path)
         painter.end()
 
-        data = image.constBits()
-        bytes_per_line = image.bytesPerLine() # gets the real stored width of the image in bytes including ghost bytes
+        data = image.const_bits()
+        bytes_per_line = image.bytes_per_line() # gets the real stored width of the image in bytes including ghost bytes
         padded_pixels = np.frombuffer(data, dtype=np.uint8).reshape((height, bytes_per_line))
         pixels = padded_pixels[:, :width]
         shape_pixels = np.argwhere(pixels == 255)
@@ -843,7 +841,7 @@ class Shape:
         qt_points = [QPoint(x, y) for x, y in self._vertices_nd]
         polygon = QPolygonF(qt_points)
         path = QPainterPath()
-        path.addPolygon(polygon)
+        path.add_polygon(polygon)
         self._path: QPainterPath = path
 
     def _update_vertices_nd(self, index_position: int = None) -> None:
@@ -1053,15 +1051,16 @@ class QEditor(QWidget):
         super().__init__(parent)
 
         # Setup
-        self.setMinimumSize(200, 200)
-        self.setMouseTracking(True)
-        self.setFocusPolicy(Qt.FocusPolicy.ClickFocus)
+        self.minimum_width = 200
+        self.minimum_height = 200
+        self.mouse_tracking = True
+        self.focus_policy = Qt.FocusPolicy.ClickFocus
 
         # Version control
         self._undo_shortcut = QShortcut(QKeySequence("Ctrl+Z"), self)
         self._redo_shortcut = QShortcut(QKeySequence("Ctrl+Shift+Z"), self)
-        self._undo_shortcut.setContext(Qt.ShortcutContext.WindowShortcut)
-        self._redo_shortcut.setContext(Qt.ShortcutContext.WindowShortcut)
+        self._undo_shortcut.context = Qt.ShortcutContext.WindowShortcut
+        self._redo_shortcut.context = Qt.ShortcutContext.WindowShortcut
         self._undo_shortcut.activated.connect(self.undo)
         self._redo_shortcut.activated.connect(self.redo)
 
@@ -1090,18 +1089,18 @@ class QEditor(QWidget):
 
         #region Pens and brushes
         self._selecting_rect_pen = QPen(QColor(0, 124, 217))
-        self._selecting_rect_pen.setWidth(2)
+        self._selecting_rect_pen.set_width(2)
         self._selection_rect_brush = QBrush(QColor(119, 197, 255, 100))
         self._deleting_rect_pen = QPen(QColor(245, 0, 0))
-        self._deleting_rect_pen.setWidth(2)
+        self._deleting_rect_pen.set_width(2)
         self._deleting_rect_brush = QBrush(QColor(245, 0, 0, 100))
 
         self._selected_rect_pen = QPen(QColor(245, 245, 245))
-        self._selected_rect_pen.setWidth(2)
+        self._selected_rect_pen.set_width(2)
 
         self._cursor_shape_line_pen = QPen(QColor(245, 245, 245))
-        self._cursor_shape_line_pen.setWidth(2)
-        self._cursor_shape_line_pen.setStyle(Qt.PenStyle.DashLine)
+        self._cursor_shape_line_pen.set_width(2)
+        self._cursor_shape_line_pen.set_style(Qt.PenStyle.DashLine)
         #endregion
 
         pen_pixmap = QPixmap("../../icons/pen_icon_white.png").scaled(24, 24, Qt.AspectRatioMode.KeepAspectRatio,
@@ -1143,7 +1142,7 @@ class QEditor(QWidget):
         self._cursor_shape_line: QLine | None = None
 
     #region Painting Events
-    def paintEvent(self, event: QPaintEvent) -> None:
+    def paint_event(self, event: QPaintEvent) -> None:
         """
         Handles the widget repaint event and draws various visual elements onto the widget, such as grid, shapes,
         selection rectangles, and cursor indicator. This method is automatically invoked when the widget requires a
@@ -1156,23 +1155,23 @@ class QEditor(QWidget):
         painter = QPainter(self)
 
         if self._cached_grid is not None:
-            painter.drawPixmap(0, 0, self._cached_grid)
+            painter.draw_pixmap(0, 0, self._cached_grid)
 
         self._draw_shapes(painter)
 
         if self._to_display is not None:
-            resized = self._to_display.scaled(self.width(), self.height())
+            resized = self._to_display.scaled(self.width, self.height)
             to_disp_painter = QPainter(resized)
-            to_disp_painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_Clear)
+            to_disp_painter.composition_mode = QPainter.CompositionMode.CompositionMode_Clear
             self._draw_shapes(to_disp_painter)
             to_disp_painter.end()
-            painter.drawPixmap(0, 0, resized)
+            painter.draw_pixmap(0, 0, resized)
 
         self._draw_selection_rects(painter)
         self._draw_cursor_shape_line(painter)
         painter.end()
 
-    def resizeEvent(self, event: QResizeEvent) -> None:
+    def resize_event(self, event: QResizeEvent) -> None:
         """
         Handles the resize event for the widget and adjusts the positions of shapes proportionally
         to maintain a centered layout. This is triggered whenever the widget is resized. - Generated by OpenAI's GPT-5.5
@@ -1184,10 +1183,10 @@ class QEditor(QWidget):
         """
         self._draw_grid()
 
-        if not event.oldSize().isValid(): return
+        if not event.old_size().is_valid(): return
 
-        delta_width = event.size().width() - event.oldSize().width()
-        delta_height = event.size().height() - event.oldSize().height()
+        delta_width = event.size().width() - event.old_size().width()
+        delta_height = event.size().height() - event.old_size().height()
 
         delta_x = delta_width // 2
         delta_y = delta_height // 2
@@ -1197,29 +1196,29 @@ class QEditor(QWidget):
         if len(self._shapes) >= 1: self.vectorDrawingChanged.emit()
 
     def _draw_grid(self) -> None:
-        self._cached_grid = QPixmap(self.size())
+        self._cached_grid = QPixmap(self.size)
         self._cached_grid.fill(Qt.GlobalColor.transparent)
         painter = QPainter(self._cached_grid)
 
-        left = self.rect().left()
-        right = self.rect().right()
-        top = self.rect().top()
-        bottom = self.rect().bottom()
+        left = self.rect.left()
+        right = self.rect.right()
+        top = self.rect.top()
+        bottom = self.rect.bottom()
         x = left
         y = top
 
         primary_pen = QPen(QColor(75, 75, 75, 75))
-        primary_pen.setWidth(2)
+        primary_pen.set_width(2)
         secondary_pen = QPen(QColor(75, 75, 75, 25))
-        secondary_pen.setWidth(2)
+        secondary_pen.set_width(2)
 
-        painter.setPen(primary_pen)
+        painter.set_pen(primary_pen)
         self._draw_lines(painter, x, y, top, bottom, left, right)
 
         x = int(left + self._cell_width/2)
         y = int(top + self._cell_width/2)
 
-        painter.setPen(secondary_pen)
+        painter.set_pen(secondary_pen)
         self._draw_lines(painter, x, y, top, bottom, left, right)
 
         painter.end()
@@ -1244,10 +1243,10 @@ class QEditor(QWidget):
         :return: None
         """
         while x < right: # (Vertical lines)
-            painter.drawLine(x, top, x, bottom)
+            painter.draw_line(x, top, x, bottom)
             x += self._cell_width
         while y < bottom: # (Horizontal lines)
-            painter.drawLine(left, y, right, y)
+            painter.draw_line(left, y, right, y)
             y += self._cell_width
 
     def _draw_shapes(self, painter: QPainter) -> None:
@@ -1284,20 +1283,20 @@ class QEditor(QWidget):
 
             # Red rect if the user is holding down the ctrl key
             if self._state_manager.key_state == QStateManager.KeyState.HOLDING_CTRL:
-                painter.setPen(self._deleting_rect_pen)
-                painter.setBrush(self._deleting_rect_brush)
+                painter.set_pen(self._deleting_rect_pen)
+                painter.set_brush(self._deleting_rect_brush)
 
             # Blue rect if the user is not holding down the ctrl key
             else:
-                painter.setPen(self._selecting_rect_pen)
-                painter.setBrush(self._selection_rect_brush)
-            painter.drawRect(self._selecting_rect)
+                painter.set_pen(self._selecting_rect_pen)
+                painter.set_brush(self._selection_rect_brush)
+            painter.draw_rect(self._selecting_rect)
 
         # White rect around the selected vertices
         elif self._selected_rect is not None and not self.is_rotating and not self.is_scaling and not self.is_moving:
-            painter.setPen(self._selected_rect_pen)
-            painter.setBrush(Qt.BrushStyle.NoBrush)
-            painter.drawRect(self._selected_rect)
+            painter.set_pen(self._selected_rect_pen)
+            painter.set_brush(Qt.BrushStyle.NoBrush)
+            painter.draw_rect(self._selected_rect)
 
     def _draw_cursor_shape_line(self, painter: QPainter):
         """
@@ -1315,13 +1314,13 @@ class QEditor(QWidget):
         if self._cursor_shape_line is None:
             return
 
-        painter.setPen(self._cursor_shape_line_pen)
-        painter.drawLine(self._cursor_shape_line)
+        painter.set_pen(self._cursor_shape_line_pen)
+        painter.draw_line(self._cursor_shape_line)
 
     #endregion
 
     #region Input Events
-    def mouseMoveEvent(self, event: QMouseEvent, /) -> None:
+    def mouse_move_event(self, event: QMouseEvent, /) -> None:
         """
         Handles the mouse move event based on the current state of the application.
 
@@ -1341,7 +1340,7 @@ class QEditor(QWidget):
             case QStateManager.CursorState.LOCKED:
                 return
             case QStateManager.CursorState.DEFAULT:
-                position = event.position().toPoint()
+                position = event.position().to_point()
 
                 if self._current_shape is None:
                     if self._nearest_shape is not None and not self._nearest_shape.is_over_shape(position):
@@ -1375,7 +1374,7 @@ class QEditor(QWidget):
                                         self._shapes_to_remove = [shape]
                                     shape.highlight(for_deletion=True)
 
-                            self._selecting_rect.setBottomRight(position)
+                            self._selecting_rect.set_bottom_right(position)
 
                     self.update()
                     return
@@ -1425,7 +1424,7 @@ class QEditor(QWidget):
 
                     # Mouse is selecting vertices
                     elif self._state_manager.action_state == QStateManager.ActionState.SELECTING_VERTICES:
-                        self._selecting_rect.setBottomRight(position)
+                        self._selecting_rect.set_bottom_right(position)
                         self._current_shape.select_content(self._selecting_rect)
 
             case QStateManager.CursorState.PEN:
@@ -1433,7 +1432,7 @@ class QEditor(QWidget):
 
         self.update()
 
-    def mousePressEvent(self, event: QMouseEvent, /) -> None:
+    def mouse_press_event(self, event: QMouseEvent, /) -> None:
         """
         Handles the mouse press events on the graphical user interface.
 
@@ -1451,7 +1450,7 @@ class QEditor(QWidget):
             case QStateManager.CursorState.LOCKED:
                 return
             case QStateManager.CursorState.DEFAULT:
-                position = event.position().toPoint()
+                position = event.position().to_point()
                 if event.button() == Qt.MouseButton.LeftButton:
                     self._shape_settings.reset_state()
                     if self._current_shape is None:
@@ -1541,7 +1540,7 @@ class QEditor(QWidget):
             case QStateManager.CursorState.PEN:
                 self.inEditMode.emit(False)
                 if event.button() == Qt.MouseButton.LeftButton:
-                    position = event.position().toPoint()
+                    position = event.position().to_point()
                     if self._current_shape is None:
                         # Making a new shape
                         self._shapes.append(Shape([Vertex(position=position, state=Vertex.VertexState.SELECTED,
@@ -1558,7 +1557,7 @@ class QEditor(QWidget):
 
         self.update()
 
-    def mouseReleaseEvent(self, event: QMouseEvent, /) -> None:
+    def mouse_release_event(self, event: QMouseEvent, /) -> None:
         """
         Handles the mouse release event for the current application state.
 
@@ -1610,7 +1609,7 @@ class QEditor(QWidget):
 
         self.update()
 
-    def keyPressEvent(self, event: QKeyEvent, /) -> None:
+    def key_press_event(self, event: QKeyEvent, /) -> None:
         """
         Handles key press events and updates the internal state or executes actions
         depending on the current cursor, key, and action states. - Generated by Claude Haiku 4.5
@@ -1642,7 +1641,7 @@ class QEditor(QWidget):
         self._update_selected_rect()
         self.update()
 
-    def keyReleaseEvent(self, event: QKeyEvent, /) -> None:
+    def key_release_event(self, event: QKeyEvent, /) -> None:
         """
         Handles key release events to adjust the internal state of the cursor and key bindings.
 
@@ -1710,9 +1709,9 @@ class QEditor(QWidget):
             case QStateManager.CursorState.LOCKED:
                 ...
             case QStateManager.CursorState.DEFAULT:
-                self.setCursor(Qt.CursorShape.ArrowCursor)
+                self.cursor = Qt.CursorShape.ArrowCursor
             case QStateManager.CursorState.PEN:
-                self.setCursor(self._pen_cursor)
+                self.cursor = self._pen_cursor
 
         self.update()
 
@@ -1775,7 +1774,7 @@ class QEditor(QWidget):
         """
         vertices = np.empty((0, 2), dtype=int)
         for shape in self._shapes:
-            vertices = np.concatenate((vertices, shape.get_pixel_data(self.width(), self.height())), axis=0)
+            vertices = np.concatenate((vertices, shape.get_pixel_data(self.width, self.height)), axis=0)
 
         return vertices
 
@@ -1800,8 +1799,8 @@ class QEditor(QWidget):
         canvas.fill(Qt.GlobalColor.transparent)
 
         painter = QPainter(canvas)
-        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-        painter.fillRect(canvas.rect(), QColor(34, 34, 34))
+        painter.set_render_hint(QPainter.RenderHint.Antialiasing)
+        painter.fill_rect(canvas.rect(), QColor(34, 34, 34))
 
         cell_size = self._cell_width
         tile = QPixmap(cell_size, cell_size)
@@ -1809,13 +1808,13 @@ class QEditor(QWidget):
 
         tile_painter = QPainter(tile)
         grid_pen = QPen(QColor(75, 75, 75, 75))
-        grid_pen.setWidth(2)
-        tile_painter.setPen(grid_pen)
-        tile_painter.drawLine(0, 0, cell_size, 0)
-        tile_painter.drawLine(0, 0, 0, cell_size)
+        grid_pen.set_width(2)
+        tile_painter.set_pen(grid_pen)
+        tile_painter.draw_line(0, 0, cell_size, 0)
+        tile_painter.draw_line(0, 0, 0, cell_size)
         tile_painter.end()
 
-        painter.drawTiledPixmap(canvas.rect(), tile)
+        painter.draw_tiled_pixmap(canvas.rect(), tile)
 
         self._draw_shapes(painter)
         painter.end()
@@ -1852,7 +1851,7 @@ class QEditor(QWidget):
         buffer.open(QIODevice.OpenModeFlag.WriteOnly)
         pixmap.save(buffer, "PNG")
 
-        return byte_array.toBase64().data().decode("utf-8")
+        return byte_array.to_base64().data().decode("utf-8")
 
     def save_data(self, include_shape_status: bool = True, include_preview: bool = True):
         """
@@ -1952,7 +1951,7 @@ class QEditor(QWidget):
         preview.fill(Qt.GlobalColor.transparent)
 
         painter = QPainter(preview)
-        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        painter.set_render_hint(QPainter.RenderHint.Antialiasing)
 
         # Shape drawing (cuz it's highlighted by the user when he is hovering over it)
         path = QPainterPath()
@@ -1961,27 +1960,27 @@ class QEditor(QWidget):
             correct_y = point.y() * scale + offset_y
 
             if i == 0:
-                path.moveTo(correct_x, correct_y)
+                path.move_to(correct_x, correct_y)
             else:
-                path.lineTo(correct_x, correct_y)
+                path.line_to(correct_x, correct_y)
 
         if shape.status.value == 1:
-            path.closeSubpath()
+            path.close_subpath()
 
-        painter.setPen(QPen(QColor(245, 245, 245), 2))
-        painter.setBrush(QBrush(QColor(220, 220, 220, 100)))
-        painter.drawPath(path)
+        painter.set_pen(QPen(QColor(245, 245, 245), 2))
+        painter.set_brush(QBrush(QColor(220, 220, 220, 100)))
+        painter.draw_path(path)
 
         # Vertices drawing
-        painter.setPen(QPen(QColor(77, 142, 255), 6))
-        painter.setBrush(QBrush(QColor(245, 245, 245)))
+        painter.set_pen(QPen(QColor(77, 142, 255), 6))
+        painter.set_brush(QBrush(QColor(245, 245, 245)))
 
         vertex_radius = 14
 
         for point in points:
             correct_x = point.x() * scale + offset_x
             correct_y = point.y() * scale + offset_y
-            painter.drawEllipse(QPointF(correct_x, correct_y), vertex_radius, vertex_radius)
+            painter.draw_ellipse(QPointF(correct_x, correct_y), vertex_radius, vertex_radius)
         painter.end()
 
         return self._pixmap_to_base64(preview)
@@ -2184,7 +2183,7 @@ class QEditor(QWidget):
             return
 
         self._scale_start_verts = [QPoint(v.position) for v in selected_vertices]
-        self._scale_start_qp = self.mapFromGlobal(QCursor.pos())
+        self._scale_start_qp = self.map_from_global(QCursor.pos())
         self._scale_center = QPoint(self.selected_rect.center())
         self.is_scaling = True
         self.is_rotating = False
@@ -2212,7 +2211,7 @@ class QEditor(QWidget):
             return
 
         self._rotate_start_verts = [QPoint(v.position) for v in selected_vertices]
-        self._rotate_start_qp = self.mapFromGlobal(QCursor.pos())
+        self._rotate_start_qp = self.map_from_global(QCursor.pos())
         self._rotate_center = QPoint(self.selected_rect.center())
         self.is_rotating = True
         self.is_scaling = False
@@ -2235,8 +2234,8 @@ class QEditor(QWidget):
 
         center = self._scale_center
 
-        start_dist = (self._scale_start_qp - center).manhattanLength()
-        current_dist = (cursor_position - center).manhattanLength()
+        start_dist = (self._scale_start_qp - center).manhattan_length()
+        current_dist = (cursor_position - center).manhattan_length()
 
         if start_dist == 0:
             return
@@ -2363,7 +2362,7 @@ class QEditor(QWidget):
             return
 
         self._move_start_verts = [QPoint(v.position) for v in selected_vertices]
-        self._move_start_qp = self.mapFromGlobal(QCursor.pos())
+        self._move_start_qp = self.map_from_global(QCursor.pos())
 
         self.is_moving = True
         self.is_scaling = False
