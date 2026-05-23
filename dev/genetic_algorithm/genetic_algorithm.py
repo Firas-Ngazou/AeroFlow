@@ -172,27 +172,34 @@ class GeneticAlgorithm(QObject):
 
         coords = np.vstack((upper_pts, lower_pts, upper_pts[0]))
 
-        airfoil = asb.Airfoil(name="Shape", coordinates=coords)
-        airfoil.repanel(n_points_per_side=60) # makes the shape smooth for the cd approx
-        aero = nf.get_aero_from_airfoil(
-            airfoil=airfoil,
-            alpha=0.0,
-            Re=5e5
-        )
-        cd  = aero["CD"]
-        cl  = aero["CL"]
+        try:
 
-        if cd <= 0 or np.isnan(cd):
-            return -9999.0
-        
-        fitness_score = 1.0 / cd
-        
-        if cl <= 0 or np.isnan(cl):
-            return -9999.0
+            airfoil = asb.Airfoil(name="Shape", coordinates=coords)
+            airfoil.repanel(n_points_per_side=60) # makes the shape smooth for the cd approx
+            aero = nf.get_aero_from_airfoil(
+                airfoil=airfoil,
+                alpha=0.0,
+                Re=5e5
+            )
+            self._estimated_drag  = aero["CD"]
+            self._estimated_lift  = aero["CL"]
 
-        fitness_score = 1.0 / cl # Change so that the user can pick which one (cd or cl)
+            if np.isnan(self._estimated_drag) or np.isnan(self._estimated_lift):
+                return -9999.0
+            
+            
+            if self._constraint_target == "DRAG":
+                if self._estimated_drag <= 0 :
+                    return -9999.0
+                return float(1.0 / self._estimated_drag)
+            
+            if self._constraint_target == "LIFT":
+                if self._estimated_lift <= 0:
+                    return -9999.0
+                return float(1.0 / self._estimated_lift)
         
-        return float(fitness_score)
+        except Exception:
+            return -9999.0
 
 
     def __verify_distance(self, mask: np.ndarray) -> bool:
