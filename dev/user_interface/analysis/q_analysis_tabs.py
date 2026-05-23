@@ -1,4 +1,4 @@
-from PySide6.QtCore import Qt, QPoint, Slot
+from PySide6.QtCore import Qt, QPoint, Slot, QPointF
 from PySide6.QtGui import QFont
 from PySide6.QtWidgets import QWidget, QFrame, QHBoxLayout, QVBoxLayout, QLabel, QTabWidget, QGridLayout
 
@@ -114,7 +114,7 @@ class QOptimizationAnalysis(QWidget):
     @gain_value.setter
     def gain_value(self, value: int):
         self._gain_value = value
-        self._performance_gain_field.value = value
+        self._performance_gain_field.result_value = str(value)
 
     @property
     def projected_drag(self):
@@ -122,7 +122,7 @@ class QOptimizationAnalysis(QWidget):
     @projected_drag.setter
     def projected_drag(self, value: float):
         self._projected_drag = value
-        self._initial_projected_drag.value = value
+        self._initial_projected_drag.result_value = str(value)
 
     @property
     def projected_lift(self):
@@ -130,9 +130,9 @@ class QOptimizationAnalysis(QWidget):
     @projected_lift.setter
     def projected_lift(self, value: float):
         self._projected_lift = value
-        self._initial_projected_lift.value = value
+        self._initial_projected_lift.result_value = str(value)
 
-    def add_graph_point(self, point: QPoint):
+    def add_graph_point(self, point: QPointF):
         self._graph.add_point(point)
 
     def reset_graph(self):
@@ -440,3 +440,30 @@ class QAnalysisWidget(QFloatingWidget):
     @Slot(str)
     def set_max_vorticity_value(self, value: str) -> None:
         self.max_vorticity_value = value
+
+    def add_opt_graph_point(self, point: QPointF):
+        self._optimization_tab.add_graph_point(point)
+
+    def reset_opt_graph(self) -> None:
+        self._optimization_tab.reset_graph()
+
+    @property
+    def opt_gain(self):
+        return self._optimization_tab.gain_value
+    @opt_gain.setter
+    def opt_gain(self, value: float) -> None:
+        self._optimization_tab.gain_value = value
+
+    @property
+    def opt_projected_drag(self):
+        return self._optimization_tab.projected_drag
+    @opt_projected_drag.setter
+    def opt_projected_drag(self, value: float) -> None:
+        self._optimization_tab.projected_drag = value
+
+    @property
+    def opt_projected_lift(self):
+        return self._optimization_tab.projected_lift
+    @opt_projected_lift.setter
+    def opt_projected_lift(self, value: float) -> None:
+        self._optimization_tab.projected_lift = value

@@ -73,13 +73,13 @@ class QCustomGraph(QChartView):
         super().paintEvent(event)
         self.chart().resize(self.size())
 
-    def add_point(self, point: QPoint):
+    def add_point(self, point: QPointF):
         """
         Adds a new point to the internal collection, updates the corresponding series,
         and adjusts axis ranges based on the current set of points. - Generated using OpenAI's GPT-5.5
 
         :param point: The point to add; must be an instance of QPoint.
-        :type point: QPoint
+        :type point: QPointF
         :return: None
         """
         self._points.append(point)
@@ -169,7 +169,7 @@ if __name__ == "__main__":
 
     count = 50
     for _ in range(count):
-        w.add_point(QPoint(random.randint(0, 100), random.randint(0, 100)))
+        w.add_point(QPointF(random.randint(0, 100), random.randint(0, 100)))
 
     w.show()
     app.exec()
