@@ -1,6 +1,11 @@
+import math
+import random
+
+import numpy as np
 from PySide6.QtCore import QPoint
 from PySide6.QtGui import QPen, QColor, QBrush, QFont, QPainterPath, QPainter, QPixmap
 from PySide6.QtWidgets import QWidget, QLabel, QApplication
+from vpython import graph
 
 
 class QGraph(QWidget):
@@ -28,25 +33,22 @@ class QGraph(QWidget):
         self._axis_pen.setWidth(2)
 
         # Axis setup
-        self._x_max = 2
-        self._x_min = 0
-        self._y_max = 2
-        self._y_min = 0
-
         self._x_fixed = False
         self._y_fixed = False
 
         self._x_max_count = 10
         self._y_max_count = 10
-        self._maximize_count = True
+        self._maximize_count = False
 
-        self._x_range = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
-        self._y_range = [4, 8, 12, 16, 20, 24, 28, 32, 36, 40, 44, 48, 52, 56]
+        self._points = np.array([], dtype=object)
+        self._x_range = np.array([], dtype=int)
+        self._y_range = np.array([], dtype=int)
 
         # Global positions & scales
         self._height = 300
         self._width = 600
         self._offset = 50
+        self._text_size = 7
 
         self._x_axis_len = self._width - self._offset
         self._y_axis_len = -self._height + self._offset
@@ -56,8 +58,8 @@ class QGraph(QWidget):
         self._arrow_height = 10
         self._arrow_width = 6
 
-        self._grad_len = 10
-        self._grad_offset = 5
+        self._grad_len = 5
+        self._grad_offset = 8
 
         # Cache
         self._cached_axis: QPainterPath | None = None
@@ -166,13 +168,14 @@ class QGraph(QWidget):
 
         painter = QPainter(self._cached_grads)
 
-        start = QPoint(self._point_0)
-
         painter.setPen(self._grad_pen)
         # painter.drawLine(start, start + QPoint(0, self._grad_len))
 
-        x_given_count = len(self._x_range)
-        y_given_count = len(self._y_range)
+        x_values = self._x_range
+        y_values = self._y_range
+
+        x_given_count = len(x_values)
+        y_given_count = len(y_values)
 
         if self._maximize_count:
             x_count = x_given_count
@@ -181,26 +184,85 @@ class QGraph(QWidget):
             x_count = min(x_given_count, self._x_max_count)
             y_count = min(y_given_count, self._y_max_count)
 
-        if x_count > 0:
-            space = self._x_axis_len // x_count
+        x_start = QPoint(self._point_0)
+        y_start = QPoint(self._point_0)
 
-            for _ in range(x_count - 1):
-                start += QPoint(space, 0)
-                painter.drawLine(start, start + QPoint(0, self._grad_len))
+        x_space = self._x_axis_len // x_count if x_count > 0 else 0
+        y_space = self._y_axis_len // y_count if y_count > 0 else 0
+        i_x_space = len(x_values) // x_count if x_count > 0 else 0
+        i_y_space = len(y_values) // y_count if y_count > 0 else 0
 
-        start = QPoint(self._point_0)
+        point_count = len(self._points)
 
-        if y_count > 0:
-            space = self._y_axis_len // y_count
+        for i in range(point_count):
+            if x_count > 0 and i < x_count - 1:
+                x_start += QPoint(x_space, 0)
+                grad_end = x_start + QPoint(0, self._grad_len)
+                painter.drawLine(x_start, grad_end)
 
-            for _ in range(y_count - 1):
-                start += QPoint(0, space)
-                painter.drawLine(start, start - QPoint(self._grad_len, 0))
+                value = x_values[i * i_x_space]
+                text = str(value)
+                text_start = grad_end + QPoint(0, self._grad_offset)
+                text_end = ((text_start - QPoint(self._text_size // 2 + ((len(text) - 1) * self._text_size // 2), 0)) +
+                            QPoint(0, self._text_size))
+
+                painter.drawText(text_end, text)
+
+            if y_count > 0 and i < y_count - 1:
+                y_start += QPoint(0, y_space)
+                grad_end = y_start - QPoint(self._grad_len, 0)
+                painter.drawLine(y_start, grad_end)
+
+                value = y_values[i * i_y_space]
+                text = str(value)
+                text_start = grad_end - QPoint(self._grad_offset, 0)
+                text_end = ((text_start - QPoint(self._text_size // 2 + ((len(text) - 1) * self._text_size), 0)) +
+                            QPoint(0, self._text_size))
+
+                painter.drawText(text_end, text)
+
+            if i != 0:
+                current_pos = self._point_to_graph_pos(self._points[i])
+                last_pos = self._point_to_graph_pos(self._points[i - 1])
+                painter.drawLine(last_pos, current_pos)
 
         painter.end()
+
+    def _point_to_graph_pos(self, point: QPoint):
+        x_min = min(self._x_range)
+        x_max = max(self._x_range)
+        x_range = x_max - x_min
+
+        y_min = min(self._y_range)
+        y_max = max(self._y_range)
+        y_range = y_max - y_min
+
+        if x_range == 0 or y_range == 0:
+            return QPoint(self._point_0)
+
+        normalized_x = (point.x() - x_min) / x_range
+        normalized_y = (point.y() - y_min) / y_range
+
+        graph_x = self._point_0.x() + normalized_x * self._x_axis_len
+        graph_y = self._point_0.y() - normalized_y * abs(self._y_axis_len)
+
+        return QPoint(int(graph_x), int(graph_y))
+
+    def add_point(self, point: QPoint):
+        self._points = np.array(sorted(np.append(self._points, point), key=lambda p: p.x()), dtype=object)
+
+        self._x_range = np.array([p.x() for p in sorted(self._points, key=lambda p: p.x())], dtype=int)
+        self._y_range = np.array([p.y() for p in sorted(self._points, key=lambda p: p.y())], dtype=int)
+
+        self.update()
 
 if __name__ == "__main__":
     app = QApplication()
     w = QGraph()
+
+    count = 100
+    for _ in range(count):
+        w.add_point(QPoint(random.randint(0, w.width()), random.randint(0, w.height())))
+
     w.show()
     app.exec()
