@@ -110,10 +110,21 @@ class GeneticAlgorithm(QObject):
                     if cy + 1 < mask_shape[0]: mutated_mask[cy + 1, cx] = True
                     if cy - 1 >= 0: mutated_mask[cy - 1, cx] = True
 
-            if self.__verify_distance(mutated_mask) or self.__verify_area(mutated_mask): # Change so that the user can pick which one
-                child.binary_mask = mutated_mask.astype(np.int8)
-                return child
-                
+            # if self.__verify_distance(mutated_mask) or self.__verify_area(mutated_mask): # Change so that the user can pick which one
+            #     child.binary_mask = mutated_mask.astype(np.int8)
+            #     return child
+
+            is_valid = False
+            if self.constraint_method == "DISTANCE":
+                is_valid = self.__verify_distance(mutated_mask)
+            elif self.constraint_method == "SURFACE":
+                is_valid = self.__verify_area(mutated_mask)
+            else:
+                is_valid = True
+
+            if is_valid:
+                child.binary_mask = mutated_mask.astype(np.intt8)
+                return child            
         return child
 
 
@@ -260,7 +271,7 @@ class GeneticAlgorithm(QObject):
         return self._constraint_method
     @constraint.setter
     def constraint(self, constraint: str):
-        self._constraint_method = constraint'
+        self._constraint_method = constraint
 
     @property
     def target(self):
