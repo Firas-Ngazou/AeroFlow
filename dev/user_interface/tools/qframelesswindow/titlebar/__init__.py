@@ -1,5 +1,10 @@
 # coding:utf-8
 import sys
+import PySide6
+from __feature__ import snake_case, true_property  # type: ignore[import-not-found]
+
+import dev.user_interface.tools.q_wrapper as q_wrapper
+q_wrapper.apply_all_wrappers()
 
 from PySide6.QtCore import QPoint
 from PySide6.QtGui import QMouseEvent
@@ -26,64 +31,64 @@ class TitleBarBase(QWidget):
         self._isDoubleClickEnabled = True
 
         self.resize(200, 32)
-        self.setFixedHeight(32)
+        self.set_fixed_height(32)
 
         # connect signal to slot
-        self.minBtn.clicked.connect(self.window().showMinimized)
+        self.minBtn.clicked.connect(self.window().show_minimized)
         self.maxBtn.clicked.connect(self.__toggleMaxState)
         self.closeBtn.clicked.connect(self.window().close)
 
-        self.window().installEventFilter(self)
+        self.window().install_event_filter(self)
 
-    def eventFilter(self, obj, e):
+    def event_filter(self, obj, e):
         if obj is self.window():
-            if e.type() == QEvent.WindowStateChange:
-                self.maxBtn.setMaxState(self.window().isMaximized())
+            if e.type() == QEvent.Type.WindowStateChange:
+                self.maxBtn.set_max_state(self.window().is_maximized())
                 return False
 
-        return super().eventFilter(obj, e)
+        return super().event_filter(obj, e)
 
-    def mouseDoubleClickEvent(self, event):
+    def mouse_double_click_event(self, event):
         """ Toggles the maximization state of the window """
-        if event.button() != Qt.LeftButton or not self._isDoubleClickEnabled:
+        if event.button() != Qt.MouseButton.LeftButton or not self._isDoubleClickEnabled:
             return
 
         self.__toggleMaxState()
 
-    def mouseMoveEvent(self, e):
-        if sys.platform != "win32" or not self.canDrag(e.pos()):
+    def mouse_move_event(self, e):
+        if sys.platform != "win32" or not self.canDrag(e.position()):
             return
 
-        startSystemMove(self.window(), e.globalPos())
+        startSystemMove(self.window(), e.global_position())
 
-    def mousePressEvent(self, e):
-        if sys.platform == "win32" or not self.canDrag(e.pos()):
+    def mouse_press_event(self, e):
+        if sys.platform == "win32" or not self.canDrag(e.position()):
             return
 
-        startSystemMove(self.window(), e.globalPos())
+        startSystemMove(self.window(), e.global_position())
 
     def __toggleMaxState(self):
         """ Toggles the maximization state of the window and change icon """
         toggleMaxState(self.window())
 
-    def _isDragRegion(self, pos):
+    def _is_drag_region(self, pos):
         """ Check whether the position belongs to the area where dragging is allowed """
         width = 0
-        for button in self.findChildren(TitleBarButton):
-            if button.isVisible():
-                width += button.width()
+        for button in self.find_children(TitleBarButton):
+            if button.visible:
+                width += button.width
 
-        return 0 < pos.x() < self.width() - width
+        return 0 < pos.x() < self.width - width
 
-    def _hasButtonPressed(self):
+    def _has_button_pressed(self):
         """ whether any button is pressed """
-        return any(btn.isPressed() for btn in self.findChildren(TitleBarButton))
+        return any(btn.is_pressed() for btn in self.find_children(TitleBarButton))
 
     def canDrag(self, pos):
         """ whether the position is draggable """
-        return self._isDragRegion(pos) and not self._hasButtonPressed()
+        return self._is_drag_region(pos) and not self._has_button_pressed()
 
-    def setDoubleClickEnabled(self, isEnabled):
+    def set_double_click_enabled(self, isEnabled):
         """ whether to switch window maximization status when double clicked
         Parameters
         ----------
@@ -102,13 +107,13 @@ class TitleBar(TitleBarBase):
         self.hBoxLayout = QHBoxLayout(self)
 
         # add buttons to layout
-        self.hBoxLayout.setSpacing(0)
-        self.hBoxLayout.setContentsMargins(0, 0, 0, 0)
-        self.hBoxLayout.setAlignment(Qt.AlignVCenter | Qt.AlignLeft)
-        self.hBoxLayout.addStretch(1)
-        self.hBoxLayout.addWidget(self.minBtn, 0, Qt.AlignRight)
-        self.hBoxLayout.addWidget(self.maxBtn, 0, Qt.AlignRight)
-        self.hBoxLayout.addWidget(self.closeBtn, 0, Qt.AlignRight)
+        self.hBoxLayout.spacing = 0
+        self.hBoxLayout.set_contents_margins(0, 0, 0, 0)
+        self.hBoxLayout.alignment = Qt.AlignVCenter | Qt.AlignLeft
+        self.hBoxLayout.add_stretch(1)
+        self.hBoxLayout.add_widget(self.minBtn, 0, Qt.AlignRight)
+        self.hBoxLayout.add_widget(self.maxBtn, 0, Qt.AlignRight)
+        self.hBoxLayout.add_widget(self.closeBtn, 0, Qt.AlignRight)
 
 
 class StandardTitleBar(TitleBar):
@@ -118,38 +123,38 @@ class StandardTitleBar(TitleBar):
         super().__init__(parent)
         # add window icon
         self.iconLabel = QLabel(self)
-        self.iconLabel.setFixedSize(20, 20)
-        self.hBoxLayout.insertSpacing(0, 10)
-        self.hBoxLayout.insertWidget(1, self.iconLabel, 0, Qt.AlignLeft)
-        self.window().windowIconChanged.connect(self.setIcon)
+        self.iconLabel.set_fixed_size(20, 20)
+        self.hBoxLayout.insert_spacing(0, 10)
+        self.hBoxLayout.insert_widget(1, self.iconLabel, 0, Qt.AlignLeft)
+        self.window().windowIconChanged.connect(self.set_icon)
 
         # add title label
         self.titleLabel = QLabel(self)
-        self.hBoxLayout.insertWidget(2, self.titleLabel, 0, Qt.AlignLeft)
-        self.titleLabel.setStyleSheet("""
+        self.hBoxLayout.insert_widget(2, self.titleLabel, 0, Qt.AlignmentFlag.AlignLeft)
+        self.titleLabel.style_sheet = """
             QLabel{
                 background: transparent;
                 font: 13px 'Segoe UI';
                 padding: 0 4px
             }
-        """)
-        self.window().windowTitleChanged.connect(self.setTitle)
+        """
+        self.window().windowTitleChanged.connect(self.set_title)
 
-    def setTitle(self, title):
+    def set_title(self, title):
         """ set the title of title bar
         Parameters
         ----------
         title: str
             the title of title bar
         """
-        self.titleLabel.setText(title)
-        self.titleLabel.adjustSize()
+        self.titleLabel.text = title
+        self.titleLabel.adjust_size()
 
-    def setIcon(self, icon):
+    def set_icon(self, icon):
         """ set the icon of title bar
         Parameters
         ----------
         icon: QIcon | QPixmap | str
             the icon of title bar
         """
-        self.iconLabel.setPixmap(QIcon(icon).pixmap(20, 20))
+        self.iconLabel.pixmap = QIcon(icon).pixmap(20, 20)

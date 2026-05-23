@@ -12,7 +12,6 @@ from PySide6.QtWidgets import QWidget, QFrame, QHBoxLayout, QPushButton, QVBoxLa
 from dev.user_interface.components.q_buttons import QSettingsTabPB
 from dev.user_interface.groups.q_slider_groups import QSliderGroup, QRealSliderGroup
 from dev.user_interface.groups.q_checkboxes import QDoubleCheckBox, QInfoCheckbox
-from dev.user_interface.groups.q_save_clear import QSaveClear
 
 
 class QSettingsGeneralTab(QWidget):
@@ -26,8 +25,6 @@ class QSettingsGeneralTab(QWidget):
     curlStateChanged = Signal(int)
     streamlineCountChanged = Signal(int)
     staircaseStateChanged = Signal(int)
-    saveRequested = Signal()
-    clearRequested = Signal()
 
     def __init__(self, parent: QWidget | None = None):
         super().__init__(parent)
@@ -237,34 +234,6 @@ class QSettingsGeneralTab(QWidget):
         self._staircase_cb.set_disabled(value)
         self._sim_playing = value
 
-    # @property
-    # def save_disabled(self) -> bool:
-    #     return self._save_clear.save_disabled
-    # @save_disabled.setter
-    # def save_disabled(self, state: bool):
-    #     self._save_clear.save_disabled = state
-
-    # @property
-    # def clear_disabled(self) -> bool:
-    #     return self._save_clear.clear_disabled
-    # @clear_disabled.setter
-    # def clear_disabled(self, state: bool):
-    #     self._save_clear.clear_disabled = state
-
-    # @property
-    # def save_info(self) -> str:
-    #     return self._save_clear.save_info
-    # @save_info.setter
-    # def save_info(self, info: str):
-    #     self._save_clear.save_info = info
-
-    # @property
-    # def clear_info(self) -> str:
-    #     return self._save_clear.clear_info
-    # @clear_info.setter
-    # def clear_info(self, info: str):
-    #     self._save_clear.clear_info = info
-
 class QSettingsOptimizationTab(QWidget):
     constraintChanged = Signal(str)
     iterationsChanged = Signal(int)
@@ -456,9 +425,6 @@ class QSettingsSideBar(QWidget):
         self._general_tab.curlStateChanged.connect(self.curlStateChanged.emit)
         self._general_tab.streamlineCountChanged.connect(self.streamlineCountChanged.emit)
         self._general_tab.staircaseStateChanged.connect(self.staircaseStateChanged.emit)
-        self._general_tab.saveRequested.connect(self.saveRequested.emit)
-        self._general_tab.clearRequested.connect(self.clearRequested.emit)
-
         self._optimization_tab.constraintChanged.connect(self.constraintChanged.emit)
         self._optimization_tab.iterationsChanged.connect(self.iterationsChanged.emit)
         self._optimization_tab.thresholdChanged.connect(self.thresholdChanged.emit)
@@ -466,14 +432,14 @@ class QSettingsSideBar(QWidget):
         self._side_button.pressed.connect(self._on_side_button_pressed)
 
         # Animation
-        self._animation = QPropertyAnimation(self._full_frame, b"maximum_width")
+        self._animation = QPropertyAnimation(self._full_frame, b"maximumWidth")
         self._animation.set_duration(400)
         self._animation.easing_curve = QEasingCurve.Type.InOutQuad
         self._animation.finished.connect(self._on_animation_finished)
 
         self.is_collapsed = True
 
-    def resizeEvent(self, event):
+    def resize_event(self, event):
         self._height = self.window().height - 300
         self._side_button.set_fixed_height(self._height)
         self._full_frame.set_fixed_height(self._height)

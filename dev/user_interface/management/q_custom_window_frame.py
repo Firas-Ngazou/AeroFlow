@@ -203,15 +203,15 @@ class QCustomTitleBar(TitleBar):
         self.set_fixed_height(32)
 
         # Min/max/close buttons colors
-        self.minBtn.setNormalColor(QColor("#F5F5F5"))
-        self.maxBtn.setNormalColor(QColor("#F5F5F5"))
-        self.closeBtn.setNormalColor(QColor("#F5F5F5"))
+        self.minBtn.set_normal_color(QColor("#F5F5F5"))
+        self.maxBtn.set_normal_color(QColor("#F5F5F5"))
+        self.closeBtn.set_normal_color(QColor("#F5F5F5"))
 
-        self.minBtn.setHoverColor(QColor("#F5F5F5"))
-        self.maxBtn.setHoverColor(QColor("#F5F5F5"))
+        self.minBtn.set_hover_color(QColor("#F5F5F5"))
+        self.maxBtn.set_hover_color(QColor("#F5F5F5"))
 
-        self.minBtn.setPressedColor(QColor("#F5F5F5"))
-        self.maxBtn.setPressedColor(QColor("#F5F5F5"))
+        self.minBtn.set_pressed_color(QColor("#F5F5F5"))
+        self.maxBtn.set_pressed_color(QColor("#F5F5F5"))
 
         # Application icon
         self._icon_pb = QPushButton()

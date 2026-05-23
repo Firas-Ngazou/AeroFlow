@@ -179,7 +179,7 @@ class ProjectManager(QObject):
             self._project_state = ProjectState.DEFAULT
             if self._project_title_bar is None:
                 return
-            self._project_title_bar.file_name = f"* {self._project_title_bar.file_name()}"
+            self._project_title_bar.file_name = f"* {self._project_title_bar.file_name}"
 
     def new_project(self) -> ProjectPage:
         """

@@ -26,7 +26,7 @@ from PySide6.QtCore import Slot
 from PySide6.QtGui import QFontDatabase, QPalette, QColor, QIcon
 from PySide6.QtWidgets import QWidget, QApplication, QHBoxLayout, QStackedWidget
 
-from qframelesswindow import TitleBar
+from dev.user_interface.tools.qframelesswindow import TitleBar
 from dev.user_interface.management.q_custom_window_frame import FramelessWindow, QCustomTitleBar
 from dev.user_interface.management.project_page import ProjectPage
 from dev.user_interface.management.home_page import HomePage
@@ -90,11 +90,11 @@ class AeroFlow:
 
         self._home_page_title_bar = TitleBar(self._window)
         self._home_page_title_bar.hide()
-        self._home_page_title_bar.minBtn.setNormalColor(QColor("#F5F5F5"))
-        self._home_page_title_bar.maxBtn.setNormalColor(QColor("#F5F5F5"))
-        self._home_page_title_bar.closeBtn.setNormalColor(QColor("#F5F5F5"))
-        self._home_page_title_bar.minBtn.setHoverColor(QColor("#F5F5F5"))
-        self._home_page_title_bar.maxBtn.setHoverColor(QColor("#F5F5F5"))
+        self._home_page_title_bar.minBtn.set_normal_color(QColor("#F5F5F5"))
+        self._home_page_title_bar.maxBtn.set_normal_color(QColor("#F5F5F5"))
+        self._home_page_title_bar.closeBtn.set_normal_color(QColor("#F5F5F5"))
+        self._home_page_title_bar.minBtn.set_hover_color(QColor("#F5F5F5"))
+        self._home_page_title_bar.maxBtn.set_hover_color(QColor("#F5F5F5"))
 
     def _make_new_project_tbar( self ):
         # if self._project_page_title_bar is not None:
@@ -123,7 +123,7 @@ class AeroFlow:
         self._home_page.show()
 
         self._make_new_home_tbar()
-        self._window.setTitleBar(self._home_page_title_bar)
+        self._window.set_title_bar(self._home_page_title_bar)
         self._home_page_title_bar.show()
         self._home_page_title_bar.resize(self._window.width, 32)
 
@@ -147,7 +147,7 @@ class AeroFlow:
 
         if self._window.titleBar is not self._project_page_title_bar:
             self._make_new_project_tbar()
-            self._window.setTitleBar(self._project_page_title_bar)
+            self._window.set_title_bar(self._project_page_title_bar)
 
         self._project_page_title_bar.file_name = "Untitled.json"
 

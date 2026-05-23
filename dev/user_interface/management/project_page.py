@@ -1,6 +1,9 @@
 import PySide6
 from __feature__ import snake_case, true_property  # type: ignore[import-not-found]
 
+import dev.user_interface.tools.q_wrapper as q_wrapper
+q_wrapper.apply_all_wrappers()
+
 from datetime import date
 
 import numpy as np
@@ -74,7 +77,7 @@ class ProjectPage(QWidget):
 
         self._sim_thread = QThread()
         self._simulation_engine = SimulationEngine()
-        self._simulation_engine.moveToThread(self._sim_thread)
+        self._simulation_engine.move_to_thread(self._sim_thread)
 
         self._ga_thread = QThread()
         self._ga = GeneticAlgorithm() # I am assuming the calls I make are correct until the GA actually works for real
@@ -114,8 +117,8 @@ class ProjectPage(QWidget):
         # self._ga_thread.start()
 
         self._primary_layout = QVBoxLayout(self)
-        self._primary_layout.setContentsMargins(0, 0, 0, 0)
-        self._primary_layout.addWidget(self._editor)
+        self._primary_layout.set_contents_margins(0, 0, 0, 0)
+        self._primary_layout.add_widget(self._editor)
 
     def __initialize_canvas(self) -> None:
         self._editor = QEditor(self._state_manager)
@@ -128,19 +131,19 @@ class ProjectPage(QWidget):
         self._settings_side_bar = QSettingsSideBar()
 
         self._lower_layout = QHBoxLayout()
-        self._lower_layout.addWidget(self._tool_bar, alignment=Qt.AlignmentFlag.AlignHCenter)
+        self._lower_layout.add_widget(self._tool_bar, alignment=Qt.AlignmentFlag.AlignHCenter)
         self._secondary_layout = QVBoxLayout(self._editor)
-        self._secondary_layout.setContentsMargins(5, 5, 5, 0)
-        self._secondary_layout.addWidget(self._settings_side_bar,
+        self._secondary_layout.set_contents_margins(5, 5, 5, 0)
+        self._secondary_layout.add_widget(self._settings_side_bar,
                                          alignment=Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignRight)
-        self._secondary_layout.addStretch()
-        self._secondary_layout.addWidget(self._sim_controller, alignment=Qt.AlignmentFlag.AlignHCenter)
-        self._secondary_layout.addLayout(self._lower_layout)
+        self._secondary_layout.add_stretch()
+        self._secondary_layout.add_widget(self._sim_controller, alignment=Qt.AlignmentFlag.AlignHCenter)
+        self._secondary_layout.add_layout(self._lower_layout)
 
     def __initialize_title_bar(self) -> None:
         self._save_warning = QFrame(self)
-        self._save_warning.setObjectName("save_warning")
-        self._save_warning.setStyleSheet("#save_warning { background-color: rgba(245, 245, 245, 70);}")
+        self._save_warning.object_name = "save_warning"
+        self._save_warning.style_sheet = "#save_warning { background-color: rgba(245, 245, 245, 70);}"
         self._save_warning_window = QFloatingWarning(QPoint(int(self.width / 2), int(self.height / 2)),
                                                      "Attention",
                                                      "Quitter sans sauvegarder vos modifications "
@@ -198,7 +201,7 @@ class ProjectPage(QWidget):
 
         # Project saving
         self._save_shortcut = QShortcut(QKeySequence("Ctrl+S"), self)
-        self._save_shortcut.setContext(Qt.ShortcutContext.WindowShortcut)
+        self._save_shortcut.context = Qt.ShortcutContext.WindowShortcut
         self._save_shortcut.activated.connect(self._on_save_project)
 
     @Slot(bool)
@@ -254,7 +257,7 @@ class ProjectPage(QWidget):
     @Slot(np.ndarray)
     def _on_optimize_start(self, vertices: np.ndarray) -> None:
         self._state_manager.set_cursor_state(QStateManager.CursorState.LOCKED)
-        self._ga.optimize(vertices)
+        # self._ga.optimize(vertices)
 
     @Slot(np.ndarray, int, float)
     def _on_ga_iteration_completed(self, new_vertices: np.ndarray, current_iteration: int, coef: float) -> None:
@@ -388,7 +391,7 @@ class ProjectPage(QWidget):
         self._sim_controller.reset()
         self._settings_side_bar.sim_playing = True
 
-        if not self._sim_thread.isRunning():
+        if not self._sim_thread.is_running():
             self._sim_thread.start()
 
         if not self._title_bar.is_analysis_checked:
@@ -398,14 +401,14 @@ class ProjectPage(QWidget):
         vertices = self._editor.get_vertices()
         self._simulation_engine.vertices = vertices
 
-        data = [self.wind_speed, [self._editor.width(), self._editor.height()]]
+        data = [self.wind_speed, [self._editor.width, self._editor.height]]
 
         self._sim_controller.show()
         self.runSimulation.emit(data)
 
-        width = self.window().width()
-        height = self.window().height()
-        self.window().setFixedSize(width, height)
+        width = self.window().width
+        height = self.window().height
+        self.window().set_fixed_size(width, height)
 
     @Slot()
     def on_stop_pressed(self) -> None:
@@ -416,23 +419,18 @@ class ProjectPage(QWidget):
         self._sim_controller.hide()
         self._state_manager.set_cursor_state(QStateManager.CursorState.DEFAULT)
 
-        if self._sim_thread.isRunning():
-            self._sim_thread.requestInterruption()
+        if self._sim_thread.is_running():
+            self._sim_thread.request_interruption()
             self._sim_thread.quit()
             self._sim_thread.wait()
 
         self._sim_controller.reset()
         self._editor.display_pixmap()
 
-        self.window().setMinimumWidth(self._minimum_window_width)
-        self.window().setMinimumHeight(self._minimum_window_height)
-        self.window().setMaximumWidth(self._maximum_window_width)
-        self.window().setMaximumHeight(self._maximum_window_height)
-
-        self._settings_side_bar.update_save_info()
-        self._settings_side_bar.update_clear_info()
-        self._settings_side_bar.save_disabled = True
-        self._settings_side_bar.clear_disabled = True
+        self.window().minimum_width = self._minimum_window_width
+        self.window().minimum_height = self._minimum_window_height
+        self.window().maximum_width = self._maximum_window_width
+        self.window().maximum_height = self._maximum_window_height
 
         self._analysis_tab.simulation_progress = 0
         self._analysis_tab.set_sim_info_label(" - ")
@@ -515,10 +513,10 @@ class ProjectPage(QWidget):
                 self._title_bar.is_analysis_checked = False
                 self._analysis_tab.hide()
 
-            self._title_bar.setDisabled(True)
+            self._title_bar.set_disabled(True)
         else:
             self._save_warning.hide()
-            self._title_bar.setDisabled(False)
+            self._title_bar.set_disabled(False)
 
     def load_editor_data(self, data: dict) -> None:
         """

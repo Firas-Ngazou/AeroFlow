@@ -1,4 +1,7 @@
 # coding:utf-8
+import PySide6
+from __feature__ import snake_case, true_property  # type: ignore[import-not-found]
+
 from enum import Enum
 
 from PySide6.QtCore import QFile, QPointF, QRectF, Qt, Property
@@ -22,8 +25,8 @@ class TitleBarButton(QAbstractButton):
 
     def __init__(self, parent=None):
         super().__init__(parent=parent)
-        self.setCursor(Qt.ArrowCursor)
-        self.setFixedSize(46, 32)
+        self.cursor = Qt.CursorShape.ArrowCursor
+        self.set_fixed_size(46, 32)
         self._state = TitleBarButtonState.NORMAL
 
         # icon color
@@ -36,7 +39,7 @@ class TitleBarButton(QAbstractButton):
         self._hoverBgColor = QColor(0, 0, 0, 26)
         self._pressedBgColor = QColor(0, 0, 0, 51)
 
-    def setState(self, state):
+    def set_state(self, state):
         """ set the state of button
 
         Parameters
@@ -47,35 +50,35 @@ class TitleBarButton(QAbstractButton):
         self._state = state
         self.update()
 
-    def isPressed(self):
+    def is_pressed(self):
         """ whether the button is pressed """
         return self._state == TitleBarButtonState.PRESSED
 
-    def getNormalColor(self):
+    def get_normal_color(self):
         """ get the icon color of the button in normal state """
         return self._normalColor
 
-    def getHoverColor(self):
+    def get_hover_color(self):
         """ get the icon color of the button in hover state """
         return self._hoverColor
 
-    def getPressedColor(self):
+    def get_pressed_color(self):
         """ get the icon color of the button in pressed state """
         return self._pressedColor
 
-    def getNormalBackgroundColor(self):
+    def get_normal_background_color(self):
         """ get the background color of the button in normal state """
         return self._normalBgColor
 
-    def getHoverBackgroundColor(self):
+    def get_hover_background_color(self):
         """ get the background color of the button in hover state """
         return self._hoverBgColor
 
-    def getPressedBackgroundColor(self):
+    def get_pressed_background_color(self):
         """ get the background color of the button in pressed state """
         return self._pressedBgColor
 
-    def setNormalColor(self, color):
+    def set_normal_color(self, color):
         """ set the icon color of the button in normal state
 
         Parameters
@@ -86,7 +89,7 @@ class TitleBarButton(QAbstractButton):
         self._normalColor = QColor(color)
         self.update()
 
-    def setHoverColor(self, color):
+    def set_hover_color(self, color):
         """ set the icon color of the button in hover state
 
         Parameters
@@ -97,7 +100,7 @@ class TitleBarButton(QAbstractButton):
         self._hoverColor = QColor(color)
         self.update()
 
-    def setPressedColor(self, color):
+    def set_pressed_color(self, color):
         """ set the icon color of the button in pressed state
 
         Parameters
@@ -108,7 +111,7 @@ class TitleBarButton(QAbstractButton):
         self._pressedColor = QColor(color)
         self.update()
 
-    def setNormalBackgroundColor(self, color):
+    def set_normal_background_color(self, color):
         """ set the background color of the button in normal state
 
         Parameters
@@ -119,7 +122,7 @@ class TitleBarButton(QAbstractButton):
         self._normalBgColor = QColor(color)
         self.update()
 
-    def setHoverBackgroundColor(self, color):
+    def set_hover_background_color(self, color):
         """ set the background color of the button in hover state
 
         Parameters
@@ -130,7 +133,7 @@ class TitleBarButton(QAbstractButton):
         self._hoverBgColor = QColor(color)
         self.update()
 
-    def setPressedBackgroundColor(self, color):
+    def set_pressed_background_color(self, color):
         """ set the background color of the button in pressed state
 
         Parameters
@@ -141,22 +144,38 @@ class TitleBarButton(QAbstractButton):
         self._pressedBgColor = QColor(color)
         self.update()
 
+    def paint_event(self, e):
+        """ This method must be implemented by subclasses. """
+        pass
+
+    def paintEvent(self, e):
+        return self.paint_event(e)
+
+    def enter_event(self, e):
+        self.set_state(TitleBarButtonState.HOVER)
+        super().enter_event(e)
+
     def enterEvent(self, e):
-        self.setState(TitleBarButtonState.HOVER)
-        super().enterEvent(e)
+        return self.enter_event(e)
+
+    def leave_event(self, e):
+        self.set_state(TitleBarButtonState.NORMAL)
+        super().leave_event(e)
 
     def leaveEvent(self, e):
-        self.setState(TitleBarButtonState.NORMAL)
-        super().leaveEvent(e)
+        return self.leave_event(e)
 
-    def mousePressEvent(self, e):
+    def mouse_press_event(self, e):
         if e.button() != Qt.LeftButton:
             return
 
-        self.setState(TitleBarButtonState.PRESSED)
-        super().mousePressEvent(e)
+        self.set_state(TitleBarButtonState.PRESSED)
+        super().mouse_press_event(e)
 
-    def _getColors(self):
+    def mousePressEvent(self, e):
+        return self.mouse_press_event(e)
+
+    def _get_colors(self):
         """ get the icon color and background color """
         if self._state == TitleBarButtonState.NORMAL:
             return self._normalColor, self._normalBgColor
@@ -165,15 +184,15 @@ class TitleBarButton(QAbstractButton):
 
         return self._pressedColor, self._pressedBgColor
 
-    normalColor = Property(QColor, getNormalColor, setNormalColor)
-    hoverColor = Property(QColor, getHoverColor, setHoverColor)
-    pressedColor = Property(QColor, getPressedColor, setPressedColor)
+    normalColor = Property(QColor, get_normal_color, set_normal_color)
+    hoverColor = Property(QColor, get_hover_color, set_hover_color)
+    pressedColor = Property(QColor, get_pressed_color, set_pressed_color)
     normalBackgroundColor = Property(
-        QColor, getNormalBackgroundColor, setNormalBackgroundColor)
+        QColor, get_normal_background_color, set_normal_background_color)
     hoverBackgroundColor = Property(
-        QColor, getHoverBackgroundColor, setHoverBackgroundColor)
+        QColor, get_hover_background_color, set_hover_background_color)
     pressedBackgroundColor = Property(
-        QColor, getPressedBackgroundColor, setPressedBackgroundColor)
+        QColor, get_pressed_background_color, set_pressed_background_color)
 
 
 class SvgTitleBarButton(TitleBarButton):
@@ -203,48 +222,48 @@ class SvgTitleBarButton(TitleBarButton):
         """
         f = QFile(iconPath)
         f.open(QFile.ReadOnly)
-        self._svgDom.setContent(f.readAll())
+        self._svgDom.set_content(f.read_all())
         f.close()
 
-    def paintEvent(self, e):
+    def paint_event(self, e):
         painter = QPainter(self)
-        painter.setRenderHints(QPainter.Antialiasing | QPainter.SmoothPixmapTransform)
-        color, bgColor = self._getColors()
+        painter.set_render_hints(QPainter.Antialiasing | QPainter.SmoothPixmapTransform)
+        color, bgColor = self._get_colors()
 
         # draw background
-        painter.setBrush(bgColor)
-        painter.setPen(Qt.NoPen)
-        painter.drawRect(self.rect())
+        painter.set_brush(bgColor)
+        painter.set_pen(Qt.NoPen)
+        painter.draw_rect(self.rect)
 
         # draw icon
         color = color.name()
-        pathNodes = self._svgDom.elementsByTagName('path')
+        pathNodes = self._svgDom.elements_by_tag_name('path')
         for i in range(pathNodes.length()):
-            element = pathNodes.at(i).toElement()
-            element.setAttribute('stroke', color)
+            element = pathNodes.at(i).to_element()
+            element.set_attribute('stroke', color)
 
-        renderer = QSvgRenderer(self._svgDom.toByteArray())
-        renderer.render(painter, QRectF(self.rect()))
+        renderer = QSvgRenderer(self._svgDom.to_byte_array())
+        renderer.render(painter, QRectF(self.rect))
 
 
 class MinimizeButton(TitleBarButton):
     """ Minimize button """
 
-    def paintEvent(self, e):
+    def paint_event(self, e):
         painter = QPainter(self)
-        color, bgColor = self._getColors()
+        color, bgColor = self._get_colors()
 
         # draw background
-        painter.setBrush(bgColor)
-        painter.setPen(Qt.NoPen)
-        painter.drawRect(self.rect())
+        painter.set_brush(bgColor)
+        painter.set_pen(Qt.NoPen)
+        painter.draw_rect(self.rect)
 
         # draw icon
-        painter.setBrush(Qt.NoBrush)
+        painter.set_brush(Qt.NoBrush)
         pen = QPen(color, 1)
-        pen.setCosmetic(True)
-        painter.setPen(pen)
-        painter.drawLine(18, 16, 28, 16)
+        pen.set_cosmetic(True)
+        painter.set_pen(pen)
+        painter.draw_line(18, 16, 28, 16)
 
 
 class MaximizeButton(TitleBarButton):
@@ -254,44 +273,44 @@ class MaximizeButton(TitleBarButton):
         super().__init__(parent)
         self._isMax = False
 
-    def setMaxState(self, isMax):
+    def set_max_state(self, isMax):
         """ update the maximized state and icon """
         if self._isMax == isMax:
             return
 
         self._isMax = isMax
-        self.setState(TitleBarButtonState.NORMAL)
+        self.set_state(TitleBarButtonState.NORMAL)
 
-    def paintEvent(self, e):
+    def paint_event(self, e):
         painter = QPainter(self)
-        color, bgColor = self._getColors()
+        color, bgColor = self._get_colors()
 
         # draw background
-        painter.setBrush(bgColor)
-        painter.setPen(Qt.NoPen)
-        painter.drawRect(self.rect())
+        painter.set_brush(bgColor)
+        painter.set_pen(Qt.NoPen)
+        painter.draw_rect(self.rect)
 
         # draw icon
-        painter.setBrush(Qt.NoBrush)
+        painter.set_brush(Qt.NoBrush)
         pen = QPen(color, 1)
-        pen.setCosmetic(True)
-        painter.setPen(pen)
+        pen.set_cosmetic(True)
+        painter.set_pen(pen)
 
-        r = self.devicePixelRatioF()
-        painter.scale(1/r, 1/r)
+        r = self.device_pixel_ratio_f
+        painter.scale(1/r(), 1/r())
         if not self._isMax:
-            painter.drawRect(int(18*r), int(11*r), int(10*r), int(10*r))
+            painter.draw_rect(int(18*r()), int(11*r()), int(10*r()), int(10*r()))
         else:
-            painter.drawRect(int(18*r), int(13*r), int(8*r), int(8*r))
-            x0 = int(18*r)+int(2*r)
-            y0 = 13*r
-            dw = int(2*r)
+            painter.draw_rect(int(18*r()), int(13*r()), int(8*r()), int(8*r()))
+            x0 = int(18*r())+int(2*r())
+            y0 = 13*r()
+            dw = int(2*r())
             path = QPainterPath(QPointF(x0, y0))
-            path.lineTo(x0, y0-dw)
-            path.lineTo(x0+8*r, y0-dw)
-            path.lineTo(x0+8*r, y0-dw+8*r)
-            path.lineTo(x0+8*r-dw, y0-dw+8*r)
-            painter.drawPath(path)
+            path.line_to(x0, y0-dw)
+            path.line_to(x0+8*r(), y0-dw)
+            path.line_to(x0+8*r(), y0-dw+8*r())
+            path.line_to(x0+8*r()-dw, y0-dw+8*r())
+            painter.draw_path(path)
 
 
 class CloseButton(SvgTitleBarButton):
@@ -299,7 +318,7 @@ class CloseButton(SvgTitleBarButton):
 
     def __init__(self, parent=None):
         super().__init__(":/qframelesswindow/close.svg", parent)
-        self.setHoverColor(Qt.white)
-        self.setPressedColor(Qt.white)
-        self.setHoverBackgroundColor(QColor(232, 17, 35))
-        self.setPressedBackgroundColor(QColor(241, 112, 122))
+        self.set_hover_color(Qt.white)
+        self.set_pressed_color(Qt.white)
+        self.set_hover_background_color(QColor(232, 17, 35))
+        self.set_pressed_background_color(QColor(241, 112, 122))
