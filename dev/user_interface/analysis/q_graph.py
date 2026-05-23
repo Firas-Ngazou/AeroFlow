@@ -2,267 +2,174 @@ import math
 import random
 
 import numpy as np
-from PySide6.QtCore import QPoint
-from PySide6.QtGui import QPen, QColor, QBrush, QFont, QPainterPath, QPainter, QPixmap
-from PySide6.QtWidgets import QWidget, QLabel, QApplication
-from vpython import graph
+from PySide6.QtCore import QPoint, Qt, QPointF, QMargins
+from PySide6.QtGui import QPen, QColor, QBrush, QFont, QPainter
+from PySide6.QtWidgets import QWidget, QLabel, QApplication, QVBoxLayout
+from PySide6.QtCharts import QChart, QChartView, QLineSeries, QValueAxis
+
+# NOTE: Last fully custom version is still available... I just didn't think of using PySide6 graphs from the start...
+# and I'm not sure why... (using QChartView and QChart is a better way to do it imo though)
 
 
-class QGraph(QWidget):
+class QCustomGraph(QChartView):
     def __init__(self, parent=None):
         super().__init__(parent)
 
-        # Texts
-        self._x_text = " _ "
-        self._y_text = " - "
+        # Setup
+        self._chart = QChart()
+        self._chart.setBackgroundVisible(False)
+        self._chart.setMargins(QMargins(0, 0, 0, 0))
+        self._chart.layout().setContentsMargins(0, 0, 0, 0)
+        self._chart.legend().hide()
+        self.setChart(self._chart)
+        self.setRenderHint(QPainter.RenderHint.Antialiasing)
+        self._title = " - "
 
-        # Labels
+        # Series
+        self._series = QLineSeries()
+        self._chart.addSeries(self._series)
+        self._chart.setTitle(self._title)
+
+        # Axis
+        self._axis_x = QValueAxis()
+        self._axis_y = QValueAxis()
+
+        # Font
         font = QFont("JetBrains Mono", 7)
         font.setBold(True)
+        self._axis_x.setLabelsFont(font)
+        self._axis_y.setLabelsFont(font)
 
-        self._x_label = QLabel(self._x_text)
-        self._y_label = QLabel(self._y_text)
+        # Colors
+        axis_pen = QPen(QColor(245, 245, 245, 255))
+        axis_pen.setWidth(2)
+        self._axis_x.setLinePen(axis_pen)
+        self._axis_y.setLinePen(axis_pen)
+        self._axis_x.setLabelsColor(QColor(245, 245, 245, 255))
+        self._axis_y.setLabelsColor(QColor(245, 245, 245, 255))
 
-        self._x_label.setFont(font)
-        self._y_label.setFont(font)
+        # Grid pen
+        grad_pen = QPen(QColor(245, 245, 245, 255))
+        self._axis_x.setGridLinePen(grad_pen)
+        self._axis_y.setGridLinePen(grad_pen)
 
-        # Pens & brushes
+        self._chart.addAxis(self._axis_x, Qt.AlignmentFlag.AlignBottom)
+        self._chart.addAxis(self._axis_y, Qt.AlignmentFlag.AlignLeft)
+
+        self._series.attachAxis(self._axis_x)
+        self._series.attachAxis(self._axis_y)
+
+        # Line pen
         self._line_pen = QPen(QColor(255, 142, 142, 255))
-        self._grad_pen = QPen(QColor(245, 245, 245, 255))
-        self._axis_pen = QPen(QColor(245, 245, 245, 255))
-        self._axis_pen.setWidth(2)
+        self._line_pen.setWidth(2)
+        self._series.setPen(self._line_pen)
 
-        # Axis setup
-        self._x_fixed = False
-        self._y_fixed = False
-
-        self._x_max_count = 10
-        self._y_max_count = 10
-        self._maximize_count = False
-
-        self._points = np.array([], dtype=object)
-        self._x_range = np.array([], dtype=int)
-        self._y_range = np.array([], dtype=int)
-
-        # Global positions & scales
-        self._height = 300
-        self._width = 600
+        self._points = []
+        self._g_height = 300
+        self._g_width = 600
         self._offset = 50
-        self._text_size = 7
 
-        self._x_axis_len = self._width - self._offset
-        self._y_axis_len = -self._height + self._offset
-
-        self._point_0 = QPoint(50, self._height - self._offset)
-
-        self._arrow_height = 10
-        self._arrow_width = 6
-
-        self._grad_len = 5
-        self._grad_offset = 8
-
-        # Cache
-        self._cached_axis: QPainterPath | None = None
-        self._cached_grads: QPixmap | None = None
-
-    def paintEvent(self, event, /):
-        """
-        Handles the Paint Event to render visual elements on the widget.
-
-        The method uses a QPainter to draw visual elements such as axis and gradients
-        on the widget's canvas. Cached data is utilized for optimal performance, and
-        the cache is updated if found invalid. - Generated using OpenAI's GPT-5.5
-
-        :param event: The paint event containing details about the region to be
-                      updated.
-        :type event: QPaintEvent
-        :return: None
-        """
-        painter = QPainter(self)
-
-        painter.setPen(self._axis_pen)
-
-        # Temp
-        if self._cached_axis is None:
-            self._update_axis_cache()
-
-        if self._cached_axis:
-            painter.drawPath(self._cached_axis)
-
-        if self._cached_grads is None:
-            self._update_grads_cache()
-
-        if self._cached_grads:
-            painter.drawPixmap(0, 0, self._cached_grads)
-
-    def _update_axis_cache(self):
-        """
-        Updates the cached axis representation by modifying the `_cached_axis` attribute. This method recalculates
-        and redraws the axis lines and arrowheads for both x and y axes based on current axis configurations.
-
-        The method constructs the axes starting from a defined starting point and extends them to endpoints determined
-        by the configured axis lengths. Arrowhead lines are also added to visually represent the axis directions.
-        - Generated using OpenAI's GPT-5.5
-
-        :raises AttributeError: If any required attributes (e.g., `_point_0`, `_x_axis_len`, `_y_axis_len`) are missing
-            or improperly initialized.
-        """
-        self._cached_axis = QPainterPath()
-
-        x_end = self._point_0 + QPoint(self._x_axis_len, 0)
-        y_end = self._point_0 + QPoint(0, self._y_axis_len)
-
-        self._cached_axis.moveTo(self._point_0)
-        self._cached_axis.lineTo(x_end)
-
-        arrow_top = x_end - QPoint(self._arrow_width, self._arrow_height//2)
-        arrow_bottom = x_end - QPoint(self._arrow_width, -(self._arrow_height//2))
-
-        self._cached_axis.moveTo(arrow_top)
-        self._cached_axis.lineTo(x_end)
-        self._cached_axis.moveTo(arrow_bottom)
-        self._cached_axis.lineTo(x_end)
-
-        self._cached_axis.moveTo(self._point_0)
-        self._cached_axis.lineTo(y_end)
-
-        arrow_top = y_end + QPoint(-self._arrow_height//2, self._arrow_width)
-        arrow_bottom = y_end + QPoint(self._arrow_height//2, self._arrow_width)
-
-        self._cached_axis.moveTo(arrow_top)
-        self._cached_axis.lineTo(y_end)
-        self._cached_axis.moveTo(arrow_bottom)
-        self._cached_axis.lineTo(y_end)
-
-    def _update_grads_cache(self):
-        """
-        Updates the cached gradient pixmap for rendering grid lines on a given axis.
-
-        This function recalculates and updates the visual representation of gradient lines
-        that represent the grid structure based on the current configuration of the axis.
-        It creates lines at calculated intervals along the X and Y axes, taking into account
-        the specified grid parameters and maximizing the number of lines or limiting them
-        to a maximum count as configured. - Generated using OpenAI's GPT-5.5
-
-        :param self: Instance of the class calling this method.
-
-        :param self._grad_pen: The pen used for drawing gradient lines.
-        :param self._width: The width of the pixmap to be updated.
-        :param self._height: The height of the pixmap to be updated.
-        :param self._point_0: Starting point of the gradient lines.
-        :param self._x_range: Range of points for the X-axis grid computation.
-        :param self._y_range: Range of points for the Y-axis grid computation.
-        :param self._x_max_count: Maximum grid count allowed along the X-axis.
-        :param self._y_max_count: Maximum grid count allowed along the Y-axis.
-        :param self._maximize_count: Flag indicating whether to maximize grid lines or
-                                      limit them to the max count set by `_x_max_count`
-                                      and `_y_max_count`.
-        :param self._x_axis_len: Total length of the X-axis for spacing grid lines.
-        :param self._y_axis_len: Total length of the Y-axis for spacing grid lines.
-        :param self._grad_len: Length of individual gradient lines for drawing grid segments.
-
-        :return: None
-        """
-        self._cached_grads = QPixmap(self._width, self._height)
-        self._cached_grads.fill(QColor(0, 0, 0, 0))
-
-        painter = QPainter(self._cached_grads)
-
-        painter.setPen(self._grad_pen)
-        # painter.drawLine(start, start + QPoint(0, self._grad_len))
-
-        x_values = self._x_range
-        y_values = self._y_range
-
-        x_given_count = len(x_values)
-        y_given_count = len(y_values)
-
-        if self._maximize_count:
-            x_count = x_given_count
-            y_count = y_given_count
-        else:
-            x_count = min(x_given_count, self._x_max_count)
-            y_count = min(y_given_count, self._y_max_count)
-
-        x_start = QPoint(self._point_0)
-        y_start = QPoint(self._point_0)
-
-        x_space = self._x_axis_len // x_count if x_count > 0 else 0
-        y_space = self._y_axis_len // y_count if y_count > 0 else 0
-        i_x_space = len(x_values) // x_count if x_count > 0 else 0
-        i_y_space = len(y_values) // y_count if y_count > 0 else 0
-
-        point_count = len(self._points)
-
-        for i in range(point_count):
-            if x_count > 0 and i < x_count - 1:
-                x_start += QPoint(x_space, 0)
-                grad_end = x_start + QPoint(0, self._grad_len)
-                painter.drawLine(x_start, grad_end)
-
-                value = x_values[i * i_x_space]
-                text = str(value)
-                text_start = grad_end + QPoint(0, self._grad_offset)
-                text_end = ((text_start - QPoint(self._text_size // 2 + ((len(text) - 1) * self._text_size // 2), 0)) +
-                            QPoint(0, self._text_size))
-
-                painter.drawText(text_end, text)
-
-            if y_count > 0 and i < y_count - 1:
-                y_start += QPoint(0, y_space)
-                grad_end = y_start - QPoint(self._grad_len, 0)
-                painter.drawLine(y_start, grad_end)
-
-                value = y_values[i * i_y_space]
-                text = str(value)
-                text_start = grad_end - QPoint(self._grad_offset, 0)
-                text_end = ((text_start - QPoint(self._text_size // 2 + ((len(text) - 1) * self._text_size), 0)) +
-                            QPoint(0, self._text_size))
-
-                painter.drawText(text_end, text)
-
-            if i != 0:
-                current_pos = self._point_to_graph_pos(self._points[i])
-                last_pos = self._point_to_graph_pos(self._points[i - 1])
-                painter.drawLine(last_pos, current_pos)
-
-        painter.end()
-
-    def _point_to_graph_pos(self, point: QPoint):
-        x_min = min(self._x_range)
-        x_max = max(self._x_range)
-        x_range = x_max - x_min
-
-        y_min = min(self._y_range)
-        y_max = max(self._y_range)
-        y_range = y_max - y_min
-
-        if x_range == 0 or y_range == 0:
-            return QPoint(self._point_0)
-
-        normalized_x = (point.x() - x_min) / x_range
-        normalized_y = (point.y() - y_min) / y_range
-
-        graph_x = self._point_0.x() + normalized_x * self._x_axis_len
-        graph_y = self._point_0.y() - normalized_y * abs(self._y_axis_len)
-
-        return QPoint(int(graph_x), int(graph_y))
+    def paintEvent(self, event):
+        super().paintEvent(event)
+        self.chart().resize(self.size())
 
     def add_point(self, point: QPoint):
-        self._points = np.array(sorted(np.append(self._points, point), key=lambda p: p.x()), dtype=object)
+        """
+        Adds a new point to the internal collection, updates the corresponding series,
+        and adjusts axis ranges based on the current set of points. - Generated using OpenAI's GPT-5.5
 
-        self._x_range = np.array([p.x() for p in sorted(self._points, key=lambda p: p.x())], dtype=int)
-        self._y_range = np.array([p.y() for p in sorted(self._points, key=lambda p: p.y())], dtype=int)
+        :param point: The point to add; must be an instance of QPoint.
+        :type point: QPoint
+        :return: None
+        """
+        self._points.append(point)
+        self._points.sort(key=lambda p: p.x())
 
-        self.update()
+        self._series.clear()
+        for p in self._points:
+            self._series.append(QPointF(p.x(), p.y()))
+
+        if self._points:
+            x_min = min(p.x() for p in self._points)
+            x_max = max(p.x() for p in self._points)
+            y_min = min(p.y() for p in self._points)
+            y_max = max(p.y() for p in self._points)
+
+            if x_min == x_max:
+                self._axis_x.setRange(x_min - 1, x_max + 1)
+            else:
+                self._axis_x.setRange(x_min, x_max)
+
+            if y_min == y_max:
+                self._axis_y.setRange(y_min - 1, y_max + 1)
+            else:
+                self._axis_y.setRange(y_min, y_max)
+
+    def reset(self):
+        self._points.clear()
+        self._series.clear()
+        self._axis_x.setRange(0, 10)
+        self._axis_y.setRange(0, 10)
+
+    @property
+    def g_height(self):
+        return self._g_height
+    @g_height.setter
+    def g_height(self, value: int):
+        self._g_height = value
+        self.setFixedHeight(value)
+        self._chart.resize(self.width(), value)
+
+    @property
+    def g_width(self):
+        return self._g_width
+    @g_width.setter
+    def g_width(self, value: int):
+        self._g_width = value
+        self.setFixedWidth(value)
+        self._chart.resize(value, self.height())
+
+    @property
+    def offset(self):
+        return self._offset
+    @offset.setter
+    def offset(self, value: int):
+        self._offset = value
+
+    @property
+    def x_axis_len(self):
+        return self._g_width - self._offset
+    @x_axis_len.setter
+    def x_axis_len(self, value: int):
+        self._g_width = value + self._offset
+        self.setFixedWidth(self._g_width)
+        self._chart.resize(self._g_width, self.height())
+
+    @property
+    def y_axis_len(self):
+        return self._g_height + self._offset
+    @y_axis_len.setter
+    def y_axis_len(self, value: int):
+        self._g_height = value + self._offset
+        self.setFixedHeight(self._g_height)
+        self._chart.resize(self.width(), self._g_height)
+
+    @property
+    def title(self):
+        return self._title
+    @title.setter
+    def title(self, value: str):
+        self._title = value
+        self._chart.setTitle(value)
+
 
 if __name__ == "__main__":
     app = QApplication()
-    w = QGraph()
+    w = QCustomGraph()
 
-    count = 100
+    count = 50
     for _ in range(count):
-        w.add_point(QPoint(random.randint(0, w.width()), random.randint(0, w.height())))
+        w.add_point(QPoint(random.randint(0, 100), random.randint(0, 100)))
 
     w.show()
     app.exec()

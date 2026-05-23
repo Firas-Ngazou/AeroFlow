@@ -912,11 +912,24 @@ class Shape:
         self._median_vertices_nd = np.array([[vertex.position.x(), vertex.position.y()]
                                             for vertex in self._median_vertices])
 
+    def _update_vertices_obj(self):
+        if not self._vertices_nd.any():
+            return
+
+        self._vertices = [Vertex(position=QPoint(x, y), state=Vertex.VertexState.DEFAULT, index_position=i)
+                          for i, (x, y) in enumerate(self._vertices_nd)]
+
     def clean_update(self):
         self._update_vertices_nd()
         self._update_path()
 
     #endregion
+
+    def change_shape_nd(self, vertices: np.ndarray):
+        self._vertices_nd = vertices
+        self._update_vertices_obj()
+        self._update_categories()
+        self._update_path()
 
     def _switch_category_state(self, category: Vertex.VertexState, state: Vertex.VertexState) -> None:
         """
@@ -958,6 +971,10 @@ class Shape:
         :rtype: list[Vertex]
         """
         return self._vertices
+
+    @property
+    def vertices_nd(self) -> np.ndarray:
+        return self._vertices_nd
 
     @property
     def current_median(self) -> Vertex | None:
@@ -1014,6 +1031,7 @@ class QEditor(QWidget):
     vectorDrawingChanged = Signal()
     saveShapeRequested = Signal(dict)
     inEditMode = Signal(bool)
+    optimizeRequested = Signal(np.ndarray)
 
     def __init__(self, state_manager: QStateManager, parent: QWidget = None) -> None:
         """
@@ -1096,6 +1114,7 @@ class QEditor(QWidget):
         # Shape settings
         self._shape_settings = QFloatingShapeMenu(self)
         self._shape_settings.saveWithNameRequested.connect(self._save_nearest_by_name)
+        self._shape_settings.optimizeRequested.connect(self._on_optimize_requested)
         self._shape_settings.reset_state()
         self._prefab_preview_size = 200
         self._shape_to_save: Shape | None = None
@@ -2305,6 +2324,21 @@ class QEditor(QWidget):
 
         self._current_shape.move_selected_to_delta(delta, self._move_start_verts)
         self._update_selected_rect()
+
+    def change_current_shape(self, vertices: np.ndarray):
+        if not self._current_shape:
+            return
+
+        self._current_shape.change_shape_nd(vertices)
+        self.update()
+
+    @Slot()
+    def _on_optimize_requested(self):
+        self._current_shape = self._nearest_shape
+        self._current_shape.select_path()
+        self.inEditMode.emit(True)
+
+        self.optimizeRequested.emit(self._current_shape.vertices_nd)
 
     @Slot()
     def _on_move_requested(self):
