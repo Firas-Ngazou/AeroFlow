@@ -5,7 +5,9 @@ import random
 import neuralfoil as nf
 from scipy.ndimage import binary_dilation
 
-from PySide6.QtCore import QObject, Signal
+import PySide6
+from __feature__ import snake_case, true_property  # type: ignore[import-not-found]
+from PySide6.QtCore import QObject, Signal, QThread
 
 from dev.physics_engine.simulation_engine import SimulationEngine
 from dev.user_interface.canvas.q_editor import Shape
@@ -27,47 +29,54 @@ class GeneticAlgorithm(QObject):
         self._estimated_drag = None
         self._estimated_lift = None
 
-    def optimize(self, vertices: np.ndarray) -> dict:
-        best_obstacle = None
-        best_fitness = -float('inf')
+    def optimize(self, vertices: np.ndarray):
+        tmp_new_verts = copy.deepcopy(vertices)
+        for _ in range(self.max_iterations):
+            noise = np.random.normal(loc = 0.0, scale = 0.02, size = tmp_new_verts.shape)
+            tmp_new_verts = tmp_new_verts + noise
 
-        base_fitness = self.__evaluate_fitness(self._obstacle)
-
-        best_fitness = base_fitness
-        best_obstacle = copy.deepcopy(vertices)
-
-        population = []
-        population.append(copy.deepcopy(vertices))
-
-        
-        while len(population)< self.population_size:
-            child = self.__generate_mutation(vertices, force_random=True)
-            population.append(child)
-
-
-        for gen in range(self.max_iterations):
-            fitness_scores = [self.__evaluate_fitness(ind) for ind in population]
-
-            max_idx = np.argmax(fitness_scores)
-            if fitness_scores[max_idx] > best_fitness:
-                best_fitness = fitness_scores[max_idx]
-                best_obstacle = copy.deepcopy(population[max_idx])
-
-            self.iterationCompleted.emit(best_obstacle.binary_mask.copy(), gen, float(best_fitness))
-
-            next_generation = []
-            next_generation.append(copy.deepcopy(population[max_idx]))
-
-            while len(next_generation) < self.population_size:
-                p_a, p_b = self.__select_parents(population, fitness_scores)
-                child = self.__crossover(p_a, p_b)
-                child = self.__generate_mutation(child, force_random=False)
-                next_generation.append(child)
-
-            population = next_generation
+            self.iterationCompleted.emit(tmp_new_verts, 1, 2.30)
+            QThread.current_thread().msleep(50)
 
         self.optimizationCompleted.emit()
-        return best_obstacle, best_fitness # Change(?)
+
+        # base_fitness = self.__evaluate_fitness(self._obstacle)
+        #
+        # best_fitness = base_fitness
+        # best_obstacle = copy.deepcopy(vertices)
+        #
+        # population = []
+        # population.append(copy.deepcopy(vertices))
+        #
+        #
+        # while len(population)< self.population_size:
+        #     child = self.__generate_mutation(vertices, force_random=True)
+        #     population.append(child)
+        #
+        #
+        # for gen in range(self.max_iterations):
+        #     fitness_scores = [self.__evaluate_fitness(ind) for ind in population]
+        #
+        #     max_idx = np.argmax(fitness_scores)
+        #     if fitness_scores[max_idx] > best_fitness:
+        #         best_fitness = fitness_scores[max_idx]
+        #         best_obstacle = copy.deepcopy(population[max_idx])
+        #
+        #     self.iterationCompleted.emit(best_obstacle.binary_mask.copy(), gen, float(best_fitness))
+        #
+        #     next_generation = []
+        #     next_generation.append(copy.deepcopy(population[max_idx]))
+        #
+        #     while len(next_generation) < self.population_size:
+        #         p_a, p_b = self.__select_parents(population, fitness_scores)
+        #         child = self.__crossover(p_a, p_b)
+        #         child = self.__generate_mutation(child, force_random=False)
+        #         next_generation.append(child)
+        #
+        #     population = next_generation
+        #
+        # self.optimizationCompleted.emit()
+        # return best_obstacle, best_fitness # Change(?)
 
 
     def __generate_mutation(self, parent: np.ndarray, force_random: bool = False) -> np.ndarray:

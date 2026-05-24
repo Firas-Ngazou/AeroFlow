@@ -7,8 +7,8 @@ import dev.user_interface.tools.q_wrapper as q_wrapper
 q_wrapper.apply_all_wrappers()
 
 from PySide6.QtCore import QSize, Slot, Qt, Signal
-from PySide6.QtGui import QIcon
-from PySide6.QtWidgets import QWidget, QFrame, QHBoxLayout, QPushButton, QVBoxLayout, QApplication
+from PySide6.QtGui import QFont, QIcon
+from PySide6.QtWidgets import QWidget, QFrame, QHBoxLayout, QPushButton, QVBoxLayout, QApplication, QMessageBox
 
 from dev.user_interface.canvas.q_state_manager import QStateManager
 from dev.user_interface.canvas.q_settings_tab import QSettingsSideBar
@@ -43,6 +43,7 @@ class QToolBar(QWidget):
     def __init__(self, state_manager: QStateManager, parent: QWidget | None = None):
         super().__init__(parent)
 
+        self._is_optimizing = False
         self._cursor_state = QStateManager.CursorState.DEFAULT
         self._state_manager = state_manager
 
@@ -75,9 +76,11 @@ class QToolBar(QWidget):
         self._play_button.set_fixed_width(44)
         self._play_button.set_fixed_height(44)
 
-        # optimize button
-        optimize_icon = QIcon(":/res/optimize_icon_black.png")
-        self._optimize_button = QToolPB(optimize_icon, checkable=False)
+        # Info button
+        info_icon = QIcon(":/res/info_icon_black.png")
+        self._info_button = QToolPB(info_icon, checkable=False)
+        self._info_button.icon_size = QSize(32, 32)
+        self._info_font = QFont("JetBrains Mono", 10)
 
         # prefabs
         prefabs_icon = QIcon(":/res/shapes_icon_black.png")
@@ -88,8 +91,8 @@ class QToolBar(QWidget):
         primary_layout.add_widget(self._default_button)
         primary_layout.add_widget(self._pen_button)
         primary_layout.add_widget(self._play_button)
-        primary_layout.add_widget(self._optimize_button)
         primary_layout.add_widget(self._prefabs_button)
+        primary_layout.add_widget(self._info_button)
 
         root_layout = QVBoxLayout(self)
         root_layout.spacing = 5
@@ -104,8 +107,63 @@ class QToolBar(QWidget):
         self._prefab_scroll.instanceRequested.connect(self.instanceRequested.emit)
 
         self._play_button.clicked.connect(self._on_anim_button_pressed)
+        self._info_button.pressed.connect(self._on_info_pressed)
 
         self._state_manager.cursorStateChanged.connect(self._on_cursor_state_changed)
+
+    @Slot()
+    def _on_info_pressed(self) -> None:
+        """
+        Shows a short user manual for the vector editor.
+        """
+        message_box = QMessageBox(self)
+        message_box.text = self._editor_manual()
+        message_box.font = self._info_font
+        message_box.window_title = "Editor Manual"
+        message_box.set_window_flag(Qt.WindowType.FramelessWindowHint)
+        message_box.exec()
+
+    @staticmethod
+    def _editor_manual() -> str:
+        return """
+        <div style="text-align: left;">
+            <h1>Canvas editor manual</h1>
+
+            <h2>Toolbar</h2>
+            <p><b>Cursor:</b> select shapes and edit their points.</p>
+            <p><b>Pen:</b> draw a new shape point by point.</p>
+            <p><b>Play:</b> start or stop the simulation preview.</p>
+            <p><b>Shapes:</b> open saved prefabs and place them on the canvas.</p>
+
+            <h2>Draw a shape</h2>
+            <p>Choose the Pen, then left-click to place points.</p>
+            <p>Click the first point again to close and finish the shape.</p>
+
+            <h2>Select and edit</h2>
+            <p>Choose the Cursor, then left-click a shape to edit it.</p>
+            <p>Drag a point to move it. Hold Shift while dragging to snap it to the grid.</p>
+            <p>Drag an empty area to select several points. Hold Shift to add to the selection.</p>
+            <p>Click a small point between two vertices to insert a new point.</p>
+            <p>Press Escape to leave the current shape.</p>
+
+            <h2>Move, scale, and rotate</h2>
+            <p>Select two or more points, then use:</p>
+            <p><b>A:</b> select all vertices.</p>
+            <p><b>G:</b> move the selection.</p>
+            <p><b>S:</b> scale the selection.</p>
+            <p><b>R:</b> rotate the selection.</p>
+            <p>Left-click to confirm a transform. Right-click to cancel it.</p>
+
+            <h2>Delete and undo</h2>
+            <p>Press Delete or Backspace to remove selected points.</p>
+            <p>Hold Ctrl and drag a red rectangle to delete points or whole shapes.</p>
+            <p>Use Ctrl+Z to undo and Ctrl+Shift+Z to redo.</p>
+
+            <h2>Save and optimize</h2>
+            <p>Right-click a shape to open its menu.</p>
+            <p>Use Save to store it as a prefab, or Optimize to improve its form.</p>
+        </div>
+        """
 
     @Slot(QStateManager.CursorState)
     def _on_cursor_state_changed(self, state: QStateManager.CursorState) -> None:
@@ -118,12 +176,10 @@ class QToolBar(QWidget):
             self._default_button.set_disabled(True)
             self._pen_button.set_disabled(True)
             self._prefabs_button.set_disabled(True)
-            self._optimize_button.set_disabled(True)
         else:
             self._default_button.set_disabled(False)
             self._pen_button.set_disabled(False)
             self._prefabs_button.set_disabled(False)
-            self._optimize_button.set_disabled(False)
 
     @Slot()
     def _on_cursor_button_pressed(self) -> None:
@@ -208,3 +264,16 @@ class QToolBar(QWidget):
     @live_edit.setter
     def live_edit(self, value: bool) -> None:
         self._live_edit = value
+
+    @property
+    def is_optimizing(self) -> bool:
+        return self._is_optimizing
+    @is_optimizing.setter
+    def is_optimizing(self, value: bool) -> None:
+        match value:
+            case True:
+                self._play_button.set_disabled(True)
+            case False:
+                self._play_button.set_disabled(False)
+
+        self._is_optimizing = value

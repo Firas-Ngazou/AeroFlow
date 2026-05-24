@@ -1,3 +1,4 @@
+#region imports
 import PySide6
 from __feature__ import snake_case, true_property  # type: ignore[import-not-found]
 
@@ -22,6 +23,7 @@ from dev.user_interface.canvas.q_state_manager import QStateManager
 from dev.user_interface.canvas.q_editor import QEditor
 from dev.user_interface.canvas.q_tool_bar import QToolBar
 from dev.user_interface.management.q_custom_window_frame import FramelessWindow, QCustomTitleBar
+#endregion
 
 class ProjectPage(QWidget):
     saveProject = Signal(dict)
@@ -51,6 +53,7 @@ class ProjectPage(QWidget):
     saveWarningNoPressed = Signal()
 
     runSimulation = Signal(list)
+    optimize = Signal(np.ndarray)
 
     def __init__(self, parent: FramelessWindow) -> None:
         super().__init__(parent)
@@ -82,7 +85,7 @@ class ProjectPage(QWidget):
         self._ga_thread = QThread()
         self._ga = GeneticAlgorithm() # I am assuming the calls I make are correct until the GA actually works for real
         # Everything needing to be added to the algorithm will be noted in the Milanote inside the GeneticAlgorithm doc.
-        # self._ga.moveToThread(self._ga_thread)
+        self._ga.move_to_thread(self._ga_thread)
 
         self.__initialize_canvas()
         self.__initialize_title_bar()
@@ -106,15 +109,16 @@ class ProjectPage(QWidget):
             f"{y:.2f}"))
         self._simulation_engine.maxVorticityUpdated.connect(lambda y: self._analysis_tab.set_max_vorticity_value(
             f"{y:.2f}"))
-        # self._simulation_engine.finished.connect(self._on_sim_finished)
+
         self.runSimulation.connect(self._simulation_engine.run)
         self.liveEditVerticesChanged.connect(self._simulation_engine.queue_live_edit_vertices,
                                              Qt.ConnectionType.DirectConnection)
         self._sim_thread.start()
 
-        # self._ga.iterationCompleted.connect(self._on_ga_iteration_completed)
-        # self._ga.optimizationCompleted.connect(self._on_ga_optimization_completed)
-        # self._ga_thread.start()
+        self._ga.iterationCompleted.connect(self._on_ga_iteration_completed)
+        self._ga.optimizationCompleted.connect(self._on_ga_optimization_completed)
+        self.optimize.connect(self._ga.optimize)
+        self._ga_thread.start()
 
         self._primary_layout = QVBoxLayout(self)
         self._primary_layout.set_contents_margins(0, 0, 0, 0)
@@ -168,8 +172,6 @@ class ProjectPage(QWidget):
         self._settings_side_bar.curlStateChanged.connect(self._on_curl_state_changed)
         self._settings_side_bar.streamlineCountChanged.connect(self._on_streamline_count_changed)
         self._settings_side_bar.staircaseStateChanged.connect(self._on_staircase_state_changed)
-        # self._settings_side_bar.saveRequested.connect(self._on_save_sim_requested)
-        # self._settings_side_bar.clearRequested.connect(self._on_clear_sim_requested)
 
         self._tool_bar.playPressed.connect(self._on_play_pressed)
         self._tool_bar.stopPressed.connect(self.on_stop_pressed)
@@ -203,6 +205,10 @@ class ProjectPage(QWidget):
         self._save_shortcut = QShortcut(QKeySequence("Ctrl+S"), self)
         self._save_shortcut.context = Qt.ShortcutContext.WindowShortcut
         self._save_shortcut.activated.connect(self._on_save_project)
+
+        self._save_as_shortcut = QShortcut(QKeySequence("Ctrl+Shift+S"), self)
+        self._save_as_shortcut.context = Qt.ShortcutContext.WindowShortcut
+        self._save_as_shortcut.activated.connect(self._on_save_as_project)
 
     @Slot(bool)
     def _on_in_edit_mode(self, in_edit_mode: bool):
@@ -257,7 +263,9 @@ class ProjectPage(QWidget):
     @Slot(np.ndarray)
     def _on_optimize_start(self, vertices: np.ndarray) -> None:
         self._state_manager.set_cursor_state(QStateManager.CursorState.LOCKED)
-        # self._ga.optimize(vertices)
+        self.optimize.emit(vertices)
+        self._title_bar.is_optimizing = True
+        self._tool_bar.is_optimizing = True
 
     @Slot(np.ndarray, int, float)
     def _on_ga_iteration_completed(self, new_vertices: np.ndarray, current_iteration: int, coef: float) -> None:
@@ -269,22 +277,23 @@ class ProjectPage(QWidget):
     @Slot()
     def _on_ga_optimization_completed(self) -> None:
         self._state_manager.set_cursor_state(QStateManager.CursorState.DEFAULT)
-        # self._ga.reset()
         self._analysis_tab.reset_opt_graph()
+        self._title_bar.is_optimizing = False
+        self._tool_bar.is_optimizing = True
 
     @Slot(str)
     def _on_constraint_changed(self, constraint_name: str) -> None:
-        # self._ga.constraint = constraint_name
+        self._ga.constraint = constraint_name
         self.constraintChanged.emit(constraint_name)
 
     @Slot(int)
     def _on_iterations_changed(self, iterations: int) -> None:
-        # self._ga.iterations = iterations
+        self._ga.iterations = iterations
         self.iterationsChanged.emit(iterations)
 
     @Slot(float)
     def _on_threshold_changed(self, value: float) -> None:
-        # self._ga.threshold = value
+        self._ga.threshold = value
         self.thresholdChanged.emit(value)
 
     @Slot(float)

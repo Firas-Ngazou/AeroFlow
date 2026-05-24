@@ -2134,6 +2134,7 @@ class QEditor(QWidget):
         self._exit_current_shape()
         self._shapes = []
         self.inEditMode.emit(False)
+        self.vectorDrawingChanged.emit()
         self._update_cache()
 
     def _reload_cache(self):

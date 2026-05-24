@@ -241,6 +241,7 @@ class QCustomTitleBar(TitleBar):
         # Other
         self._is_project_saved = False
         self._is_in_edit_mode = False
+        self._is_optimizing = False
 
         # Layout
         self.hBoxLayout.insert_spacing(0, 10)
@@ -342,6 +343,25 @@ class QCustomTitleBar(TitleBar):
                 self._edit_menu.set_select_all_disabled(True)
 
         self._is_in_edit_mode = value
+
+    @property
+    def is_optimizing(self):
+        return self._is_optimizing
+    @is_optimizing.setter
+    def is_optimizing(self, value: bool):
+        match value:
+            case True:
+                self._edit_menu.set_select_all_disabled(True)
+                self._edit_menu.set_delete_disabled(True)
+                self._edit_menu.set_redo_disabled(True)
+                self._edit_menu.set_undo_disabled(True)
+            case False:
+                self._edit_menu.set_select_all_disabled(False)
+                self._edit_menu.set_delete_disabled(False)
+                self._edit_menu.set_redo_disabled(False)
+                self._edit_menu.set_undo_disabled(False)
+
+        self._is_optimizing = value
 
 class QCustomWindowFrame(FramelessWindow):
     def __init__(self, parent: QWidget | None = None) -> None:

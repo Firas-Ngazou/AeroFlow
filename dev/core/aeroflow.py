@@ -85,9 +85,6 @@ class AeroFlow:
             splash_screen.finish(self._window)
 
     def _make_new_home_tbar( self ):
-        # if self._home_page_title_bar is not None:
-        #     self._home_page_title_bar.deleteLater()
-
         self._home_page_title_bar = TitleBar(self._window)
         self._home_page_title_bar.hide()
         self._home_page_title_bar.minBtn.set_normal_color(QColor("#F5F5F5"))
@@ -97,9 +94,6 @@ class AeroFlow:
         self._home_page_title_bar.maxBtn.set_hover_color(QColor("#F5F5F5"))
 
     def _make_new_project_tbar( self ):
-        # if self._project_page_title_bar is not None:
-        #     self._project_page_title_bar.deleteLater()
-
         self._project_page_title_bar = QCustomTitleBar(self._window)
         self._project_page_title_bar.hide()
         self._project_page_title_bar.icon = QIcon(":/res/app_logo.png")

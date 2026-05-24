@@ -68,6 +68,7 @@ class QFloatingShapeMenu(QWidget):
     def _on_save_pressed(self):
         self._save_btn.hide()
         self._cancel_btn.hide()
+        self._optimize_btn.hide()
         self._line_edit.show()
         self._line_edit.set_focus()
 
