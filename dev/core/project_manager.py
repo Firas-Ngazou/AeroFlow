@@ -147,11 +147,21 @@ class ProjectManager(QObject):
         self._current_project.constraintChanged.connect(
             lambda y: self._save_ini_string("Optimization", "Constraint_method", y)
         )
+        self._current_project.targetChanged.connect(
+            lambda y: self._save_ini_string("Optimization", "Target", y)
+        )
+
         self._current_project.iterationsChanged.connect(
             lambda y: self.save_ini_number("Optimization", "Iterations", y)
         )
         self._current_project.thresholdChanged.connect(
             lambda y: self.save_ini_number("Optimization", "Constraint_threshold", y)
+        )
+        self._current_project.mutationRateChanged.connect(
+            lambda y: self.save_ini_number("Optimization", "Mutation_rate", y)
+        )
+        self._current_project.populationSizeChanged.connect(
+            lambda y: self.save_ini_number("Optimization", "Population_size", y)
         )
 
     @Slot()
@@ -443,15 +453,21 @@ class ProjectManager(QObject):
         viscosity = self._ini_config.getfloat("Simulation", "Viscosity")
 
         constraint_method = self._ini_config.get("Optimization", "Constraint_method")
+        target = self._ini_config.get("Optimization", "Target", fallback="TRAÎNÉ")
         iterations = self._ini_config.getint("Optimization", "Iterations")
-        threshold = self._ini_config.getint("Optimization", "Constraint_threshold")
+        threshold = self._ini_config.getfloat("Optimization", "Constraint_threshold")
+        mutation_rate = self._ini_config.getfloat("Optimization", "Mutation_rate")
+        population_size = self._ini_config.getint("Optimization", "Population_size")
 
         self._current_project.allocation = allocation
         self._current_project.quality = quality
         self._current_project.wind_speed = wind_speed
         self._current_project.constraint_method = constraint_method
+        self._current_project.target = target
         self._current_project.iterations = iterations
         self._current_project.threshold = threshold
+        self._current_project.mutation_rate = mutation_rate
+        self._current_project.population_size = population_size
         self._current_project.viscosity = viscosity
 
     def _update_previews(self) -> None:

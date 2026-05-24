@@ -285,7 +285,17 @@ class GeneticAlgorithm(QObject):
         return self._constraint_target
     @target.setter
     def target(self, target: str):
-        self._constraint_target = target
+        normalized_target = target.upper()
+        target_map = {
+            "TRAÎNÉE": "DRAG",
+            "TRAÎNÉ": "DRAG",
+            "TRAINEE": "DRAG",
+            "TRAINE": "DRAG",
+            "DRAG": "DRAG",
+            "PORTANCE": "LIFT",
+            "LIFT": "LIFT",
+        }
+        self._constraint_target = target_map.get(normalized_target, normalized_target)
 
     @property
     def iterations(self):

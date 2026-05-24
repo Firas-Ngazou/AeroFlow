@@ -236,8 +236,11 @@ class QSettingsGeneralTab(QWidget):
 
 class QSettingsOptimizationTab(QWidget):
     constraintChanged = Signal(str)
+    targetChanged = Signal(str)
     iterationsChanged = Signal(int)
-    thresholdChanged = Signal(int)
+    thresholdChanged = Signal(float)
+    populationSizeChanged = Signal(int)
+    mutationRateChanged = Signal(float)
 
     def __init__(self, parent: QWidget | None = None):
         super().__init__(parent)
@@ -263,7 +266,7 @@ class QSettingsOptimizationTab(QWidget):
 
         self._combo_box.current_index = 1
 
-        # Primary frame & layout
+        # Constraint frame & layout
         constraint_frame = QFrame()
         constraint_frame.set_property("class", "constraint_frame")
         self._constraint_layout = QHBoxLayout(constraint_frame)
@@ -272,12 +275,36 @@ class QSettingsOptimizationTab(QWidget):
         self._constraint_layout.add_widget(self._combo_box, alignment=Qt.AlignmentFlag.AlignRight)
         self._constraint_layout.set_contents_margins(15, 0, 0, 0)
 
+        # Optimization target
+        self._target_title = QLabel("CIBLE")
+        self._target_title.font = QFont("JetBrains Mono", 11)
+
+        self._target_combo_box = QComboBox()
+        self._target_combo_box.placeholder_text = "OBJECTIF"
+        self._target_combo_box.set_property("class", "settings_combo_box")
+        self._target_combo_box.set_fixed_width(150)
+        self._target_combo_box.set_fixed_height(30)
+        self._target_combo_box.font = QFont("JetBrains Mono", 9)
+
+        self._target_combo_box.add_item("PORTANCE")
+        self._target_combo_box.add_item("TRAÎNÉ")
+
+        self._target_combo_box.current_index = 1
+
+        target_frame = QFrame()
+        target_frame.set_property("class", "constraint_frame")
+        self._target_layout = QHBoxLayout(target_frame)
+
+        self._target_layout.add_widget(self._target_title, alignment=Qt.AlignmentFlag.AlignLeft)
+        self._target_layout.add_widget(self._target_combo_box, alignment=Qt.AlignmentFlag.AlignRight)
+        self._target_layout.set_contents_margins(15, 0, 0, 0)
+
         # Threshold
-        self._threshold_setting = QSliderGroup("SEUIL (%)")
-        self._threshold_setting.minimum = 1
-        self._threshold_setting.maximum = 100
-        self._threshold_setting.single_step = 5
-        self._threshold_setting.default_value = 5
+        self._threshold_setting = QRealSliderGroup("SEUIL")
+        self._threshold_setting.minimum = 0.0
+        self._threshold_setting.maximum = 1.0
+        self._threshold_setting.single_step = 0.05
+        self._threshold_setting.default_value = 0.05
 
         # Iterations
         self._iterations_setting = QSliderGroup("ITÉRATIONS")
@@ -286,18 +313,40 @@ class QSettingsOptimizationTab(QWidget):
         self._iterations_setting.single_step = 5
         self._iterations_setting.default_value = 20
 
+        # Population size
+        self._population_size_setting = QSliderGroup("POPULATION")
+        self._population_size_setting.minimum = 1
+        self._population_size_setting.maximum = 1000
+        self._population_size_setting.single_step = 10
+        self._population_size_setting.default_value = 50
+
+        # Taux de mutation
+        self._mutation_rate_setting = QRealSliderGroup("MUTATIONS")
+        self._mutation_rate_setting.minimum = 0.05
+        self._mutation_rate_setting.maximum = 1.0
+        self._mutation_rate_setting.single_step = 0.05
+        self._mutation_rate_setting.default_value = 0.05
+
         # Root
         root_layout = QVBoxLayout(self)
         root_layout.add_widget(constraint_frame)
+        root_layout.add_widget(target_frame)
         root_layout.add_widget(self._threshold_setting)
         root_layout.add_widget(self._iterations_setting)
+        root_layout.add_widget(self._population_size_setting)
+        root_layout.add_widget(self._mutation_rate_setting)
+
+        root_layout.spacing = 20
         root_layout.set_contents_margins(0, 0, 0, 0)
         root_layout.add_stretch()
 
         # Connections
         self._combo_box.currentTextChanged.connect(self.constraintChanged.emit)
-        self._threshold_setting.valueChanged.connect(self.thresholdChanged.emit)
+        self._target_combo_box.currentTextChanged.connect(self.targetChanged.emit)
+        self._threshold_setting.realValueChanged.connect(self.thresholdChanged.emit)
         self._iterations_setting.valueChanged.connect(self.iterationsChanged.emit)
+        self._population_size_setting.valueChanged.connect(self.populationSizeChanged.emit)
+        self._mutation_rate_setting.realValueChanged.connect(self.mutationRateChanged.emit)
 
     @property
     def constraint_method(self) -> str:
@@ -305,6 +354,13 @@ class QSettingsOptimizationTab(QWidget):
     @constraint_method.setter
     def constraint_method(self, constraint: str) -> None:
         self._combo_box.current_text = constraint
+
+    @property
+    def target(self) -> str:
+        return self._target_combo_box.current_text
+    @target.setter
+    def target(self, target: str) -> None:
+        self._target_combo_box.current_text = target
 
     @property
     def threshold(self) -> int:
@@ -321,19 +377,39 @@ class QSettingsOptimizationTab(QWidget):
         self._iterations_setting.set_value(iterations)
 
     @property
+    def population(self) -> int:
+        return self._population_size_setting.value
+    @population.setter
+    def population(self, population: int) -> None:
+        self._population_size_setting.set_value(population)
+
+    @property
+    def mutation_rate(self) -> float:
+        return self._mutation_rate_setting.value
+    @mutation_rate.setter
+    def mutation_rate(self, mutation_rate: float) -> None:
+        self._mutation_rate_setting.set_value(mutation_rate)
+
+    @property
     def sim_playing(self) -> bool:
         return self._sim_playing
     @sim_playing.setter
     def sim_playing(self, value: bool) -> None:
         self._iterations_setting.set_disabled(value)
         self._combo_box.set_disabled(value)
+        self._target_combo_box.set_disabled(value)
         self._threshold_setting.set_disabled(value)
+        self._population_size_setting.set_disabled(value)
+        self._mutation_rate_setting.set_disabled(value)
         self._sim_playing = value
 
 class QSettingsSideBar(QWidget):
     constraintChanged = Signal(str)
+    targetChanged = Signal(str)
     iterationsChanged = Signal(int)
-    thresholdChanged = Signal(int)
+    thresholdChanged = Signal(float)
+    populationSizeChanged = Signal(int)
+    mutationRateChanged = Signal(float)
 
     qualityChanged = Signal(float)
     windSpeedChanged = Signal(float)
@@ -426,6 +502,9 @@ class QSettingsSideBar(QWidget):
         self._general_tab.streamlineCountChanged.connect(self.streamlineCountChanged.emit)
         self._general_tab.staircaseStateChanged.connect(self.staircaseStateChanged.emit)
         self._optimization_tab.constraintChanged.connect(self.constraintChanged.emit)
+        self._optimization_tab.targetChanged.connect(self.targetChanged.emit)
+        self._optimization_tab.populationSizeChanged.connect(self.populationSizeChanged.emit)
+        self._optimization_tab.mutationRateChanged.connect(self.mutationRateChanged.emit)
         self._optimization_tab.iterationsChanged.connect(self.iterationsChanged.emit)
         self._optimization_tab.thresholdChanged.connect(self.thresholdChanged.emit)
 
@@ -452,10 +531,17 @@ class QSettingsSideBar(QWidget):
         self._optimization_tab.constraint_method = constraint
 
     @property
-    def threshold(self) -> int:
+    def target(self) -> str:
+        return self._optimization_tab.target
+    @target.setter
+    def target(self, target: str) -> None:
+        self._optimization_tab.target = target
+
+    @property
+    def threshold(self) -> float:
         return self._optimization_tab.threshold
     @threshold.setter
-    def threshold(self, threshold: int) -> None:
+    def threshold(self, threshold: float) -> None:
         self._optimization_tab.threshold = threshold
 
     @property
@@ -466,17 +552,31 @@ class QSettingsSideBar(QWidget):
         self._optimization_tab.iterations = iterations
 
     @property
+    def population(self) -> int:
+        return self._optimization_tab.population
+    @population.setter
+    def population(self, population: int) -> None:
+        self._optimization_tab.population = population
+
+    @property
+    def mutation_rate(self) -> float:
+        return self._optimization_tab.mutation_rate
+    @mutation_rate.setter
+    def mutation_rate(self, mutation_rate: float) -> None:
+        self._optimization_tab.mutation_rate = mutation_rate
+
+    @property
     def quality(self) -> float:
         return self._general_tab.quality
     @quality.setter
-    def quality(self, quality: float):
+    def quality(self, quality: float) -> None:
         self._general_tab.quality = quality
 
     @property
     def wind_speed(self) -> float:
         return self._general_tab.wind_speed
     @wind_speed.setter
-    def wind_speed(self, wind_speed: float):
+    def wind_speed(self, wind_speed: float) -> None:
         self._general_tab.wind_speed = wind_speed
 
     @property
