@@ -1003,6 +1003,10 @@ class Shape:
         """
         return self._status
 
+    @property
+    def vertices_nd(self) -> np.ndarray:
+        return self._vertices_nd
+
 
 class QEditor(QWidget):
     """
