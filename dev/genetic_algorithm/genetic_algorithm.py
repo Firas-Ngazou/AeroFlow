@@ -5,7 +5,7 @@ import random
 import neuralfoil as nf
 from scipy.ndimage import binary_dilation
 
-from PySide6.QtCore import QObject, Signal
+from PySide6.QtCore import QObject, Signal, QThread
 
 from dev.physics_engine.simulation_engine import SimulationEngine
 from dev.user_interface.canvas.q_editor import Shape
@@ -14,15 +14,15 @@ class GeneticAlgorithm(QObject):
     iterationCompleted = Signal(np.ndarray, int, float)
     optimizationCompleted = Signal()
 
-    def __init__(self, population_size: int = 20, mutation_rate: float = 0.05):
+    def __init__(self):
         super().__init__()
         self._max_iterations: int = 100
         self._tolerance_margin: float = 0.1
         self._constraint_method: str = "SURFACE" # surface or distance
-        self._constraint_target: str = "DRAG"    # drag or lift
+        self._constraint_target: str = "TRAÎNÉ"    # drag or lift
 
-        self.population_size = population_size
-        self.mutation_rate = mutation_rate
+        self._population_size: int = 20
+        self._mutation_rate: float = 0.05
 
         self._estimated_drag = None
         self._estimated_lift = None
@@ -58,6 +58,7 @@ class GeneticAlgorithm(QObject):
                 best_obstacle = copy.deepcopy(population[max_idx])
 
             self.iterationCompleted.emit(best_obstacle.copy(), gen, float(best_fitness))
+            QThread.current_thread().msleep(50)
 
             next_generation = []
             next_generation.append(copy.deepcopy(population[max_idx]))
@@ -90,9 +91,13 @@ class GeneticAlgorithm(QObject):
 
             is_valid = False
             if self.constraint_method == "DISTANCE":
-                is_valid = self.__verify_distance(mutated_vertices)
+                # is_valid = self.__verify_distance(mutated_vertices) #TEST
+                print("Distance verification")
+                is_valid = True
             elif self.constraint_method == "SURFACE":
-                is_valid = self.__verify_area(mutated_vertices)
+                # is_valid = self.__verify_area(mutated_vertices) #TEST
+                print("Surface verification")
+                is_valid = True
             else:
                 is_valid = True
 
@@ -118,31 +123,16 @@ class GeneticAlgorithm(QObject):
         return tournement(), tournement()
 
 
-    def __evaluate_fitness(self, individual: np.ndarray) -> float: # REWORK
-        mask = individual.binary_mask.astype(bool)
-        expanded_mask = binary_dilation(mask)
-
-        if np.count_nonzero(mask) < 4 : # empty mask
+    def __evaluate_fitness(self, individual: np.ndarray) -> float:
+        if individual is None or len(individual) < 4:
             return -9999.0
+        
+        coords = np.unique(individual, axis=0)
 
-        # Coords
-        y_indices, x_indices = np.where(expanded_mask)
-        x_max, y_max = mask.shape[1], mask.shape[0]
-        raw_coords = np.column_stack((x_indices / x_max, y_indices / y_max)) # Matrix of normalized coords
-        raw_coords = np.unique(raw_coords, axis=0)
-
-        y_mean = np.mean(raw_coords[:, 1]) # centerline of the shape
-        upper_pts = raw_coords[raw_coords[:, 1] >= y_mean]
-        lower_pts = raw_coords[raw_coords[:, 1] < y_mean]
-
-        upper_pts = upper_pts[np.argsort(upper_pts[:, 0])[::-1]] # Right to left
-        lower_pts = lower_pts[np.argsort(lower_pts[:, 0])] # Left to right => Aerospace eng standard data format for airfoils to be strictly CLOCKWISE
-        # the simulator connects the dots in the exact order they appear in the array
-
-        coords = np.vstack((upper_pts, lower_pts, upper_pts[0]))
+        if not np.array_equal(coords[0], coords[-1]):
+            coords = np.vstack((coords, coords[0]))
 
         try:
-
             airfoil = asb.Airfoil(name="Shape", coordinates=coords)
             airfoil.repanel(n_points_per_side=60) # makes the shape smooth for the cd approx
             aero = nf.get_aero_from_airfoil(
@@ -150,19 +140,19 @@ class GeneticAlgorithm(QObject):
                 alpha=0.0,
                 Re=5e5
             )
-            self._estimated_drag  = aero["CD"]
-            self._estimated_lift  = aero["CL"]
+            self._estimated_drag  = float(aero["CD"])
+            self._estimated_lift  = float(aero["CL"])
 
             if np.isnan(self._estimated_drag) or np.isnan(self._estimated_lift):
                 return -9999.0
             
             
-            if self._constraint_target == "DRAG":
+            if self._constraint_target == "TRAÎNÉ":
                 if self._estimated_drag <= 0 :
                     return -9999.0
                 return float(1.0 / self._estimated_drag)
             
-            if self._constraint_target == "LIFT":
+            if self._constraint_target == "PORTANCE":
                 if self._estimated_lift <= 0:
                     return -9999.0
                 return float(1.0 / self._estimated_lift)
@@ -254,3 +244,17 @@ class GeneticAlgorithm(QObject):
     @threshold.setter
     def threshold(self, value: float):
         self._tolerance_margin = value
+    
+    @property
+    def population(self):
+        return self._population_size
+    @population.setter
+    def threshold(self, value: int):
+        self._population_size = value
+    
+    @property
+    def rate(self):
+        return self._mutation_rate
+    @rate.setter
+    def threshold(self, value: float):
+        self._mutation_rate = value
