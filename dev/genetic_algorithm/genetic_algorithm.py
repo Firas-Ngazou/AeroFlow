@@ -140,8 +140,8 @@ class GeneticAlgorithm(QObject):
                 alpha=0.0,
                 Re=5e5
             )
-            self._estimated_drag  = float(aero["CD"])
-            self._estimated_lift  = float(aero["CL"])
+            self._estimated_drag = aero["CD"][0] if hasattr(aero["CD"], "__len__") else aero["CD"]
+            self._estimated_lift = aero["CL"][0] if hasattr(aero["CL"], "__len__") else aero["CL"]
 
             if np.isnan(self._estimated_drag) or np.isnan(self._estimated_lift):
                 return -9999.0
@@ -160,6 +160,10 @@ class GeneticAlgorithm(QObject):
         except Exception:
             return -9999.0
 
+    def __calculate_polygon_area(self, vertices: np.ndarray) -> float:
+        x = vertices[:, 0]
+        y = vertices[:, 1]
+        return 0.5 * np.abs(np.dot(x, np.roll(y, 1)) - np.dot(y, np.roll(x, 1)))
 
     def __verify_distance(self, mask: np.ndarray) -> bool:
         if self.constraint_method != "DISTANCE":
@@ -177,21 +181,19 @@ class GeneticAlgorithm(QObject):
         return hamming_distance <= max_allowed_distance
 
 
-    def __verify_area(self, mask: np.ndarray) -> bool:
+    def __verify_area(self, vertices: np.ndarray) -> bool:
         if not self.constraint_method == "SURFACE":
             return True
         
-        count_old = np.count_nonzero(self.obstacle.binary_mask.astype(np.int8))
-        count = np.count_nonzero(mask.astype(np.int8))
-        max_diff = self.tolerance_margin*count_old
+        old_area = self.__calculate_polygon_area(self._baseline_vertices)
+        new_area = self.__calculate_polygon_area(vertices)
 
-        left = count_old - max_diff
-        right = count_old + max_diff
+        if old_area == 0:
+            old_area = 1.0
 
-        if left < count < right:
-            return True
-        
-        return False
+        relative_difference = abs(old_area - new_area) / old_area
+        return relative_difference <= self.tolerance_margin # Keeps a surface relative to the inital shape
+
     
     def calculate_aerodynamic_gain(self) -> float:
         ...
