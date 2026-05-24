@@ -27,11 +27,15 @@ class GeneticAlgorithm(QObject):
         self._estimated_drag = None
         self._estimated_lift = None
 
-    def optimize(self, vertices: np.ndarray) -> dict:
+        self._baseline_vertices = None
+
+    def optimize(self, vertices: np.ndarray):
+        self._baseline_vertices = vertices
+
         best_obstacle = None
         best_fitness = -float('inf')
 
-        base_fitness = self.__evaluate_fitness(self._obstacle)
+        base_fitness = self.__evaluate_fitness(vertices)
 
         best_fitness = base_fitness
         best_obstacle = copy.deepcopy(vertices)
@@ -41,7 +45,7 @@ class GeneticAlgorithm(QObject):
 
         
         while len(population)< self.population_size:
-            child = self.__generate_mutation(vertices, force_random=True)
+            child = self.__generate_mutation(vertices)
             population.append(child)
 
 
@@ -53,7 +57,7 @@ class GeneticAlgorithm(QObject):
                 best_fitness = fitness_scores[max_idx]
                 best_obstacle = copy.deepcopy(population[max_idx])
 
-            self.iterationCompleted.emit(best_obstacle.binary_mask.copy(), gen, float(best_fitness))
+            self.iterationCompleted.emit(best_obstacle.copy(), gen, float(best_fitness))
 
             next_generation = []
             next_generation.append(copy.deepcopy(population[max_idx]))
@@ -61,68 +65,40 @@ class GeneticAlgorithm(QObject):
             while len(next_generation) < self.population_size:
                 p_a, p_b = self.__select_parents(population, fitness_scores)
                 child = self.__crossover(p_a, p_b)
-                child = self.__generate_mutation(child, force_random=False)
+                child = self.__generate_mutation(child)
                 next_generation.append(child)
 
             population = next_generation
 
         self.optimizationCompleted.emit()
-        return best_obstacle, best_fitness # Change(?)
 
 
-    def __generate_mutation(self, parent: np.ndarray, force_random: bool = False) -> np.ndarray:
+    def __generate_mutation(self, parent: np.ndarray) -> np.ndarray:
         child = copy.deepcopy(parent)
-        mask_shape = child.binary_mask.shape
+        num_points = len(child)
 
-        if force_random:
-            # mutated_mask = (np.random.rand(*mask_shape) > 0.5).astype(bool) # Bool array if index is > or < than 0.5
-            mutated_mask = np.zeros(mask_shape, dtype=bool)
-            y_center = mask_shape[0] // 2
-            for x in range(int(mask_shape[1] * 0.1), int(mask_shape[1]*0.9)):
-                thickness = random.randint(4, max(5, mask_shape[0] // 3)) # Thickness of the airfoil
-                mutated_mask[y_center - thickness: y_center + thickness, x] = True
-
-            child.binary_mask = mutated_mask.astype(np.int8)
-            return child
-        
         for attempt in range(50):
-            current_mask = child.binary_mask.astype(bool)
-            dilated = binary_dilation(current_mask)
-            boundary = dilated ^ current_mask
-            y_indices, x_indices = np.where(boundary)
+            mutated_vertices = copy.deepcopy(child)
 
-            if len(x_indices) == 0: # If boundary is empty
-                continue
+            for i in range(1, num_points-1): # Anchors both ends
+                if random.random() < self.mutation_rate:
+                    y_nudge = np.random.normal(0, 0.015)
+                    mutated_vertices[i, 1] += y_nudge
 
-            mutated_mask = current_mask.copy()
-            num_mutations = random.randint(3, 7) # number of mutated pixels
-            chosen_indices = random.sample(range(len(x_indices)), min(num_mutations, len(x_indices)))
-
-            for idx in chosen_indices:
-                cx, cy = x_indices[idx], y_indices[idx] # Grid coords
-        
-                if random.random() > 0.5:
-                    mutated_mask[cy, cx] = False # Removes a pixel
-
-                else: # Expands the shape
-                    if cy + 1 < mask_shape[0]: mutated_mask[cy + 1, cx] = True
-                    if cy - 1 >= 0: mutated_mask[cy - 1, cx] = True
-
-            # if self.__verify_distance(mutated_mask) or self.__verify_area(mutated_mask): # Change so that the user can pick which one
-            #     child.binary_mask = mutated_mask.astype(np.int8)
-            #     return child
+                    x_nudge = np.random.normal(0, 0.015)
+                    mutated_vertices[i, 0] += x_nudge
 
             is_valid = False
             if self.constraint_method == "DISTANCE":
-                is_valid = self.__verify_distance(mutated_mask)
+                is_valid = self.__verify_distance(mutated_vertices)
             elif self.constraint_method == "SURFACE":
-                is_valid = self.__verify_area(mutated_mask)
+                is_valid = self.__verify_area(mutated_vertices)
             else:
                 is_valid = True
 
             if is_valid:
-                child.binary_mask = mutated_mask.astype(np.intt8)
-                return child            
+                return mutated_vertices            
+                
         return child
 
 
@@ -234,14 +210,6 @@ class GeneticAlgorithm(QObject):
     
     def calculate_aerodynamic_gain(self) -> float:
         ...
-
-
-    # @property
-    # def obstacle(self):
-    #     return self._obstacle
-    # @obstacle.setter
-    # def obstacle(self, obstacle: np.ndarray):
-    #     self._obstacle = obstacle
 
     @property
     def max_iterations(self):
