@@ -103,15 +103,10 @@ class GeneticAlgorithm(QObject):
 
 
     def __crossover(self, parent_a: np.ndarray, parent_b: np.ndarray) -> np.ndarray:
-        child = copy.deepcopy(parent_a)
+        num_points = len(parent_a)
+        split_idx = random.randint(1, num_points - 2)
 
-        mask_a = parent_a.binary_mask.astype(bool)
-        mask_b = parent_b.binary_mask.astype(bool)
-
-        crossover_mask = np.random.rand(*mask_a.shape) > 0.5 # Random mask
-        child_mask = np.where(crossover_mask, mask_a, mask_b)
-
-        child.binary_mask = child_mask.astype(np.int8)
+        child = np.vstack((parent_a[:split_idx], parent_b[split_idx:]))
         return child
 
 
