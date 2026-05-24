@@ -35,6 +35,8 @@ class QCustomGraph(QChartView):
         # Axis
         self._axis_x = QValueAxis()
         self._axis_y = QValueAxis()
+        self._axis_x.set_grid_line_visible(False)
+        self._axis_y.set_grid_line_visible(False)
 
         # Font
         font = QFont("JetBrains Mono", 7)

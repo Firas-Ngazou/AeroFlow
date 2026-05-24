@@ -44,6 +44,7 @@ class QToolBar(QWidget):
         super().__init__(parent)
 
         self._is_optimizing = False
+        self._has_drawing = False
         self._cursor_state = QStateManager.CursorState.DEFAULT
         self._state_manager = state_manager
 
@@ -75,6 +76,7 @@ class QToolBar(QWidget):
         self._play_button.icon_size = QSize(21, 21)
         self._play_button.set_fixed_width(44)
         self._play_button.set_fixed_height(44)
+        self._play_button.set_disabled(True)
 
         # Info button
         info_icon = QIcon(":/res/info_icon_black.png")
@@ -270,10 +272,16 @@ class QToolBar(QWidget):
         return self._is_optimizing
     @is_optimizing.setter
     def is_optimizing(self, value: bool) -> None:
-        match value:
-            case True:
-                self._play_button.set_disabled(True)
-            case False:
-                self._play_button.set_disabled(False)
-
         self._is_optimizing = value
+        self._refresh_play_button()
+
+    @property
+    def has_drawing(self) -> bool:
+        return self._has_drawing
+    @has_drawing.setter
+    def has_drawing(self, value: bool) -> None:
+        self._has_drawing = value
+        self._refresh_play_button()
+
+    def _refresh_play_button(self) -> None:
+        self._play_button.set_disabled(self._is_optimizing or not self._has_drawing)

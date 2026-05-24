@@ -9,7 +9,7 @@ from PySide6.QtGui import QFont, QIcon
 from PySide6.QtWidgets import QWidget, QFrame, QHBoxLayout, QPushButton, QVBoxLayout, \
     QLabel, QComboBox, QScrollArea
 
-from dev.user_interface.components.q_buttons import QSettingsTabPB
+from dev.user_interface.components.q_buttons import QSettingsTabPB, QSpecialSettingPB
 from dev.user_interface.groups.q_slider_groups import QSliderGroup, QRealSliderGroup
 from dev.user_interface.groups.q_checkboxes import QDoubleCheckBox, QInfoCheckbox
 
@@ -228,10 +228,11 @@ class QSettingsGeneralTab(QWidget):
         return self._sim_playing
     @sim_playing.setter
     def sim_playing(self, value: bool):
-        self._wind_speed.set_disabled(value)
         self._live_edit.set_disabled(value)
-        self._viscosity.set_disabled(value)
-        self._staircase_cb.set_disabled(value)
+        if not self.live_edit_state == 1:
+            self._wind_speed.set_disabled(value)
+            self._viscosity.set_disabled(value)
+            self._staircase_cb.set_disabled(value)
         self._sim_playing = value
 
 class QSettingsOptimizationTab(QWidget):
@@ -241,12 +242,14 @@ class QSettingsOptimizationTab(QWidget):
     thresholdChanged = Signal(float)
     populationSizeChanged = Signal(int)
     mutationRateChanged = Signal(float)
+    stopRequested = Signal()
 
     def __init__(self, parent: QWidget | None = None):
         super().__init__(parent)
 
         # Setup
         self._sim_playing = False
+        self._is_optimizing = False
 
         # Constraint method
         # Title
@@ -327,6 +330,18 @@ class QSettingsOptimizationTab(QWidget):
         self._mutation_rate_setting.single_step = 0.05
         self._mutation_rate_setting.default_value = 0.05
 
+        self._threshold_setting.tool_tip = ("Tolérance maximale acceptée pour conserver la forme proche du dessin "
+                                            "original.")
+        self._iterations_setting.tool_tip = "Nombre de générations calculées avant la fin de l'optimisation."
+        self._population_size_setting.tool_tip = "Nombre de variations évaluées à chaque génération."
+        self._mutation_rate_setting.tool_tip = "Probabilité qu'un point soit modifié lors de la création d'une nouvelle variation."
+
+        self._stop_button = QSpecialSettingPB("DOBĚS", False)
+        self._stop_button.font = QFont("JetBrains Mono", 12)
+        self._stop_button.set_disabled(True)
+        self._stop_button.height = 30
+        self._stop_button.width = 160
+
         # Root
         root_layout = QVBoxLayout(self)
         root_layout.add_widget(constraint_frame)
@@ -335,6 +350,7 @@ class QSettingsOptimizationTab(QWidget):
         root_layout.add_widget(self._iterations_setting)
         root_layout.add_widget(self._population_size_setting)
         root_layout.add_widget(self._mutation_rate_setting)
+        root_layout.add_widget(self._stop_button, alignment=Qt.AlignmentFlag.AlignHCenter)
 
         root_layout.spacing = 20
         root_layout.set_contents_margins(0, 0, 0, 0)
@@ -347,6 +363,17 @@ class QSettingsOptimizationTab(QWidget):
         self._iterations_setting.valueChanged.connect(self.iterationsChanged.emit)
         self._population_size_setting.valueChanged.connect(self.populationSizeChanged.emit)
         self._mutation_rate_setting.realValueChanged.connect(self.mutationRateChanged.emit)
+        self._stop_button.clicked.connect(self.stopRequested.emit)
+
+    def _refresh_state(self) -> None:
+        locked = self._sim_playing or self._is_optimizing
+        self._combo_box.set_disabled(locked)
+        self._target_combo_box.set_disabled(locked)
+        self._threshold_setting.set_disabled(locked)
+        self._iterations_setting.set_disabled(locked)
+        self._population_size_setting.set_disabled(locked)
+        self._mutation_rate_setting.set_disabled(locked)
+        self._stop_button.set_disabled(not self._is_optimizing)
 
     @property
     def constraint_method(self) -> str:
@@ -395,13 +422,16 @@ class QSettingsOptimizationTab(QWidget):
         return self._sim_playing
     @sim_playing.setter
     def sim_playing(self, value: bool) -> None:
-        self._iterations_setting.set_disabled(value)
-        self._combo_box.set_disabled(value)
-        self._target_combo_box.set_disabled(value)
-        self._threshold_setting.set_disabled(value)
-        self._population_size_setting.set_disabled(value)
-        self._mutation_rate_setting.set_disabled(value)
         self._sim_playing = value
+        self._refresh_state()
+
+    @property
+    def is_optimizing(self) -> bool:
+        return self._is_optimizing
+    @is_optimizing.setter
+    def is_optimizing(self, value: bool) -> None:
+        self._is_optimizing = value
+        self._refresh_state()
 
 class QSettingsSideBar(QWidget):
     constraintChanged = Signal(str)
@@ -423,6 +453,7 @@ class QSettingsSideBar(QWidget):
     staircaseStateChanged = Signal(int)
     saveRequested = Signal()
     clearRequested = Signal()
+    stopRequested = Signal()
 
     def __init__(self, parent: QWidget | None = None):
         super().__init__(parent)
@@ -507,6 +538,7 @@ class QSettingsSideBar(QWidget):
         self._optimization_tab.mutationRateChanged.connect(self.mutationRateChanged.emit)
         self._optimization_tab.iterationsChanged.connect(self.iterationsChanged.emit)
         self._optimization_tab.thresholdChanged.connect(self.thresholdChanged.emit)
+        self._optimization_tab.stopRequested.connect(self.stopRequested.emit)
 
         self._side_button.pressed.connect(self._on_side_button_pressed)
 
@@ -668,6 +700,14 @@ class QSettingsSideBar(QWidget):
             self._general_tab.hide()
             self._optimization_tab.show()
 
+    def set_optimization_tab_active(self) -> None:
+        self._optimization_button.checked = True
+        self._general_button.checked = False
+        self._current_tab = 1
+        self._general_tab.hide()
+        self._optimization_tab.show()
+        self.is_collapsed = False
+
     @Slot()
     def _on_side_button_pressed(self):
         if self.is_collapsed:
@@ -707,3 +747,10 @@ class QSettingsSideBar(QWidget):
         self._general_tab.sim_playing = value
         self._optimization_tab.sim_playing = value
         self._sim_playing = value
+
+    @property
+    def is_optimizing(self):
+        return self._optimization_tab.is_optimizing
+    @is_optimizing.setter
+    def is_optimizing(self, value: bool):
+        self._optimization_tab.is_optimizing = value

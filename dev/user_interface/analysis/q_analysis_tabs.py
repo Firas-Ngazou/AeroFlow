@@ -143,6 +143,9 @@ class QOptimizationAnalysis(QWidget):
 
     def reset_graph(self):
         self._graph.reset()
+        self.gain_value = " - "
+        self.projected_drag = " - "
+        self.projected_lift = " - "
 
 class QResultAnalysis(QWidget):
     """
@@ -339,6 +342,9 @@ class QAnalysisWidget(QFloatingWidget):
     def set_results_tab_active(self) -> None:
         self._tabs.set_current_widget(self._results_tab)
 
+    def set_optimization_tab_active(self) -> None:
+        self._tabs.set_current_widget(self._optimization_tab)
+
     @property
     def drag_coef_value(self):
         return self._results_tab.drag_coef_field_value
@@ -452,6 +458,8 @@ class QAnalysisWidget(QFloatingWidget):
 
     def reset_opt_graph(self) -> None:
         self._optimization_tab.reset_graph()
+        self.simulation_progress = 0
+        self.simulation_info_label = " - "
 
     @property
     def opt_gain(self):
@@ -460,6 +468,10 @@ class QAnalysisWidget(QFloatingWidget):
     def opt_gain(self, value: float) -> None:
         self._optimization_tab.gain_value = value
 
+    @Slot(float)
+    def set_opt_gain(self, value: float) -> None:
+        self.opt_gain = value
+
     @property
     def opt_projected_drag(self):
         return self._optimization_tab.projected_drag
@@ -467,9 +479,17 @@ class QAnalysisWidget(QFloatingWidget):
     def opt_projected_drag(self, value: float) -> None:
         self._optimization_tab.projected_drag = value
 
+    @Slot(float)
+    def set_opt_projected_drag(self, value: float) -> None:
+        self.opt_projected_drag = value
+
     @property
     def opt_projected_lift(self):
         return self._optimization_tab.projected_lift
     @opt_projected_lift.setter
     def opt_projected_lift(self, value: float) -> None:
         self._optimization_tab.projected_lift = value
+
+    @Slot(float)
+    def set_opt_projected_lift(self, value: float) -> None:
+        self.opt_projected_lift = value
