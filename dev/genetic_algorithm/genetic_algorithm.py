@@ -95,7 +95,7 @@ class GeneticAlgorithm(QObject):
                 print("Distance verification")
                 is_valid = True
             elif self.constraint_method == "SURFACE":
-                # is_valid = self.__verify_area(mutated_vertices) #TEST
+                is_valid = self.__verify_area(mutated_vertices)
                 print("Surface verification")
                 is_valid = True
             else:
@@ -251,12 +251,12 @@ class GeneticAlgorithm(QObject):
     def population(self):
         return self._population_size
     @population.setter
-    def threshold(self, value: int):
+    def population(self, value: int):
         self._population_size = value
     
     @property
     def rate(self):
         return self._mutation_rate
     @rate.setter
-    def threshold(self, value: float):
+    def rate(self, value: float):
         self._mutation_rate = value
