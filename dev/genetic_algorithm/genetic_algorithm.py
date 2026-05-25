@@ -58,7 +58,7 @@ class GeneticAlgorithm(QObject):
         self._initial_coef: float | None = None
 
         self._current_population: list[np.ndarray] = []
-        self._best_data: dict[str, any] = {}
+        self._best_data: dict = {}
         self._base = None
 
     def optimize(self, vertices: np.ndarray) -> None:
