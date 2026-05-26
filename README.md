@@ -135,7 +135,7 @@ AeroFlow/
 | Membre | Rôle | Contributions |
 |--------|------|--------------|
 | **Firas Ngazou** [@Firas-Ngazou](https://github.com/Firas-Ngazou) | Architecture principale, UI/UX, éditeur vectoriel | Conception de l'interface, gestion des projets, expérience utilisateur |
-| **Mehdi Achouri** [@Mehdiii07](https://github.com/Mehdiii07) | Physique computationnelle | Modèle Lattice Boltzmann, calculs de traînée et portance, heatmap |
+| **Mehdi Achouri** [@Mehdiii07](https://github.com/Mehdiii07) | Physique computationnelle | Modèle Lattice Boltzmann, calculs de traînée et portance |
 | **Quang-Vinh Nguyen** [@vinh9336](https://github.com/vinh9336) | Intelligence artificielle | Modélisation et implémentation de l'algorithme génétique, contraintes géométriques |
 
 ---
@@ -149,9 +149,5 @@ Ce projet est réalisé dans le cadre du cours **420-SF4-RE — Projet d'intégr
 - **Mathématiques** : Algèbre linéaire, géométrie vectorielle, optimisation évolutionnaire
 
 ---
-
-## Licence
-
-Ce projet est sous licence MIT. Voir le fichier [LICENSE](./LICENSE) pour plus de détails.
 
 > **Note** : Ce projet est à but académique. Les simulations sont basées sur des hypothèses simplifiées (écoulement 2D, fluide incompressible, $Ma < 0.3$) et ne remplacent pas des outils de simulation professionnels.

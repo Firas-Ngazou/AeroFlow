@@ -52,6 +52,8 @@ class AeroFlow:
     def __init__(self, splash_screen: QSplashScreen | None = None) -> None:
         self._window = FramelessWindow()
         self._window.resize(1920, 1080)
+        self._window.window_icon = QIcon(":/res/app_logo_squared.png")
+        self._window.window_title = "AeroFlow"
 
         self._home_page_title_bar: TitleBar | None = None
         self._project_page_title_bar: TitleBar | None = None
