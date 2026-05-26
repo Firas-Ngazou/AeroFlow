@@ -407,8 +407,19 @@ class GeneticAlgorithm(QObject):
         if self.constraint_method != "DISTANCE" or self._base is None:
             return True
 
-        max_deviation = np.max(np.abs(self._base - vertices))
-        return max_deviation <= self.threshold
+        if len(self._base) != len(vertices):
+            return False
+
+        dx = vertices[1:-1, 0] - self._base[1:-1, 0]
+        dy = vertices[1:-1, 1] - self._base[1:-1, 1]
+        
+        pythagorean_distances = np.sqrt(dx**2 + dy**2)
+        
+        if len(pythagorean_distances) == 0:
+            return True
+            
+        max_spatial_deviation = np.max(pythagorean_distances)
+        return max_spatial_deviation <= self.threshold
 
     def __verify_area(self, vertices: np.ndarray) -> bool:
         """
