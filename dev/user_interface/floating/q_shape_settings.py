@@ -168,6 +168,7 @@ class QFloatingShapeMenu(QWidget):
         self._line_edit.clear()
         self._line_edit.hide()
         self._save_btn.show()
+        self._optimize_btn.show()
         self._cancel_btn.show()
         self._text_eligible = False
         self.hide()
