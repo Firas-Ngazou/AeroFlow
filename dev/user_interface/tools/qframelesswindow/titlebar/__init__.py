@@ -43,7 +43,7 @@ class TitleBarBase(QWidget):
     def event_filter(self, obj, e):
         if obj is self.window():
             if e.type() == QEvent.Type.WindowStateChange:
-                self.maxBtn.set_max_state(self.window().is_maximized())
+                self.maxBtn.set_max_state(self.window().is_maximized)
                 return False
 
         return super().event_filter(obj, e)

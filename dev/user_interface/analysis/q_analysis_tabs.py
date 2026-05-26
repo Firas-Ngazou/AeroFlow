@@ -125,7 +125,7 @@ class QOptimizationAnalysis(QWidget):
         self._primary_layout = QVBoxLayout(self)
 
         self._performance_gain_field = QResultField("Gain de performance [%]")
-        self._initial_projected_drag = QResultField("Trainé projetée [-]")
+        self._initial_projected_drag = QResultField("Traînée projetée [-]")
         self._initial_projected_lift = QResultField("Portance projetée [-]")
 
         self._gain_value = 0
@@ -281,7 +281,7 @@ class QResultAnalysis(QWidget):
         self._mach_number_field = QResultField("Nombre max de Mach [-]")
         self._kinetic_energy_field = QResultField("Énergie cinétique [J]")
         self._pressure_drop_field = QResultField("Chute de pression [Pa]")
-        self._total_mass_field = QResultField("Poids total [kg]")
+        self._total_mass_field = QResultField("Poids total [pixels]")
         self._total_enstrophy_field = QResultField("Enstrophie total [-]")
         self._max_vorticity_field = QResultField("Vorticité maximale [s⁻¹]")
 

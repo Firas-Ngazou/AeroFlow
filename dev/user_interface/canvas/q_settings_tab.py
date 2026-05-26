@@ -558,7 +558,7 @@ class QSettingsOptimizationTab(QWidget):
         self._mutation_rate_setting.tool_tip = ("Probabilité qu'un point soit modifié lors de la création d'une "
                                                 "nouvelle variation.")
 
-        self._stop_button = QSpecialSettingPB("DOBEŠ", False)
+        self._stop_button = QSpecialSettingPB("ARRÊT", False)
         self._stop_button.font = QFont("JetBrains Mono", 12)
         self._stop_button.set_disabled(True)
         self._stop_button.height = 30
