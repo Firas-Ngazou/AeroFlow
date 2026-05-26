@@ -223,7 +223,7 @@ QPushButton[class="info_pb"]{
     background-color: transparent;
     padding-left: 2px;
     padding-right: 2px;
-    border-radius: 15px;
+    border-radius: 12px;
     border: 2px solid #F5F5F5;
 }
 QPushButton[class="info_pb"]:hover{

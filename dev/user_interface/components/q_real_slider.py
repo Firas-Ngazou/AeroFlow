@@ -1,14 +1,26 @@
 from dev.user_interface.tools.float_comparator import is_not_close, is_less
-from PySide6.QtCore import Signal, Slot
+
+# -----------------------------------------------------------------------------
+import PySide6
+from __feature__ import snake_case, true_property  # type: ignore[import-not-found]
+# -----------------------------------------------------------------------------
+
+from PySide6.QtCore import Signal, Slot, Property
 from PySide6.QtWidgets import QWidget, QSlider
+
+# -----------------------------------------------------------------------------
+from shibokensupport import feature  # type: ignore[import-not-found]
+
+feature.set_selection(feature.snake_case | feature.true_property)
+assert "snake_case" in feature.info() and "true_property" in feature.info()
+# -----------------------------------------------------------------------------
+
 from dev.user_interface.tools.q_utils import BlockSignals
 
 
 # -----------------------------------------------------------------------------
 # NOTES
 # -----------------------------------------------------------------------------
-# THIS IS JUST A QSLIDER ADAPTATION FROM THE ORIGINAL QREALSCROLLBAR
-#
 # Qt's vs Python's properties
 # @Property vs @property
 #
@@ -95,6 +107,17 @@ class QRealSlider(QSlider):
 
         self._setup()
 
+    def _set_super_property(self, name: str, value: int) -> None:
+        # Since `super()` returns a proxy object, writing `super().value = ...`
+        # fails. The expression `super().value` calls the parent's getter and
+        # returns its result (a value), to which a new value cannot be assigned
+        # as intended. The property object itself is not returned. The
+        # workaround is to access the property's setter directly via `.fset()`.
+        #
+        # Sets a property on the parent QSlider using the fset workaround.
+        prop = getattr(super(QRealSlider, QRealSlider), name)
+        prop.fset(self, value)
+
     def _to_real_scale(self, int_value: int) -> float:
         return self._range_scale * int_value
 
@@ -107,40 +130,44 @@ class QRealSlider(QSlider):
     def _to_int_index(self, real_value: float) -> int:
         return round((real_value - self._real_minimum) / self._range_scale)
 
-    def _setup(self) -> None:
-        slide_value: float = self.value()
+    def _setup(self) -> None:  # Signals are blocked when calling this method
+
+        slide_value: float = self.value
 
         with BlockSignals(self):
             self._precision_scale = 10 ** self._decimals
-            super().setRange(0, int(round(self._precision_scale * (self._real_maximum - self._real_minimum))))
+            super().set_range(0, int(round(self._precision_scale * (self._real_maximum - self._real_minimum))))
 
             self._range_scale = (self._real_maximum - self._real_minimum) / (
-                    super().maximum() - super().minimum())
+                        super().maximum - super().minimum)  # Since minimum < maximum, the division is safe
 
-            super().setSingleStep(self._to_int_scale(self._single_step))
-            super().setPageStep(self._to_int_scale(self._page_step))
+            self._set_super_property("single_step", self._to_int_scale(self._single_step))
+            self._set_super_property("page_step", self._to_int_scale(self._page_step))
 
-            self.setValue(slide_value)
+            self.value = slide_value  # type: ignore[method-assign] # notes: [2] see Notes at the end of the file
 
-        if is_not_close(slide_value, self.value()):
-            self.realValueChanged.emit(self.value())
+        if is_not_close(slide_value, self.value):  # if the value was changed by the modification of the range
+            self.realValueChanged.emit(self.value)
 
     @Slot(int)
     def _on_value_changed(self, _: int) -> None:
-        self.realValueChanged.emit(self.value())
+        self.realValueChanged.emit(self.value)
 
     @Slot(int)
     def _on_slider_moved(self, _: int) -> None:
-        self.realSliderMoved.emit(self.value())
+        self.realSliderMoved.emit(self.value)
 
     @Slot(int, int)
     def _on_range_changed(self, min: int, max: int) -> None:
         self.realRangeChanged.emit(self._real_minimum, self._real_maximum)
 
+    @Property(int)
     def decimals(self) -> int:
+        """The number of decimal places used for float values (1 to 6)."""
         return self._decimals
 
-    def setDecimals(self, value: int) -> None:
+    @decimals.setter  # type: ignore[no-redef]
+    def decimals(self, value: int) -> None:
         if not isinstance(value, int):
             raise TypeError('decimals must be an int')
         if not 0 < value <= 6:
@@ -150,33 +177,44 @@ class QRealSlider(QSlider):
             self._setup()
             self.decimalsChanged.emit(self._decimals)
 
+    @Property(float)
     def minimum(self) -> float:
+        """The minimum value of the slider's range."""
         return self._real_minimum
 
-    def setMinimum(self, value: float | int) -> None:
-        self.setRange(float(value), self._real_maximum)
+    @minimum.setter  # type: ignore[no-redef] # notes: [1] see Notes at the end of the file
+    def minimum(self, value: float | int) -> None:
+        self.set_range(float(value), self._real_maximum)
 
+    @Property(float)
     def maximum(self) -> float:
+        """The maximum value of the slider's range."""
         return self._real_maximum
 
-    def setMaximum(self, value: float | int) -> None:
-        self.setRange(self._real_minimum, float(value))
+    @maximum.setter  # type: ignore[no-redef] # notes: [1] see Notes at the end of the file
+    def maximum(self, value: float | int) -> None:
+        self.set_range(self._real_minimum, float(value))
 
+    @Property(float)
     def value(self) -> float:
-        return self._to_real_value(super().value())
+        """The current float value of the slider."""
+        return self._to_real_value(super().value)
 
-    @Slot(float)
-    def setValue(self, value: float | int) -> None:
+    @value.setter  # type: ignore[no-redef] # notes: [1] see Notes at the end of the file
+    def value(self, value: float | int) -> None:
         if not isinstance(value, (float, int)):
             raise TypeError('value must be a float or int')
         value = float(value)
-        if is_not_close(value, self.value()):
-            super().setValue(self._to_int_index(value))
+        if is_not_close(value, self.value):
+            self._set_super_property('value', self._to_int_index(value))
 
-    def singleStep(self) -> float:
+    @Property(float)
+    def single_step(self) -> float:
+        """The small step size for arrow clicks."""
         return self._single_step
 
-    def setSingleStep(self, value: float | int) -> None:
+    @single_step.setter  # type: ignore[no-redef] # notes: [1] see Notes at the end of the file
+    def single_step(self, value: float | int) -> None:
         if not isinstance(value, (float, int)):
             raise TypeError('single_step must be a float or int')
         value = float(value)
@@ -184,10 +222,13 @@ class QRealSlider(QSlider):
             self._single_step = value
             self._setup()
 
-    def pageStep(self) -> float:
+    @Property(float)
+    def page_step(self) -> float:
+        """The large step size for page up/down clicks."""
         return self._page_step
 
-    def setPageStep(self, value: float | int) -> None:
+    @page_step.setter  # type: ignore[no-redef] # notes: [1] see Notes at the end of the file
+    def page_step(self, value: float | int) -> None:
         if not isinstance(value, (float, int)):
             raise TypeError('page_step must be a float or int')
         value = float(value)
@@ -196,7 +237,8 @@ class QRealSlider(QSlider):
             self._setup()
 
     @Slot(float, float)
-    def setRange(self, minimum: float | int, maximum: float | int) -> None:
+    def set_range(self, minimum: float | int, maximum: float | int) -> None:
+        """Sets the slider's range from a float minimum to a float maximum."""
         if not isinstance(minimum, (float, int)):
             raise TypeError('minimum must be a float or int')
         if not isinstance(maximum, (float, int)):
@@ -211,19 +253,7 @@ class QRealSlider(QSlider):
             self._setup()
             self.realRangeChanged.emit(self._real_minimum, self._real_maximum)
 
-# Notes:
-# - [1] The `# type: ignore[no-redef]` comments are used to suppress mypy
-#       warnings about method redefinition when overriding properties. This
-#       is a known limitation in mypy's handling of properties in subclasses.
-#
-#       In this case, MyPy generate a false positive, as @Property is not
-#       recognized but should be.
-#
-# - [2] The `# type: ignore[method-assign]` comments are used to suppress mypy
-#       warnings about assigning to properties that are defined with the
-#       @Property decorator. This is necessary because mypy does not
-#       recognize the dynamic nature of these properties and assumes
-#       they are regular attributes.
-#
-#       In this case, MyPy generate a false positive, as @Property is not
-#       recognized but should be.
+    @Slot(float)
+    def set_value(self, value: float | int) -> None:
+        """Sets the current value of the slider. This is a slot version of the value setter."""
+        self.value = value  # type: ignore[method-assign] # notes: [2] see Notes at the end of the file

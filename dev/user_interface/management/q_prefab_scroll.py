@@ -1,6 +1,12 @@
 import json
 import os
 
+import PySide6
+from __feature__ import snake_case, true_property  # type: ignore[import-not-found]
+
+import dev.user_interface.tools.q_wrapper as q_wrapper
+q_wrapper.apply_all_wrappers()
+
 from PySide6.QtCore import Qt, QByteArray, Slot, Signal
 from PySide6.QtGui import QPixmap, QFont
 from PySide6.QtWidgets import QWidget, QScrollArea, QHBoxLayout, QFrame, QVBoxLayout, QLabel, QPushButton
@@ -45,38 +51,38 @@ class QShapePrefab(QFrame):
 
         # Setup
         font = QFont("JetBrains Mono", 9)
-        self.setMouseTracking(True)
-        self.setObjectName("shape_prefab_frame")
+        self.mouse_tracking = True
+        self.object_name = "shape_prefab_frame"
 
-        self.setFixedSize(100, 100)
-        self.setProperty("class", "primary_frame")
-        self.setToolTip(data.get("Name", " - "))
+        self.set_fixed_size(100, 100)
+        self.set_property("class", "primary_frame")
+        self.tool_tip = data.get("Name", " - ")
 
         # Pixmap setup
         self._image_label = QLabel()
-        self._image_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self._image_label.alignment = Qt.AlignmentFlag.AlignCenter
 
         # Buttons
         self._delete_button = QPushButton(self)
-        self._delete_button.setText("Supprimer")
-        self._delete_button.setFont(font)
-        self._delete_button.setProperty("class", "delete_pb")
+        self._delete_button.text = "Supprimer"
+        self._delete_button.font = font
+        self._delete_button.set_property("class", "delete_pb")
         self._delete_button.hide()
 
         self._cancel_button = QPushButton(self)
-        self._cancel_button.setText("Annuler")
-        self._cancel_button.setFont(font)
-        self._cancel_button.setProperty("class", "shape_settings_pb")
+        self._cancel_button.text = "Annuler"
+        self._cancel_button.font = font
+        self._cancel_button.set_property("class", "shape_settings_pb")
         self._cancel_button.hide()
 
         self._settings_visible = False
 
         # Layout
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(5, 5, 5, 5)
-        layout.addWidget(self._image_label)
-        layout.addWidget(self._delete_button)
-        layout.addWidget(self._cancel_button)
+        layout.set_contents_margins(5, 5, 5, 5)
+        layout.add_widget(self._image_label)
+        layout.add_widget(self._delete_button)
+        layout.add_widget(self._cancel_button)
 
         # Make pixmap
         self._name = data.get("Name", "")
@@ -87,15 +93,15 @@ class QShapePrefab(QFrame):
 
         preview_base64 = data.get("Preview", "")
         if preview_base64:
-            byte_array = QByteArray.fromBase64(preview_base64.encode("utf-8"))
+            byte_array = QByteArray.from_base64(preview_base64.encode("utf-8"))
             pixmap = QPixmap()
-            pixmap.loadFromData(byte_array)
+            pixmap.load_from_data(byte_array)
 
             scaled_pixmap = pixmap.scaled(80, 80, Qt.AspectRatioMode.KeepAspectRatio,
                                           Qt.TransformationMode.SmoothTransformation)
-            self._image_label.setPixmap(scaled_pixmap)
+            self._image_label.pixmap = scaled_pixmap
 
-    def enterEvent(self, event):
+    def enter_event(self, event):
         """
         Handles the event when the user interacts with the widget.
 
@@ -108,9 +114,9 @@ class QShapePrefab(QFrame):
         :return: None
         """
         if not self._settings_visible:
-            self.setStyleSheet("#shape_prefab_frame {background-color: rgba(245, 245, 245, 10);}")
+            self.style_sheet = "#shape_prefab_frame {background-color: rgba(245, 245, 245, 10);}"
 
-    def leaveEvent(self, event):
+    def leave_event(self, event):
         """
         Handles the leave event triggered when the mouse cursor leaves the widget.
 
@@ -120,10 +126,10 @@ class QShapePrefab(QFrame):
         :param event: The `QEvent` instance corresponding to the leave event.
         :return: None
         """
-        self.setStyleSheet("#shape_prefab_frame {background-color: transparent;}")
+        self.style_sheet = "#shape_prefab_frame {background-color: transparent;}"
         self._set_settings_visible(False)
 
-    def mousePressEvent(self, event):
+    def mouse_press_event(self, event):
         """
         Handles mouse press events and performs specific actions based on the mouse button pressed.
 
@@ -140,7 +146,7 @@ class QShapePrefab(QFrame):
         if not self._settings_visible and event.button() == Qt.MouseButton.LeftButton:
             self.instanceRequested.emit(self._name)
 
-        super().mousePressEvent(event)
+        super().mouse_press_event(event)
 
     def _set_settings_visible(self, visible: bool):
         """
@@ -151,8 +157,8 @@ class QShapePrefab(QFrame):
             visible or not.
         :return: None
         """
-        self._delete_button.setVisible(visible)
-        self._cancel_button.setVisible(visible)
+        self._delete_button.visible = visible
+        self._cancel_button.visible = visible
         self._settings_visible = visible
 
     @Slot()
@@ -207,36 +213,36 @@ class QPrefabScroll(QWidget):
 
         # Main layout
         main_layout = QVBoxLayout(self)
-        main_layout.setContentsMargins(0, 0, 0, 0)
+        main_layout.set_contents_margins(0, 0, 0, 0)
 
         # Frame
         self._frame = QFrame(self)
-        self._frame.setFixedWidth(600)
-        self._frame.setMinimumHeight(150)
-        self._frame.setProperty("class", "primary_frame")
-        main_layout.addWidget(self._frame)
+        self._frame.set_fixed_width(600)
+        self._frame.minimum_height = 150
+        self._frame.set_property("class", "primary_frame")
+        main_layout.add_widget(self._frame)
 
         frame_layout = QVBoxLayout(self._frame)
-        frame_layout.setContentsMargins(15, 15, 15, 15)
+        frame_layout.set_contents_margins(15, 15, 15, 15)
 
         # Scroll area
         self._scroll_area = QScrollArea(self._frame)
-        self._scroll_area.setWidgetResizable(True)
-        self._scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        self._scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOn)
+        self._scroll_area.widget_resizable = True
+        self._scroll_area.vertical_scroll_bar_policy = Qt.ScrollBarPolicy.ScrollBarAlwaysOff
+        self._scroll_area.horizontal_scroll_bar_policy = Qt.ScrollBarPolicy.ScrollBarAlwaysOn
 
-        self._scroll_area.setFrameShape(QFrame.Shape.NoFrame)
+        self._scroll_area.frame_shape = QFrame.Shape.NoFrame
 
         self._scroll_content = QWidget()
         self._scroll_layout = QHBoxLayout(self._scroll_content)
-        self._scroll_layout.setContentsMargins(0, 0, 0, 0)
-        self._scroll_layout.setSpacing(15)
-        self._scroll_layout.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+        self._scroll_layout.set_contents_margins(0, 0, 0, 0)
+        self._scroll_layout.spacing = 15
+        self._scroll_layout.alignment = Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter
 
-        self._scroll_layout.addStretch()
+        self._scroll_layout.add_stretch()
 
-        self._scroll_area.setWidget(self._scroll_content)
-        frame_layout.addWidget(self._scroll_area)
+        self._scroll_area.set_widget(self._scroll_content)
+        frame_layout.add_widget(self._scroll_area)
 
         self._load_prefabs()
 
@@ -308,7 +314,7 @@ class QPrefabScroll(QWidget):
         prefab.deleteRequested.connect(self._delete_prefab)
         prefab.instanceRequested.connect(self._on_instance_requested)
         count = self._scroll_layout.count()
-        self._scroll_layout.insertWidget(count - 1, prefab)
+        self._scroll_layout.insert_widget(count - 1, prefab)
 
         if update_save:
             self._update_save_path(data)
@@ -357,8 +363,8 @@ class QPrefabScroll(QWidget):
         """
         sender = self.sender()
         if sender:
-            self._scroll_layout.removeWidget(sender)
-            sender.deleteLater()
+            self._scroll_layout.remove_widget(sender)
+            sender.delete_later()
             self._delete_from_save(name)
 
     def _delete_from_save(self, name: str):
