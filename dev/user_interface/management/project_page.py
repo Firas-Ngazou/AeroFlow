@@ -402,6 +402,7 @@ class ProjectPage(QWidget):
         self._tool_bar.is_optimizing = False
         self._settings_side_bar.is_optimizing = False
         self._is_optimizing = False
+        self._editor.vectorDrawingChanged.emit()
 
         self._tool_bar.has_drawing = self._editor.has_drawing
         if not self._settings_side_bar.sim_playing: self._editor.disable_settings = False

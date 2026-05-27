@@ -179,41 +179,27 @@ class QToolBar(QWidget):
         """
         return """
         <div style="text-align: left;">
-            <h1>Canvas editor manual</h1>
-
-            <h2>Toolbar</h2>
-            <p><b>Cursor:</b> select shapes and edit their points.</p>
-            <p><b>Pen:</b> draw a new shape point by point.</p>
-            <p><b>Play:</b> start or stop the simulation preview.</p>
-            <p><b>Shapes:</b> open saved prefabs and place them on the canvas.</p>
-
-            <h2>Draw a shape</h2>
-            <p>Choose the Pen, then left-click to place points.</p>
-            <p>Click the first point again to close and finish the shape.</p>
-
-            <h2>Select and edit</h2>
-            <p>Choose the Cursor, then left-click a shape to edit it.</p>
-            <p>Drag a point to move it. Hold Shift while dragging to snap it to the grid.</p>
-            <p>Drag an empty area to select several points. Hold Shift to add to the selection.</p>
-            <p>Click a small point between two vertices to insert a new point.</p>
-            <p>Press Escape to leave the current shape.</p>
-
-            <h2>Move, scale, and rotate</h2>
-            <p>Select two or more points, then use:</p>
-            <p><b>A:</b> select all vertices.</p>
-            <p><b>G:</b> move the selection.</p>
-            <p><b>S:</b> scale the selection.</p>
-            <p><b>R:</b> rotate the selection.</p>
-            <p>Left-click to confirm a transform. Right-click to cancel it.</p>
-
-            <h2>Delete and undo</h2>
-            <p>Press Delete or Backspace to remove selected points.</p>
-            <p>Hold Ctrl and drag a red rectangle to delete points or whole shapes.</p>
-            <p>Use Ctrl+Z to undo and Ctrl+Shift+Z to redo.</p>
-
-            <h2>Save and optimize</h2>
-            <p>Right-click a shape to open its menu.</p>
-            <p>Use Save to store it as a prefab, or Optimize to improve its form.</p>
+            <h2>Raccourcis</h2>
+            <p><b>Clic gauche (Crayon)</b> : Placer un point / Fermer la forme</p>
+            <p><b>Clic gauche (Curseur)</b> : Éditer une forme</p>
+            <p><b>Échap</b> : Quitter la forme courante</p>
+            <p><b>Glisser un point</b> : Déplacer</p>
+            <p><b>Maj + Glisser</b> : Aligner sur la grille</p>
+            <p><b>Glisser dans le vide</b> : Sélection multiple</p>
+            <p><b>Maj + Sélection</b> : Ajouter à la sélection</p>
+            <p><b>Clic entre deux points</b> : Insérer un point</p>
+            <p><b>A</b> : Tout sélectionner (les points)</p>
+            <p><b>G</b> : Déplacer la sélection</p>
+            <p><b>S</b> : Redimensionner la sélection</p>
+            <p><b>R</b> : Pivoter la sélection</p>
+            <p><b>Clic gauche</b> : Confirmer la transformation</p>
+            <p><b>Clic droit</b> : Annuler la transformation</p>
+            <p><b>Suppr / Retour arrière</b> : Supprimer la sélection</p>
+            <p><b>Ctrl + Glisser</b> : Rectangle rouge pour supprimer (points/formes)</p>
+            <p><b>Ctrl + Z</b> : Annuler</p>
+            <p><b>Ctrl + Maj + Z</b> : Rétablir</p>
+            <p><b>Clic droit sur une forme</b> : Menu Sauvegarder / Optimiser</p>
+            <p><b>Rédiger avec l'aide de Gemini</p>
         </div>
         """
 

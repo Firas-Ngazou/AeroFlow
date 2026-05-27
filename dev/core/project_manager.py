@@ -440,8 +440,8 @@ class ProjectManager(QObject):
         wind_speed = self._ini_config.getfloat("Simulation", "Wind_speed")
         viscosity = self._ini_config.getfloat("Simulation", "Viscosity")
 
-        constraint_method = self._ini_config.get("Optimization", "Constraint_method")
-        target = self._ini_config.get("Optimization", "Target", fallback = "TRAÎNÉ")
+        constraint_method = self._ini_config.get("Optimization", "Constraint_method", fallback = "SURFACE")
+        target = self._ini_config.get("Optimization", "Target", fallback = "PORTANCE")
         type_name = self._ini_config.get("Optimization", "Type", fallback = "MINIMUM")
         iterations = self._ini_config.getint("Optimization", "Iterations")
         threshold = self._ini_config.getfloat("Optimization", "Constraint_threshold")

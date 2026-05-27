@@ -8,7 +8,7 @@ Vous devez produire un rapport final présentant de manière structurée et dét
 
 Ce rapport doit répondre aux questions énoncées avec un maximum de **précision**, de **concision** tout en utilisant un vocabulaire aussi **technique** que possible (considérez que vous vous adressez à des mathématiciens, scientifiques et spécialistes de l'intégration logicielle). 
 
-Pour la rédaction de ce rapport, vous **ne pouvez pas** utiliser l'intelligence artificielle pour quelque partie que ce soit. Ce rapport doit être entièrement réalisé par les membres de l'équipe, reflétant ainsi votre compréhension et votre synthèse du projet. Ce document doit être fait sérieusement et professionnellement, en respectant les normes académiques et les exigences spécifiques du cours.
+
 
 ## Structure du rapport
 
